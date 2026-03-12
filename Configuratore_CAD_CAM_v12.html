@@ -1013,7 +1013,24 @@ const LAVORAZIONI = [
   {id:"ponte_avv",e:IC.ponte_avv, l:"Ponte / Arcata\nAvvitata",         s:"Struttura plurale avvitata",         d:"Ponte o arcata avvitata direttamente sugli impianti. Struttura rimovibile dal clinico; ideale per Toronto e carichi immediati.",multi:true, tiBase:false},
   {id:"barre",    e:IC.barre,     l:"Barra Implantare",                 s:"Elite · Fast · Implant Check",       d:"Barra di connessione tra impianti per overdenture o protesi fissa. Disponibile in versione Elite (precision milled), Fast e Implant Check (verifica pre-protesica).",multi:true, tiBase:false},
 
-  {id:"naturali", e:IC.naturali,  l:"Corona/Ponte\nsu Denti Naturali",  s:"Senza componenti implantari",        d:"Corone e ponti su preparazione dentale naturale. Nessun componente implantare incluso. Ideale per restauri in ceramica o zirconia su monconi naturali.",multi:false,tiBase:false}
+  {id:"naturali", e:IC.naturali,  l:"Corona/Ponte\nsu Denti Naturali",  s:"Senza componenti implantari",        d:"Corone e ponti su preparazione dentale naturale. Nessun componente implantare incluso. Ideale per restauri in ceramica o zirconia su monconi naturali.",multi:false,tiBase:false},
+
+  // #BeFree Abutment Custom
+  {id:"befree", e:`<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="19" y="33" width="10" height="13" rx="5"/><line x1="19" y1="37" x2="29" y2="37"/><line x1="19" y1="41" x2="29" y2="41"/><path d="M21 33 L20 27 Q20 22 24 20 Q28 22 28 27 L27 33Z"/><path d="M16 27 Q14 18 24 14 Q34 18 32 27" stroke-dasharray="2.5 2" stroke-width="1.4"/><path d="M37 8 L38.2 11.5 L42 11.5 L39 13.8 L40.2 17.3 L37 15 L33.8 17.3 L35 13.8 L32 11.5 L35.8 11.5Z" stroke-width="1.2"/></svg>`,
+   l:"#BeFree\nAbutment Custom", s:"Da impronta o campione fisico",
+   d:"Abutment personalizzati su impronta analogica o campione fisico. Spedisci i materiali: Ti Base, MUA 4.8mm, Monconi Titanio JT, Transfer e Cappette di Guarigione su misura.",
+   multi:false, tiBase:false, befree:true}
+];
+
+// ── MATERIALI #BeFree — prezzi fissi per prodotto (non usano getPrice) ──
+const BEFREE_PRODOTTI = [
+  {id:"tibase",    n:"Ti Base Personalizzato",          s:"Dritto o Inclinato",                   prezzo:55,  iva:4,  e:"🔩"},
+  {id:"analogo",   n:"Analogo Personalizzato",           s:"Da Gesso o Digitale",                  prezzo:55,  iva:22, e:"🧩"},
+  {id:"mua_dritto",n:"MUA Standard 4.8mm Dritto",       s:"Multi Unit Abutment dritto su misura",  prezzo:70,  iva:4,  e:"⬆️"},
+  {id:"mua_incl",  n:"MUA Standard 4.8mm Inclinato",    s:"Multi Unit Abutment angolato su misura",prezzo:120, iva:4,  e:"↗️"},
+  {id:"titanio_jt",n:"Moncone Titanio JT Personalizzato",s:"Dritto o Inclinato, Titanio gr.5",    prezzo:75,  iva:4,  e:"🦷"},
+  {id:"transfer",  n:"Transfer da Impronta Personalizzato",s:"AISI 303 / Titanio gr.5",           prezzo:75,  iva:22, e:"📐"},
+  {id:"cappetta",  n:"Cappetta di Guarigione Personalizzata",s:"Titanio gr.5",                    prezzo:55,  iva:4,  e:"🔒"},
 ];
 
 const WORKFLOWS = [
@@ -1076,13 +1093,47 @@ const SUPABASE_KEY = "sb_publishable_HXVNXs1d0mjbVg7gp_D-Cw_IrakErzk";
 async function saveOrderToSupabase(fileLink, fileName) {
   if (SUPABASE_URL.includes("YOUR_PROJECT")) return;
   const lav = LAVORAZIONI.find(x => x.id === state.lavId);
+
+  // Payload BeFree
+  if(lav && lav.befree) {
+    const prod = BEFREE_PRODOTTI[state.befreeProdIdx] || {};
+    const payload = {
+      nome: cliente.nome, cognome: cliente.cognome,
+      azienda: cliente.azienda, telefono: cliente.telefono,
+      email: cliente.email || null, piva: cliente.piva || null,
+      ind_fattura: cliente.indFattura || null, citta_fattura: cliente.cittaFattura || null,
+      cap_fattura: cliente.capFattura || null, prov_fattura: cliente.provFattura || null,
+      same_spedizione: cliente.sameSpedizione,
+      ind_spedizione: cliente.sameSpedizione ? null : (cliente.indSpedizione || null),
+      citta_spedizione: cliente.sameSpedizione ? null : (cliente.cittaSpedizione || null),
+      cap_spedizione: cliente.sameSpedizione ? null : (cliente.capSpedizione || null),
+      prov_spedizione: cliente.sameSpedizione ? null : (cliente.provSpedizione || null),
+      lavorazione: "#BeFree Abutment Custom",
+      materiale: prod.n || null,
+      workflow: "Impronta/Campione fisico",
+      note: cliente.note || null,
+      prezzo_base: prod.prezzo || null,
+      iva: prod.iva || 4,
+      file_link: null, file_name: null,
+      status: "ricevuto"
+    };
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
+      method: "POST",
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json", "Prefer": "return=minimal" },
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok) { const e=await res.text(); throw new Error(`Supabase ${res.status}: ${e}`); }
+    return;
+  }
+
   const mats = MATERIALI[state.lavId] || [];
   const mat = mats[state.matIdx] || null;
   const base = (lav && mat !== null)
     ? getPrice(state.lavId, state.workflow, state.matIdx, state.tiBase, state.nElIdx)
     : null;
 
-  // Payload base — solo colonne CERTE nella tabella
+  // Payload standard
   const payload = {
     nome: cliente.nome, cognome: cliente.cognome,
     azienda: cliente.azienda, telefono: cliente.telefono,
@@ -1178,7 +1229,8 @@ const state = {
   step:0, lavId:null, nElIdx:null, matIdx:null,
   tiBase:null, workflow:"stl", done:false,
   sendMethod: null,
-  orderSent: false
+  orderSent: false,
+  befreeProdIdx: null   // indice in BEFREE_PRODOTTI
 };
 
 // Dati clinici — step aggiuntivo
@@ -1210,6 +1262,13 @@ function clienteValid() {
 
 function buildPhases() {
   const p=["lav"];
+  if(lavObj()&&lavObj().befree) {
+    // Flusso BeFree: scelta prodotto → istruzioni spedizione → cliente
+    p.push("befree_prod");
+    p.push("befree_info");
+    p.push("cliente");
+    return p;
+  }
   if(lavObj()&&lavObj().multi) p.push("nel");
   p.push("mat");
   if(lavObj()&&lavObj().tiBase) p.push("tb");
@@ -1764,6 +1823,99 @@ function renderStep() {
     html += navRow(true,"Avanti &rarr;",false);
   }
 
+  else if(phase==="befree_prod") {
+    html += stepHead(stepNum,total,"Quale componente ti serve?","Selezione prodotto #BeFree");
+    html += `<div style="background:linear-gradient(135deg,#FFF7ED,#FEF3C7);border:1.5px solid #FCD34D;border-radius:14px;padding:14px 16px;margin-bottom:18px;display:flex;gap:12px;align-items:flex-start">
+      <span style="font-size:24px;flex-shrink:0">🏷️</span>
+      <div>
+        <div style="font-size:13px;font-weight:800;color:#92400E;margin-bottom:4px">#BeFree — Abutment Custom Personalizzati</div>
+        <div style="font-size:11px;color:#78350F;line-height:1.6">Componenti realizzati su misura dalla tua impronta analogica o campione fisico. Nessun file digitale richiesto — spedisci i materiali e produciamo noi.</div>
+      </div>
+    </div>`;
+    html += `<div class="grid grid-auto">`;
+    BEFREE_PRODOTTI.forEach((p,i) => {
+      const sel = state.befreeProdIdx===i ? "selected" : "";
+      html += `<div class="opt-card ${sel}" onclick="selectBefreeProd(${i})" style="position:relative">
+        <span class="iva-tag" style="background:${p.iva===22?'#DBEAFE':'#ECFDF5'};color:${p.iva===22?'#1D4ED8':'#065F46'}">IVA ${p.iva}%</span>
+        <div class="ic" style="font-size:28px">${p.e}</div>
+        <div class="opt-label" style="white-space:normal;font-size:13px">${p.n}</div>
+        <div class="opt-sub">${p.s}</div>
+        <div style="margin-top:8px;font-size:15px;font-weight:900;color:#D97706">${p.prezzo},00 €</div>
+        <div style="font-size:9px;color:#9CA3AF">+ IVA ${p.iva}%</div>
+      </div>`;
+    });
+    html += `</div>`;
+    html += navRow(true,"Avanti &rarr;", state.befreeProdIdx===null||state.befreeProdIdx===undefined);
+  }
+
+  else if(phase==="befree_info") {
+    const prod = BEFREE_PRODOTTI[state.befreeProdIdx] || {};
+    html += stepHead(stepNum,total,"Come spedire i materiali","Istruzioni spedizione #BeFree");
+
+    html += `<div style="background:linear-gradient(135deg,#F0FDF4,#ECFDF5);border:1.5px solid #6EE7B7;border-radius:14px;padding:16px;margin-bottom:18px">
+      <div style="font-size:13px;font-weight:800;color:#065F46;margin-bottom:8px">✅ Prodotto selezionato: ${prod.n}</div>
+      <div style="font-size:22px;font-weight:900;color:#D97706">${prod.prezzo},00 € <span style="font-size:12px;font-weight:400;color:#6B7280">+ IVA ${prod.iva}%</span></div>
+    </div>`;
+
+    html += `<div style="font-size:13px;font-weight:800;color:#1E293B;margin-bottom:12px">📦 Per completare l'ordine devi spedirci:</div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+      <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start">
+        <span style="font-size:20px;flex-shrink:0">📋</span>
+        <div>
+          <div style="font-size:12px;font-weight:800;color:#1E293B;margin-bottom:4px">1. Leggi le istruzioni di preparazione</div>
+          <div style="font-size:11px;color:#64748B;line-height:1.5;margin-bottom:8px">Come preparare l'impronta o il campione per spedirlo correttamente.</div>
+          <a href="https://drive.google.com/file/d/1o4JgNINcky82Q8APnzlKMYB09DjMP_iQ/view" target="_blank" rel="noopener"
+            style="display:inline-flex;align-items:center;gap:6px;background:#0F5282;color:#fff;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;text-decoration:none">
+            📄 Leggi le istruzioni PDF
+          </a>
+        </div>
+      </div>
+
+      <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start">
+        <span style="font-size:20px;flex-shrink:0">🚚</span>
+        <div>
+          <div style="font-size:12px;font-weight:800;color:#1E293B;margin-bottom:4px">2. Prenota il ritiro</div>
+          <div style="font-size:11px;color:#64748B;line-height:1.5;margin-bottom:8px">Prenota il corriere direttamente da AbutmentCompatibili.com.</div>
+          <a href="https://abutmentcompatibili.com/ritiro-reso-spedizione.html" target="_blank" rel="noopener"
+            style="display:inline-flex;align-items:center;gap:6px;background:#059669;color:#fff;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;text-decoration:none">
+            🚚 Prenota il ritiro
+          </a>
+        </div>
+      </div>
+
+      <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start">
+        <span style="font-size:20px;flex-shrink:0">📎</span>
+        <div>
+          <div style="font-size:12px;font-weight:800;color:#1E293B;margin-bottom:4px">3. Stampa e allega il modulo d'ordine</div>
+          <div style="font-size:11px;color:#64748B;line-height:1.5;margin-bottom:8px">Inserisci questo modulo compilato dentro il pacco prima di spedire.</div>
+          <a href="https://drive.google.com/file/d/1qHSqBU70pTEx7iSsO9VeitUzFZYozBIH/view?usp=sharing" target="_blank" rel="noopener"
+            style="display:inline-flex;align-items:center;gap:6px;background:#7C3AED;color:#fff;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;text-decoration:none">
+            📎 Scarica modulo PDF
+          </a>
+        </div>
+      </div>
+
+      <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start">
+        <span style="font-size:20px;flex-shrink:0">🦷</span>
+        <div>
+          <div style="font-size:12px;font-weight:800;color:#1E293B;margin-bottom:4px">Vuoi sapere di più su Implant Detector?</div>
+          <div style="font-size:11px;color:#64748B;line-height:1.5;margin-bottom:8px">Impianto sconosciuto? Possiamo identificarlo e produrre i componenti.</div>
+          <a href="https://abutmentcompatibili.com/implant-detector" target="_blank" rel="noopener"
+            style="display:inline-flex;align-items:center;gap:6px;background:#1E293B;color:#fff;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;text-decoration:none">
+            🔍 Implant Detector
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:10px;padding:12px 14px;font-size:11px;color:#78350F;line-height:1.6;margin-bottom:4px">
+      <strong>⏱ Tempi:</strong> 3–5 giorni lavorativi dalla ricezione dei materiali · Spedizione di ritorno inclusa nel prezzo indicativo.
+    </div>`;
+
+    html += navRow(true,"Avanti — Dati cliente &rarr;", false);
+  }
+
   else if(phase==="upload") {
     html += stepHead(stepNum,total,"Allega i file","File dell'ordine");
 
@@ -2056,9 +2208,12 @@ function refreshNavBtn() {
   if(btn) btn.disabled = !clienteValid();
 }
 
+function selectBefreeProd(i) { state.befreeProdIdx=i; render(); }
+
 function selectLav(id) {
   state.lavId=id; state.nElIdx=null; state.matIdx=null;
   state.tiBase=null; state.workflow=null;
+  state.befreeProdIdx=null;
   uploadedFiles.stl=null; uploadedFiles.infoConstr=null; uploadedFiles.scan=null;
   render();
 }
@@ -2350,6 +2505,38 @@ function renderConfirmScreen() {
 }
 
 async function doSendEmail() {
+  // BeFree — nessun file da caricare
+  if(lavObj()&&lavObj().befree) {
+    try {
+      showSpinner("Registrazione ordine...");
+      await saveOrderToSupabase(null,null).catch(e=>console.error('Supabase BeFree error:',e));
+      await sendEmailJSNotification(null);
+      hideSpinner();
+      const prod = BEFREE_PRODOTTI[state.befreeProdIdx]||{};
+      const subject = encodeURIComponent(`Ordine #BeFree - ${cliente.azienda||cliente.nome+" "+cliente.cognome}`);
+      const body = encodeURIComponent([
+        "ORDINE #BeFree Abutment Custom — AbutmentCompatibili.com",
+        `Data: ${new Date().toLocaleDateString("it-IT")}`,
+        "",
+        `Cliente  : ${cliente.nome} ${cliente.cognome} — ${cliente.azienda}`,
+        `Telefono : ${cliente.telefono}`,
+        cliente.email ? `Email    : ${cliente.email}` : null,
+        "",
+        `Prodotto : ${prod.n||"—"}`,
+        `Prezzo   : ${prod.prezzo?prod.prezzo+",00 €":"—"} + IVA ${prod.iva||4}%`,
+        "",
+        "Spedire impronta/campione con modulo allegato.",
+        "Ritiro: https://abutmentcompatibili.com/ritiro-reso-spedizione.html"
+      ].filter(Boolean).join("\n"));
+      const mailUrl = `mailto:${CONTACT.email}?subject=${subject}&body=${body}`;
+      const mailLink = document.createElement("a");
+      mailLink.href=mailUrl; mailLink.target="_blank"; mailLink.rel="noopener noreferrer";
+      document.body.appendChild(mailLink); mailLink.click();
+      setTimeout(()=>document.body.removeChild(mailLink),500);
+      state.orderSent=true; render();
+    } catch(err) { hideSpinner(); alert("Errore: "+err.message); }
+    return;
+  }
   try {
     showSpinner("Caricamento file...<br><small style='opacity:.7'>potrebbe richiedere qualche secondo</small>");
     const blob = await buildZipBlob();
@@ -2417,6 +2604,36 @@ async function doSendEmail() {
 }
 
 async function doSendWhatsapp() {
+  // BeFree — nessun file da caricare, messaggio diretto
+  if(lavObj()&&lavObj().befree) {
+    try {
+      showSpinner("Registrazione ordine...");
+      await saveOrderToSupabase(null,null).catch(e=>console.error('Supabase BeFree error:',e));
+      await sendEmailJSNotification(null);
+      hideSpinner();
+      const prod = BEFREE_PRODOTTI[state.befreeProdIdx]||{};
+      const waText = [
+        "ORDINE #BeFree — AbutmentCompatibili.com",
+        `Data: ${new Date().toLocaleDateString("it-IT")}`,
+        "",
+        `Cliente  : ${cliente.nome} ${cliente.cognome} — ${cliente.azienda}`,
+        `Telefono : ${cliente.telefono}`,
+        "",
+        `Prodotto : ${prod.n||"—"}`,
+        `Prezzo   : ${prod.prezzo?prod.prezzo+",00 €":"—"} + IVA ${prod.iva||4}%`,
+        "",
+        "⚠️ Spedire impronta/campione con modulo allegato.",
+        "Prenota ritiro: https://abutmentcompatibili.com/ritiro-reso-spedizione.html"
+      ].join("\n");
+      const waUrl = `https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(waText)}`;
+      const waLink = document.createElement("a");
+      waLink.href=waUrl; waLink.target="_blank"; waLink.rel="noopener noreferrer";
+      document.body.appendChild(waLink); waLink.click();
+      setTimeout(()=>document.body.removeChild(waLink),500);
+      state.orderSent=true; render();
+    } catch(err) { hideSpinner(); alert("Errore: "+err.message); }
+    return;
+  }
   try {
     showSpinner("Caricamento file...<br><small style='opacity:.7'>potrebbe richiedere qualche secondo</small>");
     const blob = await buildZipBlob();
@@ -2596,7 +2813,26 @@ function updatePriceBar() {
   const bar = document.getElementById('price-bar');
   if(!bar) return;
 
-  // Serve almeno lavorazione + materiale selezionato
+  // Flusso BeFree — prezzo dal prodotto selezionato
+  if(state.lavId === 'befree') {
+    if(state.befreeProdIdx === null || state.befreeProdIdx === undefined) {
+      bar.style.display = 'none'; return;
+    }
+    const prod = BEFREE_PRODOTTI[state.befreeProdIdx];
+    if(!prod) { bar.style.display = 'none'; return; }
+    const withIva = prod.prezzo * (1 + prod.iva/100);
+    bar.style.display = 'flex';
+    bar.innerHTML = `
+      <div class="price-bar-name">#BeFree · ${prod.n}</div>
+      <div class="price-bar-right">
+        <div class="price-bar-chip">Prezzo indicativo</div>
+        <div class="price-bar-value">${fmt(prod.prezzo)}</div>
+        <div class="price-bar-iva">IVA ${prod.iva}% inclusa: ${fmt(withIva)}</div>
+      </div>`;
+    return;
+  }
+
+  // Flusso standard — serve almeno lavorazione + materiale
   if(state.lavId === null || state.matIdx === null) {
     bar.style.display = 'none';
     return;

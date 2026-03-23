@@ -1,0 +1,1811 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Ordini — AbutmentCompatibili.com</title>
+<style>
+  :root {
+    --blue: #0077CC;
+    --blue-dark: #005FA3;
+    --blue-light: #EBF5FF;
+    --dark: #1A202C;
+    --mid: #4A5568;
+    --gray: #718096;
+    --light: #F7F8FA;
+    --pearl: #EDF0F4;
+    --border: #D1D8E0;
+    --white: #FFFFFF;
+    --green: #16A34A;
+    --green-light: #DCFCE7;
+    --amber: #D97706;
+    --amber-light: #FEF3C7;
+    --red: #DC2626;
+    --red-light: #FEE2E2;
+    --purple: #7C3AED;
+    --purple-light: #EDE9FE;
+    --font: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    --sidebar: 300px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: #E8EEF5; color: var(--dark); min-height: 100vh; }
+
+  /* ── LOGIN ── */
+  #login-screen {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #1A202C 0%, #2D3748 50%, #0077CC 100%);
+  }
+  .login-card {
+    background: white; border-radius: 16px; padding: 40px 36px;
+    width: 100%; max-width: 380px; box-shadow: 0 24px 60px rgba(0,0,0,.3);
+  }
+  .login-logo { height: 56px; margin-bottom: 6px; }
+  .login-title { font-size: 20px; font-weight: 900; color: var(--dark); margin-bottom: 4px; margin-top: 16px; }
+  .login-sub { font-size: 12px; color: var(--gray); margin-bottom: 28px; }
+  .login-field { margin-bottom: 14px; }
+  .login-field label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--mid); display: block; margin-bottom: 5px; }
+  .login-field input {
+    width: 100%; padding: 10px 13px; border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 14px; font-family: var(--font); outline: none;
+    transition: border-color .15s;
+  }
+  .login-field input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,119,204,.1); }
+  .login-btn {
+    width: 100%; padding: 12px; background: var(--blue); color: white;
+    border: none; border-radius: 8px; font-size: 14px; font-weight: 700;
+    font-family: var(--font); cursor: pointer; margin-top: 6px;
+    transition: background .15s;
+  }
+  .login-btn:hover { background: var(--blue-dark); }
+  .login-error { font-size: 12px; color: var(--red); margin-top: 10px; display: none; }
+
+  /* ── LAYOUT ── */
+  #app { display: none; }
+  .app-top {
+    background: white; border-bottom: 2px solid var(--blue);
+    padding: 0 24px; height: 58px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  }
+  .top-left { display: flex; align-items: center; gap: 16px; }
+  .top-logo { height: 38px; }
+  .top-badge {
+    font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em;
+    background: var(--blue); color: white; padding: 3px 9px; border-radius: 4px;
+  }
+  .top-operator { font-size: 13px; color: var(--gray); display: flex; align-items: center; gap: 8px; }
+  .top-operator strong { color: var(--dark); }
+  .top-logout { font-size: 11px; color: var(--gray); cursor: pointer; border: 1.5px solid var(--border); padding: 4px 10px; border-radius: 6px; background: none; font-family: var(--font); }
+  .top-logout:hover { color: var(--red); border-color: var(--red); }
+
+  .app-body { display: flex; min-height: calc(100vh - 58px); }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: var(--sidebar); background: white; border-right: 1.5px solid var(--border);
+    padding: 20px 0; flex-shrink: 0; position: sticky; top: 58px;
+    height: calc(100vh - 58px); overflow-y: auto;
+  }
+  .sidebar-section { padding: 0 16px 16px; }
+  .sidebar-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--gray); margin-bottom: 8px; padding: 0 4px; }
+  .filter-btn {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; padding: 8px 12px; border-radius: 8px; border: none;
+    background: none; font-family: var(--font); font-size: 13px;
+    color: var(--mid); cursor: pointer; margin-bottom: 2px; transition: all .12s;
+    text-align: left;
+  }
+  .filter-btn:hover { background: var(--light); color: var(--dark); }
+  .filter-btn.active { background: var(--blue-light); color: var(--blue); font-weight: 700; }
+  .filter-btn .count {
+    font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 10px;
+    background: var(--light); color: var(--gray);
+  }
+  .filter-btn.active .count { background: var(--blue); color: white; }
+
+  .stat-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px 16px; }
+  .stat-card { background: var(--light); border-radius: 10px; padding: 12px; text-align: center; }
+  .stat-num { font-size: 26px; font-weight: 900; line-height: 1; }
+  .stat-label { font-size: 10px; color: var(--gray); margin-top: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+
+  /* ── MAIN ── */
+  .main { flex: 1; padding: 24px; overflow-y: auto; }
+  .main-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .main-title { font-size: 20px; font-weight: 900; color: var(--dark); }
+  .main-actions { display: flex; gap: 10px; align-items: center; }
+  .search-input {
+    padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+    font-size: 13px; font-family: var(--font); outline: none; width: 220px;
+    transition: border-color .15s;
+  }
+  .search-input:focus { border-color: var(--blue); }
+  .refresh-btn {
+    padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+    background: white; font-size: 12px; font-weight: 600; font-family: var(--font);
+    cursor: pointer; color: var(--mid); transition: all .12s;
+  }
+  .refresh-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+  /* ── ORDER TABLE ── */
+  .orders-table { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+  .table-head {
+    display: grid; grid-template-columns: 90px 1fr 1fr 100px 120px 130px 110px;
+    padding: 10px 16px; background: var(--pearl);
+    border-bottom: 1.5px solid var(--border);
+    font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--gray);
+  }
+  .order-row {
+    display: grid; grid-template-columns: 90px 1fr 1fr 100px 120px 130px 110px;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    align-items: center; cursor: pointer; transition: background .12s;
+  }
+  .order-row:last-child { border-bottom: none; }
+  .order-row:hover { background: var(--light); }
+  .order-row.selected { background: var(--blue-light); }
+  .order-id { font-size: 11px; font-weight: 800; color: var(--blue); font-family: monospace; }
+  .order-client { font-size: 13px; font-weight: 700; color: var(--dark); }
+  .order-studio { font-size: 11px; color: var(--gray); margin-top: 1px; }
+  .order-lav { font-size: 12px; color: var(--mid); }
+  .order-price { font-size: 13px; font-weight: 800; color: var(--dark); }
+  .order-date { font-size: 11px; color: var(--gray); }
+  .order-op { font-size: 11px; color: var(--mid); font-style: italic; }
+
+  /* ── STATUS BADGE ── */
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+    padding: 3px 8px; border-radius: 5px;
+  }
+  .status-badge::before { content:""; width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .status-ricevuto { background: var(--amber-light); color: var(--amber); }
+  .status-ricevuto::before { background: var(--amber); }
+  .status-in_lavorazione { background: var(--blue-light); color: var(--blue); }
+  .status-in_lavorazione::before { background: var(--blue); animation: pulse 1.4s infinite; }
+  .status-concluso { background: var(--green-light); color: var(--green); }
+  .status-concluso::before { background: var(--green); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* ── DETAIL PANEL ── */
+  .detail-panel {
+    width: 420px; background: white; border-left: 1.5px solid var(--border);
+    position: sticky; top: 58px; height: calc(100vh - 58px);
+    overflow-y: auto; flex-shrink: 0; display: none;
+  }
+  .detail-panel.open { display: block; }
+  .detail-header {
+    padding: 20px; border-bottom: 1.5px solid var(--border);
+    position: sticky; top: 0; background: white; z-index: 10;
+  }
+  .detail-close {
+    position: absolute; top: 16px; right: 16px;
+    width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--border);
+    background: none; cursor: pointer; font-size: 14px; display: flex;
+    align-items: center; justify-content: center; color: var(--gray);
+    transition: all .12s;
+  }
+  .detail-close:hover { border-color: var(--red); color: var(--red); background: var(--red-light); }
+  .detail-id { font-size: 11px; font-weight: 800; color: var(--blue); font-family: monospace; margin-bottom: 4px; }
+  .detail-name { font-size: 18px; font-weight: 900; color: var(--dark); }
+  .detail-studio { font-size: 12px; color: var(--gray); margin-top: 2px; }
+
+  .detail-body { padding: 20px; }
+  .detail-section { margin-bottom: 20px; }
+  .detail-section-title {
+    font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--blue); margin-bottom: 10px; padding-bottom: 6px;
+    border-bottom: 1.5px solid var(--blue-light);
+  }
+  .detail-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--light); }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { font-size: 11px; color: var(--gray); }
+  .detail-val { font-size: 12px; font-weight: 600; color: var(--dark); text-align: right; max-width: 200px; word-break: break-word; }
+  .detail-price-big { font-size: 32px; font-weight: 900; color: var(--dark); }
+  .detail-price-iva { font-size: 12px; color: var(--gray); margin-top: 2px; }
+  .file-link-btn {
+    display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+    background: var(--light); border-radius: 8px; text-decoration: none;
+    color: var(--blue); font-size: 12px; font-weight: 700; border: 1.5px solid var(--border);
+    transition: all .12s; margin-top: 6px;
+  }
+  .file-link-btn:hover { background: var(--blue-light); border-color: var(--blue); }
+
+  /* ── STATUS ACTIONS ── */
+  .status-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .status-action-btn {
+    padding: 10px 8px; border-radius: 8px; border: 1.5px solid var(--border);
+    background: none; cursor: pointer; font-family: var(--font); font-size: 11px;
+    font-weight: 700; text-align: center; transition: all .12s; line-height: 1.3;
+  }
+  .status-action-btn:hover { transform: translateY(-1px); }
+  .status-action-btn.ricevuto { border-color: var(--amber); color: var(--amber); }
+  .status-action-btn.ricevuto:hover, .status-action-btn.ricevuto.current { background: var(--amber-light); }
+  .status-action-btn.in_lavorazione { border-color: var(--blue); color: var(--blue); }
+  .status-action-btn.in_lavorazione:hover, .status-action-btn.in_lavorazione.current { background: var(--blue-light); }
+  .status-action-btn.concluso { border-color: var(--green); color: var(--green); }
+  .status-action-btn.concluso:hover, .status-action-btn.concluso.current { background: var(--green-light); }
+
+  .operator-section { background: var(--light); border-radius: 10px; padding: 14px; margin-bottom: 16px; }
+  .operator-title { font-size: 11px; font-weight: 700; color: var(--mid); margin-bottom: 8px; }
+  .take-charge-btn {
+    width: 100%; padding: 10px; background: var(--blue); color: white; border: none;
+    border-radius: 8px; font-size: 13px; font-weight: 700; font-family: var(--font);
+    cursor: pointer; transition: background .12s;
+  }
+  .take-charge-btn:hover { background: var(--blue-dark); }
+  .take-charge-btn.mine { background: var(--green); }
+  .take-charge-btn.mine:hover { background: #15803D; }
+  .operator-current { font-size: 13px; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
+  .operator-change { font-size: 11px; color: var(--gray); cursor: pointer; text-decoration: underline; }
+
+  .delete-order-btn {
+    width: 100%; margin-top: 10px; padding: 9px;
+    background: none; border: 1.5px solid var(--red); border-radius: 8px;
+    color: var(--red); font-size: 12px; font-weight: 700; font-family: var(--font);
+    cursor: pointer; transition: all .15s;
+  }
+  .delete-order-btn:hover { background: var(--red-light); }
+
+  .note-area {
+    width: 100%; font-family: var(--font); font-size: 12px; padding: 8px 10px;
+    border: 1.5px solid var(--border); border-radius: 8px; resize: vertical;
+    min-height: 72px; outline: none; transition: border-color .15s;
+  }
+  .note-area:focus { border-color: var(--blue); }
+  .save-note-btn {
+    margin-top: 6px; padding: 7px 14px; background: var(--dark); color: white;
+    border: none; border-radius: 6px; font-size: 12px; font-weight: 700;
+    font-family: var(--font); cursor: pointer; transition: opacity .12s;
+  }
+  .save-note-btn:hover { opacity: .85; }
+
+  /* ── COMUNICAZIONE CLIENTE ── */
+  .comm-section { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .btn-wa {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 14px; border-radius: 8px; border: none; cursor: pointer;
+    font-size: 12px; font-weight: 700; font-family: var(--font);
+    background: #22C55E; color: #fff; text-decoration: none;
+    transition: background .15s, transform .1s;
+    flex: 1; justify-content: center; min-width: 130px;
+  }
+  .btn-wa:hover { background: #16A34A; }
+  .btn-wa:active { transform: scale(.97); }
+  .btn-email-client {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 14px; border-radius: 8px; border: none; cursor: pointer;
+    font-size: 12px; font-weight: 700; font-family: var(--font);
+    background: var(--blue); color: #fff; text-decoration: none;
+    transition: background .15s, transform .1s;
+    flex: 1; justify-content: center; min-width: 130px;
+  }
+  .btn-email-client:hover { background: var(--blue-dark); }
+  .btn-email-client:active { transform: scale(.97); }
+  .comm-missing {
+    font-size: 11px; color: var(--gray); font-style: italic; padding: 4px 0;
+  }
+
+  /* ── MODALE NOTIFICA STATO ── */
+  .notify-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    backdrop-filter: blur(2px); z-index: 800;
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+    animation: fadeIn .15s ease both;
+  }
+  @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+  .notify-modal {
+    background: white; border-radius: 14px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.2);
+    width: 100%; max-width: 420px;
+    animation: slideUp .18s cubic-bezier(.22,.68,0,1.2) both;
+  }
+  @keyframes slideUp { from { transform:translateY(14px);opacity:0 } to { transform:none;opacity:1 } }
+  .notify-head {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .notify-icon { font-size: 28px; flex-shrink: 0; line-height: 1; }
+  .notify-title { font-size: 14px; font-weight: 800; color: var(--dark); margin-bottom: 2px; }
+  .notify-sub { font-size: 11px; color: var(--gray); line-height: 1.5; }
+  .notify-body { padding: 16px 20px; }
+  .notify-preview {
+    background: var(--light); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+    font-size: 11px; color: var(--mid); line-height: 1.7;
+    max-height: 140px; overflow-y: auto; white-space: pre-wrap;
+    margin-bottom: 14px; font-family: monospace;
+  }
+  .notify-label { font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--gray); margin-bottom: 6px; }
+  .notify-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .notify-footer {
+    padding: 12px 20px; border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end;
+  }
+  .btn-notify-skip {
+    font-size: 12px; color: var(--gray); background: none;
+    border: none; cursor: pointer; font-family: var(--font);
+    padding: 6px 10px; border-radius: 6px; transition: color .12s;
+  }
+  .btn-notify-skip:hover { color: var(--dark); }
+
+  /* ── PULSANTE STAMPA ── */
+  .btn-print {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 7px;
+    background: var(--light); border: 1.5px solid var(--border);
+    font-size: 11px; font-weight: 700; color: var(--mid);
+    cursor: pointer; font-family: var(--font);
+    transition: all .12s; white-space: nowrap;
+  }
+  .btn-print:hover { background: var(--blue-light); border-color: var(--blue); color: var(--blue); }
+
+  /* ── PRINT LAYOUT ── */
+  @media print {
+    body * { visibility: hidden; }
+    #print-sheet, #print-sheet * { visibility: visible; }
+    #print-sheet {
+      position: fixed; inset: 0;
+      background: white; padding: 28px 32px;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 11px; color: #111;
+    }
+    .print-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #0077CC; padding-bottom: 12px; }
+    .print-logo-area h1 { font-size: 15px; font-weight: 900; color: #0077CC; margin: 0; }
+    .print-logo-area p { font-size: 10px; color: #666; margin: 2px 0 0; }
+    .print-order-meta { text-align: right; font-size: 10px; color: #666; }
+    .print-order-meta strong { font-size: 13px; color: #111; display: block; margin-bottom: 2px; }
+    .print-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+    .print-section { margin-bottom: 14px; }
+    .print-section-title { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: #0077CC; border-bottom: 1px solid #BFDBFE; padding-bottom: 3px; margin-bottom: 6px; }
+    .print-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #F3F4F6; gap: 8px; }
+    .print-row:last-child { border-bottom: none; }
+    .print-key { font-size: 10px; color: #666; flex-shrink: 0; }
+    .print-val { font-size: 10px; font-weight: 700; color: #111; text-align: right; word-break: break-word; }
+    .print-price-box { background: #F0F9FF; border: 1.5px solid #BFDBFE; border-radius: 6px; padding: 10px 14px; margin-top: 6px; }
+    .print-price-big { font-size: 22px; font-weight: 900; color: #0077CC; }
+    .print-price-iva { font-size: 10px; color: #666; }
+    .print-note-box { background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 6px; padding: 8px 10px; font-size: 10px; color: #78350F; line-height: 1.6; }
+    .print-op-note { background: #F8FAFF; border: 1px solid #BFDBFE; border-radius: 6px; padding: 8px 10px; font-size: 10px; color: #1E40AF; line-height: 1.6; }
+    .print-footer { position: fixed; bottom: 20px; left: 32px; right: 32px; display: flex; justify-content: space-between; font-size: 9px; color: #9CA3AF; border-top: 1px solid #E5E7EB; padding-top: 6px; }
+    .print-chips { display: flex; flex-wrap: wrap; gap: 3px; justify-content: flex-end; }
+    .print-chip { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; background: #DBEAFE; color: #1E40AF; border: 1px solid #BFDBFE; }
+    .print-status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+    .print-status.ricevuto { background: #DBEAFE; color: #1E40AF; }
+    .print-status.in_lavorazione { background: #FEF3C7; color: #92400E; }
+    .print-status.concluso { background: #DCFCE7; color: #15803D; }
+  }
+  /* Righe cliniche */
+  .clinical-chip {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; font-weight: 700; padding: 2px 7px;
+    border-radius: 4px; background: #DBEAFE; color: #1E40AF;
+    border: 1px solid #BFDBFE; margin: 1px;
+  }
+  .clinical-chip.urgente { background: #FEE2E2; color: #991B1B; border-color: #FECACA; }
+  .clinical-chip.express { background: #FEF3C7; color: #92400E; border-color: #FDE68A; }
+
+  /* ── EMPTY / LOADING ── */
+  .empty-state { padding: 60px 20px; text-align: center; color: var(--gray); }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: .4; }
+  .loading-row { padding: 20px; text-align: center; color: var(--gray); font-size: 13px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--dark);
+    color: white; padding: 10px 18px; border-radius: 8px; font-size: 13px;
+    font-weight: 600; opacity: 0; transform: translateY(8px);
+    transition: all .3s; pointer-events: none; z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.green { background: var(--green); }
+  .toast.red { background: var(--red); }
+
+  /* ── SPINNER ── */
+  .spinner-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 9999;
+    display: none; align-items: center; justify-content: center;
+  }
+  .spinner-overlay.show { display: flex; }
+  .spinner {
+    width: 40px; height: 40px; border: 3px solid rgba(255,255,255,.25);
+    border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── CONFIG BANNER ── */
+  .config-banner {
+    background: #FFF3CD; border: 2px solid #FFC107; border-radius: 10px;
+    padding: 16px 20px; margin-bottom: 20px; font-size: 13px; line-height: 1.7;
+  }
+  .config-banner strong { color: #856404; }
+  .config-banner code {
+    background: rgba(0,0,0,.08); padding: 1px 6px; border-radius: 4px;
+    font-size: 12px; font-family: monospace;
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN SCREEN ══════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <img class="login-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="AbutmentCompatibili.com">
+    <div class="login-title">Pannello Ordini</div>
+    <div class="login-sub">Accesso riservato agli operatori</div>
+
+    <div class="login-field">
+      <label>Nome utente</label>
+      <input type="text" id="login-name" placeholder="Es. Francesco" autocomplete="username"
+        onkeydown="if(event.key==='Enter')document.getElementById('login-pwd').focus()">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="login-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Accedi</button>
+    <div class="login-error" id="login-error">Nome o password non corretti.</div>
+  </div>
+</div>
+
+<!-- ══ APP ══════════════════════════════════════════════════ -->
+<div id="app">
+  <div class="app-top">
+    <div class="top-left">
+      <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
+      <span class="top-badge">Admin Ordini</span>
+    </div>
+    <div class="top-operator">
+      Operatore: <strong id="operator-name-display"></strong>
+      <button class="top-logout" onclick="doLogout()">Esci</button>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="stat-cards">
+        <div class="stat-card">
+          <div class="stat-num" id="stat-total" style="color:var(--dark)">—</div>
+          <div class="stat-label">Totale</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-ricevuti" style="color:var(--amber)">—</div>
+          <div class="stat-label">Ricevuti</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-lavorazione" style="color:var(--blue)">—</div>
+          <div class="stat-label">In Lav.</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-conclusi" style="color:var(--green)">—</div>
+          <div class="stat-label">Conclusi</div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Filtra per stato</div>
+        <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">
+          Tutti gli ordini <span class="count" id="count-all">0</span>
+        </button>
+        <button class="filter-btn" data-filter="ricevuto" onclick="setFilter('ricevuto',this)">
+          Ricevuti <span class="count" id="count-ricevuto">0</span>
+        </button>
+        <button class="filter-btn" data-filter="in_lavorazione" onclick="setFilter('in_lavorazione',this)">
+          In lavorazione <span class="count" id="count-in_lavorazione">0</span>
+        </button>
+        <button class="filter-btn" data-filter="concluso" onclick="setFilter('concluso',this)">
+          Conclusi <span class="count" id="count-concluso">0</span>
+        </button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Filtra per operatore</div>
+        <button class="filter-btn" data-filter="mine" onclick="setFilter('mine',this)">
+          I miei ordini <span class="count" id="count-mine">0</span>
+        </button>
+        <button class="filter-btn" data-filter="unassigned" onclick="setFilter('unassigned',this)">
+          Non assegnati <span class="count" id="count-unassigned">0</span>
+        </button>
+      </div>
+
+      <div class="sidebar-section" id="admin-section" style="display:none">
+        <div class="sidebar-title">Amministrazione</div>
+        <button class="filter-btn" onclick="openUsersModal()" style="color:var(--blue);font-weight:700">
+          👥 Gestione operatori
+        </button>
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main" id="main-area">
+      <div class="main-header">
+        <div class="main-title" id="main-title">Tutti gli ordini</div>
+        <div class="main-actions">
+          <input class="search-input" type="text" placeholder="Cerca cliente, studio…" oninput="setSearch(this.value)">
+          <button class="refresh-btn" onclick="loadOrders()">⟳ Aggiorna</button>
+        </div>
+      </div>
+
+      <div id="config-banner" class="config-banner" style="display:none">
+        <strong>⚙️ Configurazione richiesta</strong> — Modifica le prime righe dello script con le credenziali Supabase:<br>
+        <code>SUPABASE_URL</code> e <code>SUPABASE_KEY</code>. Vedi le istruzioni nel file README.
+      </div>
+
+      <div class="orders-table" id="orders-table">
+        <div class="table-head">
+          <div>ID</div>
+          <div>Cliente</div>
+          <div>Lavorazione</div>
+          <div>Prezzo</div>
+          <div>Stato</div>
+          <div>Operatore</div>
+          <div>Data</div>
+        </div>
+        <div id="orders-body">
+          <div class="loading-row">Caricamento ordini…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail panel -->
+    <div class="detail-panel" id="detail-panel">
+      <div class="detail-header">
+        <button class="detail-close" onclick="closeDetail()">✕</button>
+        <button class="btn-print" onclick="printOrder()" title="Stampa scheda ordine" style="position:absolute;top:16px;right:52px">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="13" height="13"><rect x="3" y="1" width="10" height="5" rx="1"/><path d="M3 6H2a1 1 0 00-1 1v5a1 1 0 001 1h1"/><path d="M13 6h1a1 1 0 011 1v5a1 1 0 01-1 1h-1"/><rect x="3" y="10" width="10" height="5" rx="1"/><line x1="5" y1="12" x2="11" y2="12"/><line x1="5" y1="14" x2="9" y2="14"/></svg>
+          Stampa
+        </button>
+        <div class="detail-id" id="d-id"></div>
+        <div class="detail-name" id="d-name"></div>
+        <div class="detail-studio" id="d-studio"></div>
+      </div>
+      <div class="detail-body" id="d-body"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="spinner-overlay" id="spinner"><div class="spinner"></div></div>
+
+<!-- ══ USERS MODAL ══════════════════════════════════════════ -->
+<div id="users-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;width:100%;max-width:660px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.3)">
+    <!-- Header -->
+    <div style="padding:20px 24px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div>
+        <div style="font-size:18px;font-weight:900;color:var(--dark)">👥 Gestione Operatori</div>
+        <div style="font-size:12px;color:var(--gray);margin-top:2px">Aggiungi, modifica o disattiva gli accessi · telefono e email per le notifiche automatiche</div>
+      </div>
+      <button onclick="closeUsersModal()" style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--border);background:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--gray)">✕</button>
+    </div>
+
+    <!-- User list -->
+    <div style="overflow-y:auto;flex:1;padding:16px 24px" id="users-list">
+      <div style="text-align:center;color:var(--gray);padding:20px">Caricamento…</div>
+    </div>
+
+    <!-- Add user form -->
+    <div style="padding:16px 24px;border-top:1.5px solid var(--border);background:var(--light);flex-shrink:0">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mid);margin-bottom:10px">Aggiungi nuovo operatore</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">Nome <span style="color:#DC2626">*</span></div>
+          <input id="new-user-nome" type="text" placeholder="Es. Marco Bianchi"
+            style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">Password <span style="color:#DC2626">*</span></div>
+          <input id="new-user-pwd" type="text" placeholder="Es. operatore123"
+            style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">📱 WhatsApp (con prefisso, es. 393471234567)</div>
+          <input id="new-user-tel" type="text" placeholder="393471234567"
+            style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">✉️ Email notifiche</div>
+          <input id="new-user-email" type="email" placeholder="operatore@esempio.it"
+            style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
+        </div>
+      </div>
+      <button onclick="addUser()"
+        style="width:100%;padding:10px 18px;background:var(--blue);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer">
+        + Aggiungi operatore
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EDIT USER MODAL ══════════════════════════════════════════ -->
+<div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;width:100%;max-width:440px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.3)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div style="font-size:16px;font-weight:900;color:var(--dark)">✏️ Modifica operatore</div>
+      <button onclick="closeEditModal()" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);background:none;cursor:pointer;font-size:14px;color:var(--gray)">✕</button>
+    </div>
+    <div style="display:grid;gap:10px">
+      <input type="hidden" id="edit-user-id">
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">Nome</div>
+        <input id="edit-user-nome" type="text" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">Password</div>
+        <input id="edit-user-pwd" type="text" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">📱 WhatsApp (con prefisso, es. 393471234567)</div>
+        <input id="edit-user-tel" type="text" placeholder="393471234567" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">✉️ Email notifiche</div>
+        <input id="edit-user-email" type="email" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:18px">
+      <button onclick="closeEditModal()" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:none;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;color:var(--mid)">Annulla</button>
+      <button onclick="saveEditUser()" style="flex:2;padding:10px;background:var(--blue);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer">💾 Salva modifiche</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// ⚙️  CONFIGURAZIONE — modifica questi valori dopo il setup Supabase
+// ══════════════════════════════════════════════════════════════
+const SUPABASE_URL = "https://gnqnebjuhnxvndrpcdtt.supabase.co";
+const SUPABASE_KEY = "sb_publishable_HXVNXs1d0mjbVg7gp_D-Cw_IrakErzk";
+
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+let currentOperator = "";
+let currentUserRole = "";
+let allOrders = [];
+let currentFilter = "all";
+let currentSearch = "";
+let selectedOrderId = null;
+
+// ══════════════════════════════════════════════════════════════
+// SUPABASE HELPERS
+// ══════════════════════════════════════════════════════════════
+const configured = () => SUPABASE_URL !== "https://YOUR_PROJECT.supabase.co";
+
+async function sb(method, path, body = null) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method,
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": method === "POST" ? "return=representation" : "return=minimal"
+    },
+    body: body ? JSON.stringify(body) : null
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Supabase error ${res.status}: ${err}`);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// ══════════════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════════════
+async function doLogin() {
+  const name = document.getElementById("login-name").value.trim();
+  const pwd = document.getElementById("login-pwd").value;
+  const err = document.getElementById("login-error");
+  const btn = document.querySelector(".login-btn");
+
+  if (!name) { err.textContent = "Inserisci il nome utente."; err.style.display = "block"; return; }
+  if (!pwd)  { err.textContent = "Inserisci la password.";   err.style.display = "block"; return; }
+
+  btn.textContent = "Accesso in corso…"; btn.disabled = true;
+  err.style.display = "none";
+
+  try {
+    const users = await sb("GET", `users?nome=eq.${encodeURIComponent(name)}&password=eq.${encodeURIComponent(pwd)}&attivo=eq.true&select=*`);
+    if (!users || users.length === 0) {
+      err.textContent = "Nome o password non corretti."; err.style.display = "block";
+      btn.textContent = "Accedi"; btn.disabled = false;
+      return;
+    }
+    const user = users[0];
+    enterApp(user.nome, user.ruolo);
+  } catch(e) {
+    err.textContent = "Errore di connessione: " + e.message; err.style.display = "block";
+    btn.textContent = "Accedi"; btn.disabled = false;
+  }
+}
+
+function enterApp(nome, ruolo) {
+  currentOperator = nome;
+  currentUserRole = ruolo;
+  sessionStorage.setItem("ac_operator", nome);
+  sessionStorage.setItem("ac_role", ruolo);
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("operator-name-display").textContent = nome + (ruolo === "admin" ? " 👑" : "");
+  // Mostra sezione admin solo all'admin
+  if (ruolo === "admin") document.getElementById("admin-section").style.display = "block";
+  loadOrders();
+}
+
+function doLogout() {
+  sessionStorage.removeItem("ac_operator");
+  sessionStorage.removeItem("ac_role");
+  document.getElementById("login-screen").style.display = "flex";
+  document.getElementById("app").style.display = "none";
+  document.getElementById("login-pwd").value = "";
+  document.querySelector(".login-btn").textContent = "Accedi";
+  document.querySelector(".login-btn").disabled = false;
+  currentOperator = ""; currentUserRole = "";
+  allOrders = [];
+}
+
+// Auto-login if session exists
+window.addEventListener("load", () => {
+  const savedName = sessionStorage.getItem("ac_operator");
+  const savedRole = sessionStorage.getItem("ac_role");
+  if (savedName) {
+    document.getElementById("login-name").value = savedName;
+    enterApp(savedName, savedRole || "operatore");
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+// USERS MODAL
+// ══════════════════════════════════════════════════════════════
+async function openUsersModal() {
+  document.getElementById("users-modal").style.display = "flex";
+  await loadUsers();
+}
+
+function closeUsersModal() {
+  document.getElementById("users-modal").style.display = "none";
+}
+
+async function loadUsers() {
+  const list = document.getElementById("users-list");
+  list.innerHTML = `<div style="text-align:center;color:var(--gray);padding:20px">Caricamento…</div>`;
+  try {
+    const users = await sb("GET", "users?select=*&order=created_at.asc");
+    if (!users || users.length === 0) {
+      list.innerHTML = `<div style="text-align:center;color:var(--gray);padding:20px">Nessun utente trovato.</div>`;
+      return;
+    }
+    list.innerHTML = users.map(u => `
+      <div style="border-radius:10px;margin-bottom:8px;background:${u.attivo ? 'var(--light)' : '#FEE2E2'};
+        border:1.5px solid ${u.attivo ? 'var(--border)' : '#FCA5A5'};overflow:hidden">
+        <!-- top row -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:50%;background:${u.ruolo==='admin'?'var(--blue)':'var(--pearl)'};
+              display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">
+              ${u.ruolo==='admin'?'👑':'👤'}
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--dark)">${u.nome}</div>
+              <div style="font-size:11px;color:var(--gray)">
+                ${u.ruolo}${!u.attivo ? ' &nbsp;·&nbsp; <span style="color:var(--red);font-weight:700">disattivato</span>' : ''}
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button onclick="openEditModal(${JSON.stringify(u).replace(/"/g,'&quot;')})"
+              style="padding:5px 10px;border-radius:6px;border:1.5px solid var(--blue);
+              background:none;cursor:pointer;font-size:11px;font-weight:700;color:var(--blue);font-family:var(--font)">
+              ✏️ Modifica
+            </button>
+            ${u.nome !== currentOperator ? `
+              <button onclick="toggleUser('${u.id}',${u.attivo})"
+                style="padding:5px 10px;border-radius:6px;border:1.5px solid ${u.attivo?'var(--red)':'var(--green)'};
+                background:none;cursor:pointer;font-size:11px;font-weight:700;color:${u.attivo?'var(--red)':'var(--green)'};font-family:var(--font)">
+                ${u.attivo ? 'Disattiva' : 'Riattiva'}
+              </button>
+              <button onclick="deleteUser('${u.id}','${u.nome}')"
+                style="padding:5px 10px;border-radius:6px;border:1.5px solid var(--border);
+                background:none;cursor:pointer;font-size:11px;font-weight:700;color:var(--gray);font-family:var(--font)">
+                🗑
+              </button>
+            ` : `<span style="font-size:11px;color:var(--blue);font-weight:600">sei tu</span>`}
+          </div>
+        </div>
+        <!-- notification info row -->
+        <div style="display:flex;gap:16px;padding:6px 12px 10px 54px;font-size:11px;color:var(--gray)">
+          <span title="WhatsApp notifiche">📱 ${u.telefono || '<span style="color:#FCA5A5;font-weight:600">non impostato</span>'}</span>
+          <span title="Email notifiche">✉️ ${u.email || '<span style="color:#FCA5A5;font-weight:600">non impostata</span>'}</span>
+        </div>
+      </div>`).join("");
+  } catch(e) {
+    list.innerHTML = `<div style="color:var(--red);padding:12px">Errore: ${e.message}</div>`;
+  }
+}
+
+async function addUser() {
+  const nome  = document.getElementById("new-user-nome").value.trim();
+  const pwd   = document.getElementById("new-user-pwd").value.trim();
+  const tel   = document.getElementById("new-user-tel").value.trim();
+  const email = document.getElementById("new-user-email").value.trim();
+  if (!nome || !pwd) { showToast("Inserisci almeno nome e password", "red"); return; }
+  try {
+    await sb("POST", "users", { nome, password: pwd, ruolo: "operatore", attivo: true,
+      telefono: tel || null, email: email || null });
+    document.getElementById("new-user-nome").value = "";
+    document.getElementById("new-user-pwd").value = "";
+    document.getElementById("new-user-tel").value = "";
+    document.getElementById("new-user-email").value = "";
+    showToast("Operatore aggiunto: " + nome, "green");
+    await loadUsers();
+  } catch(e) { showToast("Errore: " + e.message, "red"); }
+}
+
+function openEditModal(u) {
+  document.getElementById("edit-user-id").value    = u.id;
+  document.getElementById("edit-user-nome").value  = u.nome || "";
+  document.getElementById("edit-user-pwd").value   = u.password || "";
+  document.getElementById("edit-user-tel").value   = u.telefono || "";
+  document.getElementById("edit-user-email").value = u.email || "";
+  document.getElementById("edit-modal").style.display = "flex";
+}
+
+function closeEditModal() {
+  document.getElementById("edit-modal").style.display = "none";
+}
+
+async function saveEditUser() {
+  const id    = document.getElementById("edit-user-id").value;
+  const nome  = document.getElementById("edit-user-nome").value.trim();
+  const pwd   = document.getElementById("edit-user-pwd").value.trim();
+  const tel   = document.getElementById("edit-user-tel").value.trim();
+  const email = document.getElementById("edit-user-email").value.trim();
+  if (!nome || !pwd) { showToast("Nome e password obbligatori", "red"); return; }
+  try {
+    await sb("PATCH", `users?id=eq.${id}`, {
+      nome, password: pwd,
+      telefono: tel || null,
+      email: email || null
+    });
+    showToast("Operatore aggiornato", "green");
+    closeEditModal();
+    await loadUsers();
+  } catch(e) { showToast("Errore: " + e.message, "red"); }
+}
+
+async function toggleUser(id, attivo) {
+  try {
+    await sb("PATCH", `users?id=eq.${id}`, { attivo: !attivo });
+    showToast(attivo ? "Utente disattivato" : "Utente riattivato", attivo ? "red" : "green");
+    await loadUsers();
+  } catch(e) { showToast("Errore: " + e.message, "red"); }
+}
+
+async function deleteUser(id, nome) {
+  if (!confirm(`Eliminare definitivamente l'utente "${nome}"?`)) return;
+  try {
+    await sb("DELETE", `users?id=eq.${id}`);
+    showToast("Utente eliminato", "red");
+    await loadUsers();
+  } catch(e) { showToast("Errore: " + e.message, "red"); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// LOAD ORDERS
+// ══════════════════════════════════════════════════════════════
+async function loadOrders() {
+  if (!configured()) {
+    renderDemoOrders();
+    return;
+  }
+  try {
+    showSpinner(true);
+    const data = await sb("GET", "orders?select=*&order=created_at.desc");
+    allOrders = data || [];
+    renderOrders();
+    updateStats();
+  } catch(e) {
+    showToast("Errore caricamento: " + e.message, "red");
+  } finally {
+    showSpinner(false);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// FILTER & SEARCH
+// ══════════════════════════════════════════════════════════════
+function setFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  const titles = {
+    all: "Tutti gli ordini", ricevuto: "Ordini ricevuti",
+    in_lavorazione: "In lavorazione", concluso: "Conclusi",
+    mine: "I miei ordini", unassigned: "Non assegnati"
+  };
+  document.getElementById("main-title").textContent = titles[filter] || filter;
+  renderOrders();
+}
+
+function setSearch(val) {
+  currentSearch = val.toLowerCase();
+  renderOrders();
+}
+
+function filteredOrders() {
+  return allOrders.filter(o => {
+    if (currentFilter === "mine" && o.operator !== currentOperator) return false;
+    if (currentFilter === "unassigned" && o.operator) return false;
+    if (!["all","mine","unassigned"].includes(currentFilter) && o.status !== currentFilter) return false;
+    if (currentSearch) {
+      const hay = [o.nome, o.cognome, o.azienda, o.telefono, o.email, o.lavorazione].join(" ").toLowerCase();
+      if (!hay.includes(currentSearch)) return false;
+    }
+    return true;
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════════════
+function updateStats() {
+  const total = allOrders.length;
+  const ric = allOrders.filter(o => o.status === "ricevuto").length;
+  const lav = allOrders.filter(o => o.status === "in_lavorazione").length;
+  const con = allOrders.filter(o => o.status === "concluso").length;
+  const mine = allOrders.filter(o => o.operator === currentOperator).length;
+  const una = allOrders.filter(o => !o.operator).length;
+
+  document.getElementById("stat-total").textContent = total;
+  document.getElementById("stat-ricevuti").textContent = ric;
+  document.getElementById("stat-lavorazione").textContent = lav;
+  document.getElementById("stat-conclusi").textContent = con;
+
+  document.getElementById("count-all").textContent = total;
+  document.getElementById("count-ricevuto").textContent = ric;
+  document.getElementById("count-in_lavorazione").textContent = lav;
+  document.getElementById("count-concluso").textContent = con;
+  document.getElementById("count-mine").textContent = mine;
+  document.getElementById("count-unassigned").textContent = una;
+}
+
+function statusLabel(s) {
+  return { ricevuto:"Ricevuto", in_lavorazione:"In Lavorazione", concluso:"Concluso" }[s] || s;
+}
+
+function fmt(n) {
+  if (!n) return "—";
+  return parseFloat(n).toFixed(1).replace(".", ",") + " €";
+}
+
+function fmtDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleDateString("it-IT", { day:"2-digit", month:"2-digit", year:"2-digit" }) +
+    " " + d.toLocaleTimeString("it-IT", { hour:"2-digit", minute:"2-digit" });
+}
+
+function shortId(id) {
+  return id ? id.substring(0,8).toUpperCase() : "—";
+}
+
+function renderOrders() {
+  const orders = filteredOrders();
+  const body = document.getElementById("orders-body");
+
+  if (!orders.length) {
+    body.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div>Nessun ordine trovato.</div>`;
+    return;
+  }
+
+  body.innerHTML = orders.map(o => `
+    <div class="order-row ${selectedOrderId === o.id ? 'selected' : ''}" onclick="openDetail('${o.id}')">
+      <div class="order-id">${shortId(o.id)}</div>
+      <div>
+        <div class="order-client">${o.nome || ""} ${o.cognome || ""}</div>
+        <div class="order-studio">${o.azienda || ""}</div>
+      </div>
+      <div class="order-lav">${(o.lavorazione || "—").replace(/\n/g," ")}</div>
+      <div class="order-price">${fmt(o.prezzo_base)}</div>
+      <div><span class="status-badge status-${o.status}">${statusLabel(o.status)}</span></div>
+      <div class="order-op">${o.operator || "—"}</div>
+      <div class="order-date">${fmtDate(o.created_at)}</div>
+    </div>`).join("");
+}
+
+// ══════════════════════════════════════════════════════════════
+// DETAIL PANEL
+// ══════════════════════════════════════════════════════════════
+function openDetail(id) {
+  const o = allOrders.find(x => x.id === id);
+  if (!o) return;
+  selectedOrderId = id;
+  renderOrders(); // refresh selection highlight
+
+  document.getElementById("d-id").textContent = "Ordine #" + shortId(o.id);
+  document.getElementById("d-name").textContent = (o.nome || "") + " " + (o.cognome || "");
+  document.getElementById("d-studio").textContent = o.azienda || "";
+
+  const isMine = o.operator === currentOperator;
+  const iva = o.iva || 4;
+  const prezzoIva = o.prezzo_base ? (parseFloat(o.prezzo_base) * (1 + iva/100)).toFixed(1).replace(".",",") + " €" : "—";
+
+  const addrFatt = [o.ind_fattura, o.citta_fattura, o.cap_fattura, o.prov_fattura].filter(Boolean).join(", ") || "—";
+  const addrSped = o.same_spedizione ? "Uguale a fatturazione" : [o.ind_spedizione, o.citta_spedizione, o.cap_spedizione, o.prov_spedizione].filter(Boolean).join(", ") || "—";
+
+  document.getElementById("d-body").innerHTML = `
+    <!-- STATUS -->
+    <div class="detail-section">
+      <div class="detail-section-title">Stato ordine</div>
+      <div class="status-actions">
+        <button class="status-action-btn ricevuto ${o.status==='ricevuto'?'current':''}"
+          onclick="updateStatus('${o.id}','ricevuto')">📥<br>Ricevuto</button>
+        <button class="status-action-btn in_lavorazione ${o.status==='in_lavorazione'?'current':''}"
+          onclick="updateStatus('${o.id}','in_lavorazione')">⚙️<br>In Lavorazione</button>
+        <button class="status-action-btn concluso ${o.status==='concluso'?'current':''}"
+          onclick="updateStatus('${o.id}','concluso')">✅<br>Concluso</button>
+      </div>
+      <button class="delete-order-btn" onclick="deleteOrder('${o.id}', '${(o.nome||'').replace(/'/g,"\\'")} ${(o.cognome||'').replace(/'/g,"\\'")}')">
+        🗑️ Cancella ordine
+      </button>
+    </div>
+
+    <!-- OPERATOR -->
+    <div class="detail-section">
+      <div class="detail-section-title">Operatore</div>
+      <div class="operator-section">
+        ${o.operator
+          ? `<div class="operator-current">👤 ${o.operator}</div>
+             ${!isMine ? `<button class="take-charge-btn" onclick="takeCharge('${o.id}')">Prendi in carico tu</button>` :
+               `<button class="take-charge-btn mine" onclick="releaseCharge('${o.id}')">✓ In carico a te — Rilascia</button>`}`
+          : `<div style="font-size:12px;color:var(--gray);margin-bottom:8px">Nessun operatore assegnato</div>
+             <button class="take-charge-btn" onclick="takeCharge('${o.id}')">Prendi in carico</button>`
+        }
+      </div>
+    </div>
+
+    <!-- PREZZO -->
+    <div class="detail-section">
+      <div class="detail-section-title">Prezzo indicativo</div>
+      <div class="detail-price-big">${fmt(o.prezzo_base)}</div>
+      <div class="detail-price-iva">IVA ${iva}% inclusa: ${prezzoIva}</div>
+    </div>
+
+    <!-- CLIENTE -->
+    <div class="detail-section">
+      <div class="detail-section-title">Dati cliente</div>
+      ${row("Nome", (o.nome||"") + " " + (o.cognome||""))}
+      ${row("Studio/Lab", o.azienda)}
+      ${row("Telefono", o.telefono ? `<a href="tel:${o.telefono}" style="color:var(--blue)">${o.telefono}</a>` : "—")}
+      ${row("Email", o.email ? `<a href="mailto:${o.email}" style="color:var(--blue)">${o.email}</a>` : "—")}
+      ${o.piva ? row("P.IVA / CF", o.piva) : ""}
+      ${row("Fatturazione", addrFatt)}
+      ${row("Spedizione", addrSped)}
+    </div>
+
+    <!-- DATI CLINICI -->
+    ${(() => {
+      const parsed = parseNote(o.note);
+      const paziente = o.paziente || parsed.paziente;
+      const hasClinical = paziente || parsed.denti || parsed.impianto || parsed.shade || parsed.urgenza || parsed.noteTecn;
+      if(!hasClinical) return '';
+      const urgClass = parsed.urgenza === 'urgente' ? 'urgente' : parsed.urgenza === 'express' ? 'express' : '';
+      return `<div class="detail-section">
+        <div class="detail-section-title">Dati clinici</div>
+        ${paziente ? row("Paziente", paziente) : ''}
+        ${parsed.denti ? `<div class="detail-row"><span class="detail-key">Denti (FDI)</span><span class="detail-val">${parsed.denti.split(',').map(d=>`<span class="clinical-chip">${d.trim()}</span>`).join('')}</span></div>` : ''}
+        ${parsed.impianto ? row("Impianto", parsed.impianto) : ''}
+        ${parsed.shade ? row("Shade", parsed.shade) : ''}
+        ${parsed.urgenza ? `<div class="detail-row"><span class="detail-key">Urgenza</span><span class="detail-val"><span class="clinical-chip ${urgClass}">${parsed.urgenza}</span></span></div>` : ''}
+        ${parsed.noteTecn ? row("Note tecniche", parsed.noteTecn) : ''}
+      </div>`;
+    })()}
+
+    <!-- COMUNICAZIONE CLIENTE -->
+    <div class="detail-section">
+      <div class="detail-section-title">Comunicazione cliente</div>
+      <div class="comm-section">
+        ${o.telefono
+          ? `<button class="btn-wa" onclick="openWA('${o.id}')">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M10 0C4.478 0 0 4.478 0 10c0 1.848.505 3.576 1.383 5.063L0 20l5.09-1.348A9.956 9.956 0 0010 20c5.522 0 10-4.478 10-10S15.522 0 10 0zm0 18.182a8.172 8.172 0 01-4.168-1.143l-.299-.177-3.021.799.81-2.965-.194-.305A8.133 8.133 0 011.818 10c0-4.513 3.669-8.182 8.182-8.182S18.182 5.487 18.182 10 14.513 18.182 10 18.182z"/></svg>
+              WhatsApp cliente
+             </button>`
+          : `<span class="comm-missing">📵 Nessun telefono — WhatsApp non disponibile</span>`
+        }
+        ${o.email
+          ? `<button class="btn-email-client" onclick="openEmail('${o.id}')">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/></svg>
+              Email conferma
+             </button>`
+          : `<span class="comm-missing">📭 Nessuna email — invio non disponibile</span>`
+        }
+      </div>
+    </div>
+
+    <!-- CONFIGURAZIONE -->
+    <div class="detail-section">
+      <div class="detail-section-title">Configurazione</div>
+      ${row("Lavorazione", (o.lavorazione||"—").replace(/\n/g," "))}
+      ${o.n_impianti ? row("N. Impianti", o.n_impianti) : ""}
+      ${row("Materiale", o.materiale)}
+      ${o.ti_base ? row("Ti Base", o.ti_base) : ""}
+      ${row("Workflow", o.workflow)}
+    </div>
+
+    <!-- FILE -->
+    ${o.file_link ? `<div class="detail-section">
+      <div class="detail-section-title">File ordine</div>
+      <a class="file-link-btn" href="${o.file_link}" target="_blank">
+        📦 Scarica file ordine
+        ${o.file_name ? `<span style="font-weight:400;font-size:10px;color:var(--gray)">${o.file_name}</span>` : ""}
+      </a>
+    </div>` : ""}
+
+    <!-- NOTE CLIENTE -->
+    ${(() => {
+      const parsed = parseNote(o.note);
+      const noteLibere = parsed.noteLibere;
+      if(!noteLibere) return '';
+      return `<div class="detail-section">
+        <div class="detail-section-title">Note cliente</div>
+        <div style="font-size:12px;color:var(--mid);background:var(--light);border-radius:8px;padding:10px;line-height:1.6">${noteLibere}</div>
+      </div>`;
+    })()}
+
+    <!-- NOTE OPERATORE -->
+    <div class="detail-section">
+      <div class="detail-section-title">Note operative interne</div>
+      <textarea class="note-area" id="op-note-${o.id}" placeholder="Aggiungi note interne sull'ordine…">${o.operator_note || ""}</textarea>
+      <button class="save-note-btn" onclick="saveNote('${o.id}')">Salva nota</button>
+    </div>
+
+    <!-- META -->
+    <div class="detail-section">
+      <div class="detail-section-title">Info ordine</div>
+      ${row("Ricevuto il", fmtDate(o.created_at))}
+      ${row("Ultimo aggiornamento", fmtDate(o.updated_at))}
+      ${row("ID completo", `<span style="font-family:monospace;font-size:10px">${o.id}</span>`)}
+    </div>
+  `;
+
+  document.getElementById("detail-panel").classList.add("open");
+}
+
+// ── Parsing note strutturate ────────────────────────────────
+function parseNote(noteStr) {
+  if(!noteStr) return {};
+  const result = {};
+  const patterns = [
+    ['paziente',  /Paziente:\s*(.+?)(?:\s*\||\s*$)/i],
+    ['denti',     /Denti:\s*(.+?)(?:\s*\||\s*$)/i],
+    ['impianto',  /Impianto:\s*(.+?)(?:\s*\||\s*$)/i],
+    ['shade',     /Shade:\s*(.+?)(?:\s*\||\s*$)/i],
+    ['urgenza',   /Urgenza:\s*(.+?)(?:\s*\||\s*$)/i],
+    ['noteTecn',  /Note tecniche:\s*(.+?)(?:\s*\||\s*$)/i],
+  ];
+  for(const [key, rx] of patterns) {
+    const m = noteStr.match(rx);
+    if(m) result[key] = m[1].trim();
+  }
+  // Note libere = tutto ciò che non inizia con una chiave nota
+  const cleaned = noteStr
+    .replace(/Paziente:[^|]+(\||$)/ig, '')
+    .replace(/Denti:[^|]+(\||$)/ig, '')
+    .replace(/Impianto:[^|]+(\||$)/ig, '')
+    .replace(/Shade:[^|]+(\||$)/ig, '')
+    .replace(/Urgenza:[^|]+(\||$)/ig, '')
+    .replace(/Note tecniche:[^|]+(\||$)/ig, '')
+    .replace(/\|/g, '').trim();
+  if(cleaned) result.noteLibere = cleaned;
+  return result;
+}
+
+// ── Builder messaggi cliente ─────────────────────────────────
+function buildWAText(o) {
+  const parsed = parseNote(o.note);
+  const paziente = o.paziente || parsed.paziente || '';
+  const lav = (o.lavorazione||'').replace(/
+/g,' ');
+  const lines = [
+    `Gentile ${o.nome||''} ${o.cognome||''},`,
+    ``,
+    `✅ Abbiamo ricevuto il suo ordine CAD/CAM.`,
+    ``,
+    `📋 *Riepilogo ordine:*`,
+    lav         ? `• Lavorazione: ${lav}` : null,
+    o.materiale ? `• Materiale: ${o.materiale}` : null,
+    o.n_impianti? `• Impianti: ${o.n_impianti}` : null,
+    paziente    ? `• Paziente: ${paziente}` : null,
+    parsed.denti? `• Denti: ${parsed.denti}` : null,
+    parsed.impianto ? `• Impianto: ${parsed.impianto}` : null,
+    ``,
+    `⏱ Tempi stimati: 5-7 giorni lavorativi`,
+    ``,
+    o.file_link ? `📦 File ordine: ${o.file_link}` : null,
+    ``,
+    `Per qualsiasi aggiornamento può contattarci a questo numero.`,
+    ``,
+    `— AbutmentCompatibili.com`,
+    `Biaggini Medical Devices S.r.l.`
+  ].filter(l => l !== null).join('
+');
+  return lines;
+}
+
+function buildEmailBody(o) {
+  const parsed = parseNote(o.note);
+  const paziente = o.paziente || parsed.paziente || '';
+  const lav = (o.lavorazione||'').replace(/
+/g,' ');
+  const lines = [
+    `Gentile ${o.nome||''} ${o.cognome||''},`,
+    ``,
+    `abbiamo ricevuto il suo ordine CAD/CAM. Di seguito il riepilogo:`,
+    ``,
+    `RIEPILOGO ORDINE`,
+    `───────────────────────────────`,
+    lav          ? `Lavorazione   : ${lav}` : null,
+    o.materiale  ? `Materiale     : ${o.materiale}` : null,
+    o.n_impianti ? `N. Impianti   : ${o.n_impianti}` : null,
+    paziente     ? `Paziente      : ${paziente}` : null,
+    parsed.denti ? `Denti (FDI)   : ${parsed.denti}` : null,
+    parsed.impianto ? `Impianto      : ${parsed.impianto}` : null,
+    o.prezzo_base? `Prezzo ind.   : ${o.prezzo_base.toFixed ? o.prezzo_base.toFixed(1) : o.prezzo_base} € + IVA ${o.iva||4}%` : null,
+    `───────────────────────────────`,
+    ``,
+    `Il suo ordine è stato preso in carico e sarà lavorato nei prossimi giorni.`,
+    `Riceverà un aggiornamento al completamento.`,
+    ``,
+    o.file_link  ? `File ordine: ${o.file_link}` : null,
+    ``,
+    `Cordiali saluti,`,
+    `Team AbutmentCompatibili.com`,
+    `Biaggini Medical Devices S.r.l.`,
+    `www.abutmentcompatibili.com`
+  ].filter(l => l !== null).join('
+');
+  return lines;
+}
+
+// ── Testi notifica cambio stato ─────────────────────────────
+const STATUS_LABELS_IT = {
+  ricevuto:       'Ricevuto',
+  in_lavorazione: 'In Lavorazione',
+  concluso:       'Concluso / Pronto'
+};
+
+const STATUS_EMOJI = {
+  ricevuto:       '📥',
+  in_lavorazione: '⚙️',
+  concluso:       '✅'
+};
+
+const STATUS_MSG = {
+  ricevuto: (o) => [
+    `Gentile ${o.nome||''} ${o.cognome||''},`,
+    ``,
+    `✅ Abbiamo ricevuto il suo ordine CAD/CAM.`,
+    `Il suo file è stato caricato correttamente e sarà preso in lavorazione a breve.`,
+    ``,
+    `📋 Lavorazione: ${(o.lavorazione||'').replace(/
+/g,' ')}`,
+    o.materiale ? `   Materiale: ${o.materiale}` : null,
+    ``,
+    `⏱ Tempi stimati: 5-7 giorni lavorativi`,
+    ``,
+    `— AbutmentCompatibili.com`
+  ].filter(l=>l!==null).join('
+'),
+
+  in_lavorazione: (o) => [
+    `Gentile ${o.nome||''} ${o.cognome||''},`,
+    ``,
+    `⚙️ Il suo ordine CAD/CAM è ora *in lavorazione*.`,
+    ``,
+    `📋 Lavorazione: ${(o.lavorazione||'').replace(/
+/g,' ')}`,
+    o.materiale ? `   Materiale: ${o.materiale}` : null,
+    o.n_impianti ? `   Impianti: ${o.n_impianti}` : null,
+    ``,
+    `La avviseremo non appena il lavoro sarà completato.`,
+    ``,
+    `— AbutmentCompatibili.com`
+  ].filter(l=>l!==null).join('
+'),
+
+  concluso: (o) => [
+    `Gentile ${o.nome||''} ${o.cognome||''},`,
+    ``,
+    `✅ Il suo ordine CAD/CAM è *completato* ed è pronto per la spedizione.`,
+    ``,
+    `📋 Lavorazione: ${(o.lavorazione||'').replace(/
+/g,' ')}`,
+    o.materiale ? `   Materiale: ${o.materiale}` : null,
+    ``,
+    o.file_link ? `📦 File ordine: ${o.file_link}` : null,
+    ``,
+    `Per qualsiasi informazione non esiti a contattarci.`,
+    ``,
+    `— AbutmentCompatibili.com`,
+    `Biaggini Medical Devices S.r.l.`
+  ].filter(l=>l!==null).join('
+')
+};
+
+const STATUS_EMAIL_SUBJECT = {
+  ricevuto:       o => `Conferma ricezione ordine — ${(o.lavorazione||'').replace(/
+/g,' ')}`,
+  in_lavorazione: o => `Il suo ordine è in lavorazione — AbutmentCompatibili.com`,
+  concluso:       o => `Ordine completato e pronto — AbutmentCompatibili.com`
+};
+
+const STATUS_EMAIL_BODY = {
+  ricevuto: (o) => [
+    `Gentile ${o.nome||''} ${o.cognome||''},`,
+    ``,
+    `abbiamo ricevuto il suo ordine CAD/CAM con successo.`,
+    ``,
+    `RIEPILOGO`,
+    `─────────────────────────────`,
+    `Lavorazione : ${(o.lavorazione||'').replace(/
+/g,' ')}`,
+    o.materiale  ? `Materiale   : ${o.materiale}` : null,
+    o.n_impianti ? `N. Impianti : ${o.n_impianti}` : null,
+    `─────────────────────────────`,
+    ``,
+    `Il lavoro sarà preso in carico a breve. Riceverà un aggiornamento quando entrerà in lavorazione.`,
+    ``,
+    `Cordiali saluti,`,
+    `Team AbutmentCompatibili.com — Biaggini Medical Devices S.r.l.`,
+    `www.abutmentcompatibili.com`
+  ].filter(l=>l!==null).join('
+'),
+
+  in_lavorazione: (o) => [
+    `Gentile ${o.nome||''} ${o.cognome||''},`,
+    ``,
+    `il suo ordine CAD/CAM è ora in lavorazione.`,
+    ``,
+    `DETTAGLIO ORDINE`,
+    `─────────────────────────────`,
+    `Lavorazione : ${(o.lavorazione||'').replace(/
+/g,' ')}`,
+    o.materiale  ? `Materiale   : ${o.materiale}` : null,
+    o.n_impianti ? `N. Impianti : ${o.n_impianti}` : null,
+    `─────────────────────────────`,
+    ``,
+    `La avviseremo via email al completamento del lavoro.`,
+    ``,
+    `Cordiali saluti,`,
+    `Team AbutmentCompatibili.com — Biaggini Medical Devices S.r.l.`,
+    `www.abutmentcompatibili.com`
+  ].filter(l=>l!==null).join('
+'),
+
+  concluso: (o) => [
+    `Gentile ${o.nome||''} ${o.cognome||''},`,
+    ``,
+    `il suo ordine CAD/CAM è completato ed è pronto.`,
+    ``,
+    `DETTAGLIO ORDINE`,
+    `─────────────────────────────`,
+    `Lavorazione : ${(o.lavorazione||'').replace(/
+/g,' ')}`,
+    o.materiale  ? `Materiale   : ${o.materiale}` : null,
+    o.n_impianti ? `N. Impianti : ${o.n_impianti}` : null,
+    o.file_link  ? `File ordine : ${o.file_link}` : null,
+    `─────────────────────────────`,
+    ``,
+    `Per qualsiasi chiarimento rimaniamo a disposizione.`,
+    ``,
+    `Cordiali saluti,`,
+    `Team AbutmentCompatibili.com — Biaggini Medical Devices S.r.l.`,
+    `www.abutmentcompatibili.com`
+  ].filter(l=>l!==null).join('
+')
+};
+
+// ── Modale notifica ─────────────────────────────────────────────
+let _notifyOrderId = null;
+let _notifyStatus  = null;
+
+function showNotifyModal(id, status) {
+  const o = allOrders.find(x => x.id === id);
+  if(!o) return;
+  _notifyOrderId = id;
+  _notifyStatus  = status;
+
+  const hasWA    = !!o.telefono;
+  const hasEmail = !!o.email;
+  const waText   = STATUS_MSG[status] ? STATUS_MSG[status](o) : '';
+  const preview  = waText;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'notify-overlay';
+  overlay.id = 'notify-overlay';
+  overlay.innerHTML = `
+    <div class="notify-modal">
+      <div class="notify-head">
+        <div class="notify-icon">${STATUS_EMOJI[status]||'📬'}</div>
+        <div>
+          <div class="notify-title">Stato aggiornato — notifica il cliente?</div>
+          <div class="notify-sub">
+            <strong>${(o.nome||'')} ${(o.cognome||'')}</strong> · ${o.azienda||''}
+            <br>Nuovo stato: <strong>${STATUS_LABELS_IT[status]||status}</strong>
+          </div>
+        </div>
+      </div>
+      <div class="notify-body">
+        <div class="notify-label">Anteprima messaggio</div>
+        <div class="notify-preview">${preview.replace(/</g,'&lt;')}</div>
+        <div class="notify-label">Invia tramite</div>
+        <div class="notify-actions">
+          ${hasWA
+            ? `<button class="btn-wa" onclick="sendStatusWA()">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M10 0C4.478 0 0 4.478 0 10c0 1.848.505 3.576 1.383 5.063L0 20l5.09-1.348A9.956 9.956 0 0010 20c5.522 0 10-4.478 10-10S15.522 0 10 0zm0 18.182a8.172 8.172 0 01-4.168-1.143l-.299-.177-3.021.799.81-2.965-.194-.305A8.133 8.133 0 011.818 10c0-4.513 3.669-8.182 8.182-8.182S18.182 5.487 18.182 10 14.513 18.182 10 18.182z"/></svg>
+                WhatsApp
+              </button>`
+            : `<span class="comm-missing" style="flex:1">📵 Telefono non disponibile</span>`
+          }
+          ${hasEmail
+            ? `<button class="btn-email-client" onclick="sendStatusEmail()">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/></svg>
+                Email
+              </button>`
+            : `<span class="comm-missing" style="flex:1">📭 Email non disponibile</span>`
+          }
+        </div>
+      </div>
+      <div class="notify-footer">
+        <button class="btn-notify-skip" onclick="closeNotifyModal()">Salta — non notificare</button>
+      </div>
+    </div>`;
+
+  overlay.addEventListener('click', e => { if(e.target === overlay) closeNotifyModal(); });
+  document.body.appendChild(overlay);
+}
+
+function closeNotifyModal() {
+  const el = document.getElementById('notify-overlay');
+  if(el) el.remove();
+  _notifyOrderId = null;
+  _notifyStatus  = null;
+}
+
+function sendStatusWA() {
+  const o = allOrders.find(x => x.id === _notifyOrderId);
+  if(!o || !o.telefono) return;
+  const tel  = o.telefono.replace(/\D/g, '');
+  const text = STATUS_MSG[_notifyStatus] ? STATUS_MSG[_notifyStatus](o) : '';
+  window.open(`https://wa.me/${tel}?text=${encodeURIComponent(text)}`, '_blank');
+  closeNotifyModal();
+}
+
+function sendStatusEmail() {
+  const o = allOrders.find(x => x.id === _notifyOrderId);
+  if(!o || !o.email) return;
+  const subjectFn = STATUS_EMAIL_SUBJECT[_notifyStatus];
+  const bodyFn    = STATUS_EMAIL_BODY[_notifyStatus];
+  const subject   = encodeURIComponent(subjectFn ? subjectFn(o) : 'Aggiornamento ordine — AbutmentCompatibili.com');
+  const body      = encodeURIComponent(bodyFn ? bodyFn(o) : '');
+  window.location.href = `mailto:${o.email}?subject=${subject}&body=${body}`;
+  closeNotifyModal();
+}
+
+function openWA(id) {
+  const o = allOrders.find(x => x.id === id);
+  if(!o || !o.telefono) return;
+  const tel = o.telefono.replace(/\D/g,'');
+  const text = buildWAText(o);
+  window.open(`https://wa.me/${tel}?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+function openEmail(id) {
+  const o = allOrders.find(x => x.id === id);
+  if(!o || !o.email) return;
+  const lav = (o.lavorazione||'').replace(/
+/g,' ');
+  const subject = encodeURIComponent(`Conferma ricezione ordine — ${lav} — AbutmentCompatibili.com`);
+  const body = encodeURIComponent(buildEmailBody(o));
+  window.location.href = `mailto:${o.email}?subject=${subject}&body=${body}`;
+}
+
+function row(k, v) {
+  return `<div class="detail-row">
+    <span class="detail-key">${k}</span>
+    <span class="detail-val">${v || "—"}</span>
+  </div>`;
+}
+
+function prow(k, v) {
+  if(!v) return '';
+  return `<div class="print-row"><span class="print-key">${k}</span><span class="print-val">${v}</span></div>`;
+}
+
+function printOrder() {
+  const id = selectedOrderId;
+  if(!id) return;
+  const o = allOrders.find(x => x.id === id);
+  if(!o) return;
+
+  const parsed = parseNote(o.note);
+  const paziente = o.paziente || parsed.paziente || '';
+  const iva = o.iva || 4;
+  const prezzoIva = o.prezzo_base
+    ? (parseFloat(o.prezzo_base) * (1 + iva/100)).toFixed(1).replace('.', ',') + ' €'
+    : '—';
+  const addrFatt = [o.ind_fattura, o.cap_fattura, o.citta_fattura, o.prov_fattura].filter(Boolean).join(', ') || '—';
+  const addrSped = o.same_spedizione ? 'Uguale a fatturazione'
+    : [o.ind_spedizione, o.cap_spedizione, o.citta_spedizione, o.prov_spedizione].filter(Boolean).join(', ') || '—';
+
+  const statusLabels = { ricevuto:'Ricevuto', in_lavorazione:'In Lavorazione', concluso:'Concluso' };
+  const dentiChips = parsed.denti
+    ? parsed.denti.split(',').map(d => `<span class="print-chip">${d.trim()}</span>`).join('')
+    : '';
+
+  const urgLabel = {
+    standard: 'Standard (5-7gg)',
+    express: 'Express (2-3gg)',
+    urgente: '🚨 URGENTE'
+  }[parsed.urgenza] || parsed.urgenza || '';
+
+  const sheet = document.getElementById('print-sheet');
+  sheet.innerHTML = `
+    <div class="print-header">
+      <div class="print-logo-area">
+        <h1>AbutmentCompatibili.com</h1>
+        <p>Biaggini Medical Devices S.r.l. · www.abutmentcompatibili.com</p>
+        <p>ISO 13485 · CE 0425 · MDR 745/2017</p>
+      </div>
+      <div class="print-order-meta">
+        <strong>Ordine #${shortId(o.id)}</strong>
+        <span>Ricevuto: ${fmtDate(o.created_at)}</span><br>
+        <span>Stampato: ${new Date().toLocaleDateString('it-IT')}</span><br>
+        <span class="print-status ${o.status}">${statusLabels[o.status] || o.status}</span>
+        ${o.operator ? `<br><span style="font-size:9px;color:#6B7280">Operatore: ${o.operator}</span>` : ''}
+      </div>
+    </div>
+
+    <div class="print-grid">
+      <div>
+        <div class="print-section">
+          <div class="print-section-title">Cliente</div>
+          ${prow('Nominativo', (o.nome||'') + ' ' + (o.cognome||''))}
+          ${prow('Studio / Lab', o.azienda)}
+          ${prow('Telefono', o.telefono)}
+          ${prow('Email', o.email)}
+          ${o.piva ? prow('P.IVA / C.F.', o.piva) : ''}
+          ${prow('Fatturazione', addrFatt)}
+          ${prow('Spedizione', addrSped)}
+        </div>
+
+        <div class="print-section">
+          <div class="print-section-title">Configurazione</div>
+          ${prow('Lavorazione', (o.lavorazione||'').replace(/
+/g,' '))}
+          ${o.n_impianti ? prow('N. Impianti', o.n_impianti) : ''}
+          ${prow('Materiale', o.materiale)}
+          ${o.ti_base ? prow('Ti Base', o.ti_base === 'con' ? 'Incluso nel prezzo' : 'Fornito esternamente') : ''}
+          ${prow('Workflow', o.workflow)}
+        </div>
+      </div>
+
+      <div>
+        <div class="print-section">
+          <div class="print-section-title">Dati clinici</div>
+          ${paziente ? prow('Paziente', paziente) : ''}
+          ${parsed.denti ? `<div class="print-row"><span class="print-key">Denti (FDI)</span><span class="print-val"><div class="print-chips">${dentiChips}</div></span></div>` : ''}
+          ${prow('Impianto / Conn.', parsed.impianto)}
+          ${prow('Shade', parsed.shade)}
+          ${parsed.urgenza ? prow('Urgenza', urgLabel) : ''}
+          ${prow('Note tecniche', parsed.noteTecn)}
+        </div>
+
+        <div class="print-section">
+          <div class="print-section-title">Prezzo indicativo</div>
+          <div class="print-price-box">
+            <div class="print-price-big">${o.prezzo_base ? parseFloat(o.prezzo_base).toFixed(1).replace('.',',') + ' €' : '—'}</div>
+            <div class="print-price-iva">IVA ${iva}% inclusa: ${prezzoIva}</div>
+          </div>
+        </div>
+
+        ${o.file_link ? `<div class="print-section">
+          <div class="print-section-title">File ordine</div>
+          ${prow('Link file', o.file_link)}
+          ${o.file_name ? prow('Nome file', o.file_name) : ''}
+        </div>` : ''}
+      </div>
+    </div>
+
+    ${parsed.noteLibere ? `<div class="print-section" style="margin-top:4px">
+      <div class="print-section-title">Note cliente</div>
+      <div class="print-note-box">${parsed.noteLibere}</div>
+    </div>` : ''}
+
+    ${o.operator_note ? `<div class="print-section">
+      <div class="print-section-title">Note operative interne</div>
+      <div class="print-op-note">${o.operator_note}</div>
+    </div>` : ''}
+
+    <div class="print-footer">
+      <span>AbutmentCompatibili.com · Biaggini Medical Devices S.r.l.</span>
+      <span>ID: ${o.id}</span>
+      <span>${new Date().toLocaleString('it-IT')}</span>
+    </div>
+  `;
+
+  window.print();
+}
+
+function closeDetail() {
+  selectedOrderId = null;
+  document.getElementById("detail-panel").classList.remove("open");
+  renderOrders();
+}
+
+// ══════════════════════════════════════════════════════════════
+// ACTIONS
+// ══════════════════════════════════════════════════════════════
+async function updateStatus(id, status) {
+  if (!configured()) { demoUpdateStatus(id, status); return; }
+  try {
+    await sb("PATCH", `orders?id=eq.${id}`, { status, updated_at: new Date().toISOString() });
+    const o = allOrders.find(x => x.id === id);
+    if (o) { o.status = status; o.updated_at = new Date().toISOString(); }
+    renderOrders(); updateStats();
+    if (selectedOrderId === id) openDetail(id);
+    showToast("Stato aggiornato: " + statusLabel(status), "green");
+    // Modale notifica per tutti gli stati con contatto disponibile
+    const hasContact = !!(o && (o.telefono || o.email));
+    if(hasContact) showNotifyModal(id, status);
+  } catch(e) { showToast("Errore: " + e.message, "red"); }
+}
+
+async function takeCharge(id) {
+  if (!configured()) { demoTakeCharge(id); return; }
+  try {
+    await sb("PATCH", `orders?id=eq.${id}`, { operator: currentOperator, updated_at: new Date().toISOString() });
+    const o = allOrders.find(x => x.id === id);
+    if (o) { o.operator = currentOperator; o.updated_at = new Date().toISOString(); }
+    renderOrders(); updateStats();
+    if (selectedOrderId === id) openDetail(id);
+    showToast("Ordine preso in carico", "green");
+  } catch(e) { showToast("Errore: " + e.message, "red"); }
+}
+
+async function releaseCharge(id) {
+  if (!configured()) { demoReleaseCharge(id); return; }
+  try {
+    await sb("PATCH", `orders?id=eq.${id}`, { operator: null, updated_at: new Date().toISOString() });
+    const o = allOrders.find(x => x.id === id);
+    if (o) { o.operator = null; o.updated_at = new Date().toISOString(); }
+    renderOrders(); updateStats();
+    if (selectedOrderId === id) openDetail(id);
+    showToast("Ordine rilasciato");
+  } catch(e) { showToast("Errore: " + e.message, "red"); }
+}
+
+async function deleteOrder(id, clienteNome) {
+  const name = clienteNome.trim() || "questo ordine";
+  if (!confirm(`⚠️ Sei sicuro di voler cancellare l'ordine di "${name}"?\n\nL'operazione è irreversibile.`)) return;
+  if (!configured()) { demoDeleteOrder(id); return; }
+  try {
+    await sb("DELETE", `orders?id=eq.${id}`);
+    allOrders = allOrders.filter(x => x.id !== id);
+    closeDetail();
+    renderOrders();
+    updateStats();
+    showToast("Ordine cancellato", "red");
+  } catch(e) { showToast("Errore: " + e.message, "red"); }
+}
+
+async function saveNote(id) {
+  const note = document.getElementById(`op-note-${id}`)?.value || "";
+  if (!configured()) { demoSaveNote(id, note); return; }
+  try {
+    await sb("PATCH", `orders?id=eq.${id}`, { operator_note: note, updated_at: new Date().toISOString() });
+    const o = allOrders.find(x => x.id === id);
+    if (o) { o.operator_note = note; }
+    showToast("Nota salvata", "green");
+  } catch(e) { showToast("Errore: " + e.message, "red"); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// DEMO MODE (when Supabase not configured)
+// ══════════════════════════════════════════════════════════════
+function renderDemoOrders() {
+  allOrders = [
+    { id:"demo-0001-uuid-aaaa", created_at: new Date(Date.now()-3600000).toISOString(), updated_at: new Date().toISOString(),
+      nome:"Marco", cognome:"Bianchi", azienda:"Lab Bianchi S.r.l.", telefono:"+39 333 1234567", email:"marco@lab.it",
+      piva:"IT01234567890", lavorazione:"Elemento Singolo\nCementato", n_impianti:null, materiale:"Zirconia Elite (IVA 4%)",
+      ti_base:"Incluso nel prezzo", workflow:"File STL finito", prezzo_base:53.5, iva:4,
+      file_link:"https://gofile.io/demo", file_name:"ordine_demo.zip",
+      ind_fattura:"Via Roma 1", citta_fattura:"Milano", cap_fattura:"20100", prov_fattura:"MI",
+      same_spedizione:true, paziente:"Bianchi Mario (pz.)", note:"Paziente: Bianchi Mario (pz.) | Denti: 12, 15 | Impianto: Nobel Active RP ø4.3 | Urgenza: urgente",
+      status:"ricevuto", operator:null, operator_note:"" },
+    { id:"demo-0002-uuid-bbbb", created_at: new Date(Date.now()-86400000).toISOString(), updated_at: new Date().toISOString(),
+      nome:"Giulia", cognome:"Rossi", azienda:"Studio Dr. Rossi", telefono:"+39 347 9876543", email:"giulia@studio.it",
+      piva:null, lavorazione:"Ponte / Arcata\nAvvitata", n_impianti:"3-4 Impianti", materiale:"Ti/CrCo SMART (IVA 4%)",
+      ti_base:null, workflow:"File STL finito", prezzo_base:139.2, iva:4,
+      file_link:null, file_name:null,
+      ind_fattura:"Corso Italia 45", citta_fattura:"Roma", cap_fattura:"00100", prov_fattura:"RM",
+      same_spedizione:true, paziente:"Verdi Sofia", note:"Paziente: Verdi Sofia | Denti: 22, 23, 24, 25, 26, 27 | Impianto: NewAncorvis Direct Nobel® Branemark — MUA ø4.8 | Shade: A2 HT | Note tecniche: Canale vite angolato 25°",
+      status:"in_lavorazione", operator:"Luca Ferrari", operator_note:"Struttura in fresatura" },
+    { id:"demo-0003-uuid-cccc", created_at: new Date(Date.now()-172800000).toISOString(), updated_at: new Date(Date.now()-3600000).toISOString(),
+      nome:"Antonio", cognome:"Verdi", azienda:"Dental Lab Verdi", telefono:"+39 320 5555555", email:null,
+      piva:"IT09876543210", lavorazione:"Barra Implantare", n_impianti:"2 Impianti", materiale:"Barra Elite — Ti/CrCo Fresato (IVA 4%)",
+      ti_base:null, workflow:"Scansione Intraorale", prezzo_base:107.1, iva:4,
+      file_link:"https://gofile.io/demo2", file_name:"ordine_verdi.zip",
+      ind_fattura:"Via Napoli 12", citta_fattura:"Napoli", cap_fattura:"80100", prov_fattura:"NA",
+      same_spedizione:false, ind_spedizione:"Via Garibaldi 3", citta_spedizione:"Napoli", cap_spedizione:"80121", prov_spedizione:"NA",
+      note:"Occlusion: verificare con il clinico prima della consegna",
+      status:"concluso", operator:"Sara Martini", operator_note:"Consegnato il 10/03" }
+  ];
+  renderOrders();
+  updateStats();
+}
+
+function demoUpdateStatus(id, status) {
+  const o = allOrders.find(x => x.id === id);
+  if(o) {
+    o.status = status; o.updated_at = new Date().toISOString();
+    renderOrders(); updateStats();
+    if(selectedOrderId === id) openDetail(id);
+    showToast("Stato aggiornato: " + statusLabel(status), "green");
+    const hasContact = !!(o.telefono || o.email);
+    if(hasContact) showNotifyModal(id, status);
+    return;
+  }
+  if (o) { o.status = status; o.updated_at = new Date().toISOString(); }
+  renderOrders(); updateStats();
+  if (selectedOrderId === id) openDetail(id);
+  showToast("(Demo) Stato: " + statusLabel(status), "green");
+}
+function demoTakeCharge(id) {
+  const o = allOrders.find(x => x.id === id);
+  if (o) { o.operator = currentOperator; o.updated_at = new Date().toISOString(); }
+  renderOrders(); updateStats();
+  if (selectedOrderId === id) openDetail(id);
+  showToast("(Demo) Preso in carico", "green");
+}
+function demoReleaseCharge(id) {
+  const o = allOrders.find(x => x.id === id);
+  if (o) { o.operator = null; o.updated_at = new Date().toISOString(); }
+  renderOrders(); updateStats();
+  if (selectedOrderId === id) openDetail(id);
+  showToast("(Demo) Rilasciato");
+}
+function demoDeleteOrder(id) {
+  allOrders = allOrders.filter(x => x.id !== id);
+  closeDetail();
+  renderOrders();
+  updateStats();
+  showToast("(Demo) Ordine cancellato", "red");
+}
+function demoSaveNote(id, note) {
+  const o = allOrders.find(x => x.id === id);
+  if (o) o.operator_note = note;
+  showToast("(Demo) Nota salvata", "green");
+}
+
+// ══════════════════════════════════════════════════════════════
+// UI UTILS
+// ══════════════════════════════════════════════════════════════
+function showSpinner(v) {
+  document.getElementById("spinner").classList.toggle("show", v);
+}
+
+function showToast(msg, type = "") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast" + (type ? " " + type : "") + " show";
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), 2800);
+}
+</script>
+<div id="print-sheet" style="display:none"></div>
+</body>
+</html>

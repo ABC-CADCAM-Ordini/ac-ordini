@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>STL Cylinder Comparator v6 — AbutmentCompatibili.com</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" defer></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-wrapper">
+  <div class="siri-wrapper offline" id="siri-wrapper">
+    <div class="status-badge offline" id="status-badge">&#9899; Offline</div>
+    <div class="siri-inner">
+      <div class="app-header">
+        <a href="https://www.abutmentcompatibili.com" target="_blank">
+          <img class="logo-img" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="AbutmentCompatibili.com">
+        </a>
+        <div class="header-right">
+          <div class="header-tool-name">STL Cylinder Comparator</div>
+          <div class="header-tool-sub">ICP &middot; Kabsch + SVD &middot; Face-Normal Axis &middot; v6</div>
+          <div class="header-badges">
+            <span class="header-badge">ScanLogiQ</span>
+            <span class="header-badge">IPD ProCam</span>
+            <span class="header-badge">Shining</span>
+            <span class="header-badge">&plusmn;0.03&deg; asse</span>
+          </div>
+        </div>
+      </div>
+      <div class="app-card">
+        <div class="sl">01 &mdash; carica i file STL</div>
+        <div class="dr">
+          <div class="dz" id="zA" onclick="document.getElementById('iA').click()" ondragover="C.dv(event,'A',1)" ondragleave="C.dv(event,'A',0)" ondrop="C.dp(event,'A')">
+            <input type="file" id="iA" accept=".stl" style="display:none" onchange="C.pk(event,'A')">
+            <div class="dl a">File A &mdash; Riferimento</div>
+            <div id="hA" class="dh">trascina .stl qui<br>oppure clicca</div>
+          </div>
+          <div class="dz" id="zB" onclick="document.getElementById('iB').click()" ondragover="C.dv(event,'B',1)" ondragleave="C.dv(event,'B',0)" ondrop="C.dp(event,'B')">
+            <input type="file" id="iB" accept=".stl" style="display:none" onchange="C.pk(event,'B')">
+            <div class="dl b">File B &mdash; Confronto</div>
+            <div id="hB" class="dh">trascina .stl qui<br>oppure clicca</div>
+          </div>
+        </div>
+        <button id="run" class="btn" disabled onclick="C.go()">seleziona entrambi i file per avviare l&apos;analisi</button>
+        <div id="err" style="display:none" class="err"></div>
+        <div id="res" style="display:none" class="res"></div>
+      </div>
+    </div>
+  </div>
+  <div class="app-footer">
+    <div class="brand-sub-footer">STL Cylinder Comparator &middot; Biaggini Medical Devices S.r.l.</div>
+    <div class="footer-legal">ISO 13485 &middot; CE 0425 &middot; MDR 745/2017 &middot; EUDAMED Registrato &nbsp;&mdash;&nbsp; <a href="https://www.abutmentcompatibili.com" target="_blank" style="color:inherit">www.abutmentcompatibili.com</a></div>
+  </div>
+</div>
+<script src="app.js"></script>
+<script>
+(function(){
+  var orig=C.go;
+  C.go=function(){
+    var sw=document.getElementById('siri-wrapper'),sb=document.getElementById('status-badge');
+    sw.classList.remove('offline');sw.classList.add('online');
+    sb.className='status-badge online';sb.textContent='\u25CF Analisi';
+    orig.call(C);
+    setTimeout(function(){sw.classList.remove('online');sw.classList.add('offline');sb.className='status-badge offline';sb.textContent='\u25CF Pronto';},4500);
+  };
+})();
+</script>
+</body>
+</html>

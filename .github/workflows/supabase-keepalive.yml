@@ -1,0 +1,22 @@
+name: supabase-keepalive
+
+on:
+  schedule:
+    - cron: "0 9 */4 * *"   # ogni 4 giorni alle 09:00 UTC
+  workflow_dispatch:          # permette il lancio manuale dalla tab Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST
+        run: |
+          curl -sf "$SUPABASE_URL/rest/v1/$SUPABASE_TABLE?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            && echo "Keepalive OK" \
+            || (echo "Keepalive FAILED" && exit 1)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_TABLE: ${{ secrets.SUPABASE_TABLE }}

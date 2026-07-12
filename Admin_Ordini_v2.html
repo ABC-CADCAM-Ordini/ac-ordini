@@ -435,8 +435,8 @@
     <div class="login-sub">Accesso riservato agli operatori</div>
 
     <div class="login-field">
-      <label>Nome utente</label>
-      <input type="text" id="login-name" placeholder="Es. Francesco" autocomplete="username"
+      <label>Email</label>
+      <input type="email" id="login-name" placeholder="nome@studio.it" autocomplete="username"
         onkeydown="if(event.key==='Enter')document.getElementById('login-pwd').focus()">
     </div>
     <div class="login-field">
@@ -585,35 +585,12 @@
       <div style="text-align:center;color:var(--gray);padding:20px">Caricamento…</div>
     </div>
 
-    <!-- Add user form -->
-    <div style="padding:16px 24px;border-top:1.5px solid var(--border);background:var(--light);flex-shrink:0">
-      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mid);margin-bottom:10px">Aggiungi nuovo operatore</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">Nome <span style="color:#DC2626">*</span></div>
-          <input id="new-user-nome" type="text" placeholder="Es. Marco Bianchi"
-            style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
-        </div>
-        <div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">Password <span style="color:#DC2626">*</span></div>
-          <input id="new-user-pwd" type="text" placeholder="Es. operatore123"
-            style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
-        </div>
-        <div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">📱 WhatsApp (con prefisso, es. 393471234567)</div>
-          <input id="new-user-tel" type="text" placeholder="393471234567"
-            style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
-        </div>
-        <div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">✉️ Email notifiche</div>
-          <input id="new-user-email" type="email" placeholder="operatore@esempio.it"
-            style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
-        </div>
+    <!-- I nuovi account si creano in Supabase → Authentication -->
+    <div style="padding:14px 24px;border-top:1.5px solid var(--border);background:var(--light);flex-shrink:0">
+      <div style="font-size:12px;color:var(--mid);line-height:1.55">
+        <b>Nuovo operatore?</b> Crea l'account in <b>Supabase → Authentication → Add user</b> (email + password).
+        Ricompare qui, dove puoi completarne nome e contatti con <b>Modifica</b>.
       </div>
-      <button onclick="addUser()"
-        style="width:100%;padding:10px 18px;background:var(--blue);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer">
-        + Aggiungi operatore
-      </button>
     </div>
   </div>
 </div>
@@ -632,10 +609,6 @@
         <input id="edit-user-nome" type="text" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
       </div>
       <div>
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">Password</div>
-        <input id="edit-user-pwd" type="text" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
-      </div>
-      <div>
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">📱 WhatsApp (con prefisso, es. 393471234567)</div>
         <input id="edit-user-tel" type="text" placeholder="393471234567" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
       </div>
@@ -651,12 +624,18 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.2/dist/umd/supabase.js" integrity="sha384-yifgV8iFWyp5cgu+V1G1rtlEHpEErPlL5fTrkUELIsWq0CIVDON2WP/NlXVJT3vO" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 // ══════════════════════════════════════════════════════════════
 // ⚙️  CONFIGURAZIONE — modifica questi valori dopo il setup Supabase
 // ══════════════════════════════════════════════════════════════
 const SUPABASE_URL = "https://gnqnebjuhnxvndrpcdtt.supabase.co";
 const SUPABASE_KEY = "sb_publishable_HXVNXs1d0mjbVg7gp_D-Cw_IrakErzk";
+
+// Client Supabase per l'autenticazione: gestisce login, sessione e refresh del JWT.
+const sbAuth = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, storageKey: "ac_admin_session" }
+});
 
 // ══════════════════════════════════════════════════════════════
 // STATE
@@ -667,6 +646,24 @@ let allOrders = [];
 let currentFilter = "all";
 let currentSearch = "";
 let selectedOrderId = null;
+let allUsers = [];
+
+// ── Escaping output (anti-XSS) ──────────────────────────────────
+// I dati di ordini/utenti arrivano dal DB e includono testo inserito
+// da chiunque tramite il configuratore pubblico: vanno sempre escapati
+// prima di essere inseriti in innerHTML.
+function esc(v) {
+  if (v === null || v === undefined) return "";
+  return String(v)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+// Consente solo URL http(s)/relativi/mailto/tel; blocca javascript:, data:, ecc.
+function safeUrl(u) {
+  if (!u) return "#";
+  const s = String(u).trim();
+  return /^(https?:\/\/|\/|\.\/|mailto:|tel:)/i.test(s) ? s : "#";
+}
 
 // ══════════════════════════════════════════════════════════════
 // SUPABASE HELPERS
@@ -674,11 +671,14 @@ let selectedOrderId = null;
 const configured = () => SUPABASE_URL !== "https://YOUR_PROJECT.supabase.co";
 
 async function sb(method, path, body = null) {
+  // Usa il token JWT dell'operatore loggato (ruolo authenticated); prima del login resta la chiave anon.
+  const { data: { session } } = await sbAuth.auth.getSession();
+  const token = (session && session.access_token) || SUPABASE_KEY;
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     method,
     headers: {
       "apikey": SUPABASE_KEY,
-      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json",
       "Prefer": method === "POST" ? "return=representation" : "return=minimal"
     },
@@ -695,90 +695,82 @@ async function sb(method, path, body = null) {
 // ══════════════════════════════════════════════════════════════
 // AUTH
 // ══════════════════════════════════════════════════════════════
-// Credenziali locali di emergenza (fallback se Supabase non raggiungibile)
-const LOCAL_USERS = [
-  { nome:"Francesco", password:"acadmin2025", ruolo:"admin", attivo:true },
-  { nome:"leone",     password:"leone",       ruolo:"operatore", attivo:true },
-  { nome:"Valle",     password:"valle",       ruolo:"operatore", attivo:true },
-  { nome:"V07FABIO",  password:"fabio",       ruolo:"operatore", attivo:true },
-];
-
 async function doLogin() {
-  const name = document.getElementById("login-name").value.trim();
-  const pwd  = document.getElementById("login-pwd").value;
-  const err  = document.getElementById("login-error");
-  const btn  = document.querySelector(".login-btn");
+  const email = document.getElementById("login-name").value.trim();
+  const pwd   = document.getElementById("login-pwd").value;
+  const err   = document.getElementById("login-error");
+  const btn   = document.querySelector(".login-btn");
 
-  if (!name) { err.textContent = "Inserisci il nome utente."; err.style.display = "block"; return; }
-  if (!pwd)  { err.textContent = "Inserisci la password.";   err.style.display = "block"; return; }
+  if (!email) { err.textContent = "Inserisci l'email.";     err.style.display = "block"; return; }
+  if (!pwd)   { err.textContent = "Inserisci la password."; err.style.display = "block"; return; }
 
   btn.textContent = "Accesso in corso…"; btn.disabled = true;
   err.style.display = "none";
 
-  // 1. Prova Supabase (funziona se servito via HTTP/HTTPS)
-  if (configured()) {
-    try {
-      const users = await sb("GET", `users?nome=eq.${encodeURIComponent(name)}&password=eq.${encodeURIComponent(pwd)}&attivo=eq.true&select=*`);
-      if (users && users.length > 0) {
-        enterApp(users[0].nome, users[0].ruolo);
-        return;
-      }
-      // Se Supabase risponde ma non trova l'utente → prova credenziali locali
-    } catch(e) {
-      // Supabase non raggiungibile (file://, CORS, rete) → continua con credenziali locali
-      console.warn("Supabase non raggiungibile, uso credenziali locali:", e.message);
-    }
-  }
-
-  // 2. Fallback: credenziali locali (sempre disponibili, anche offline)
-  const local = LOCAL_USERS.find(u =>
-    u.nome.toLowerCase() === name.toLowerCase() &&
-    u.password === pwd && u.attivo
-  );
-  if (local) {
-    enterApp(local.nome, local.ruolo);
+  const { data, error } = await sbAuth.auth.signInWithPassword({ email, password: pwd });
+  if (error || !data || !data.session) {
+    err.textContent = "Email o password non corretti.";
+    err.style.display = "block";
+    btn.textContent = "Accedi"; btn.disabled = false;
     return;
   }
+  await enterAppFromSession(data.user);
+}
 
-  err.textContent = "Nome o password non corretti.";
-  err.style.display = "block";
-  btn.textContent = "Accedi";
-  btn.disabled = false;
+// Carica il profilo dell'operatore loggato ed entra nell'app (ruolo, nome, contatti).
+async function enterAppFromSession(user) {
+  const btn = document.querySelector(".login-btn");
+  const err = document.getElementById("login-error");
+  try {
+    const profs = await sb("GET", `profiles?id=eq.${user.id}&select=*`);
+    const prof = profs && profs[0];
+    if (!prof || prof.attivo === false) {
+      await sbAuth.auth.signOut();
+      err.textContent = "Account senza profilo o disattivato. Contatta l'amministratore.";
+      err.style.display = "block";
+      if (btn) { btn.textContent = "Accedi"; btn.disabled = false; }
+      return;
+    }
+    enterApp(prof.nome, prof.ruolo);
+  } catch (e) {
+    await sbAuth.auth.signOut();
+    err.textContent = "Errore nel caricamento del profilo: " + e.message;
+    err.style.display = "block";
+    if (btn) { btn.textContent = "Accedi"; btn.disabled = false; }
+  }
 }
 
 function enterApp(nome, ruolo) {
   currentOperator = nome;
   currentUserRole = ruolo;
-  sessionStorage.setItem("ac_operator", nome);
-  sessionStorage.setItem("ac_role", ruolo);
   document.getElementById("login-screen").style.display = "none";
   document.getElementById("app").style.display = "block";
   document.getElementById("operator-name-display").textContent = nome + (ruolo === "admin" ? " 👑" : "");
-  // Mostra sezione admin solo all'admin
-  if (ruolo === "admin") document.getElementById("admin-section").style.display = "block";
+  const btn = document.querySelector(".login-btn");
+  if (btn) { btn.textContent = "Accedi"; btn.disabled = false; }
+  // Sezione admin visibile solo all'admin
+  document.getElementById("admin-section").style.display = (ruolo === "admin") ? "block" : "none";
   loadOrders();
 }
 
-function doLogout() {
-  sessionStorage.removeItem("ac_operator");
-  sessionStorage.removeItem("ac_role");
+async function doLogout() {
+  await sbAuth.auth.signOut();
   document.getElementById("login-screen").style.display = "flex";
   document.getElementById("app").style.display = "none";
   document.getElementById("login-pwd").value = "";
+  document.getElementById("login-name").value = "";
   document.querySelector(".login-btn").textContent = "Accedi";
   document.querySelector(".login-btn").disabled = false;
   currentOperator = ""; currentUserRole = "";
   allOrders = [];
 }
 
-// Auto-login if session exists
-window.addEventListener("load", () => {
-  const savedName = sessionStorage.getItem("ac_operator");
-  const savedRole = sessionStorage.getItem("ac_role");
-  if (savedName) {
-    document.getElementById("login-name").value = savedName;
-    enterApp(savedName, savedRole || "operatore");
-  }
+// Ripristina la sessione se l'operatore è già autenticato (token in localStorage).
+window.addEventListener("load", async () => {
+  try {
+    const { data: { session } } = await sbAuth.auth.getSession();
+    if (session && session.user) await enterAppFromSession(session.user);
+  } catch (e) { /* nessuna sessione attiva */ }
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -797,7 +789,8 @@ async function loadUsers() {
   const list = document.getElementById("users-list");
   list.innerHTML = `<div style="text-align:center;color:var(--gray);padding:20px">Caricamento…</div>`;
   try {
-    const users = await sb("GET", "users?select=*&order=created_at.asc");
+    const users = await sb("GET", "profiles?select=*&order=created_at.asc");
+    allUsers = users || [];
     if (!users || users.length === 0) {
       list.innerHTML = `<div style="text-align:center;color:var(--gray);padding:20px">Nessun utente trovato.</div>`;
       return;
@@ -813,14 +806,14 @@ async function loadUsers() {
               ${u.ruolo==='admin'?'👑':'👤'}
             </div>
             <div>
-              <div style="font-size:13px;font-weight:700;color:var(--dark)">${u.nome}</div>
+              <div style="font-size:13px;font-weight:700;color:var(--dark)">${esc(u.nome)}</div>
               <div style="font-size:11px;color:var(--gray)">
-                ${u.ruolo}${!u.attivo ? ' &nbsp;·&nbsp; <span style="color:var(--red);font-weight:700">disattivato</span>' : ''}
+                ${esc(u.ruolo)}${!u.attivo ? ' &nbsp;·&nbsp; <span style="color:var(--red);font-weight:700">disattivato</span>' : ''}
               </div>
             </div>
           </div>
           <div style="display:flex;gap:6px">
-            <button onclick="openEditModal(${JSON.stringify(u).replace(/"/g,'&quot;')})"
+            <button onclick="openEditModal('${u.id}')"
               style="padding:5px 10px;border-radius:6px;border:1.5px solid var(--blue);
               background:none;cursor:pointer;font-size:11px;font-weight:700;color:var(--blue);font-family:var(--font)">
               ✏️ Modifica
@@ -831,7 +824,7 @@ async function loadUsers() {
                 background:none;cursor:pointer;font-size:11px;font-weight:700;color:${u.attivo?'var(--red)':'var(--green)'};font-family:var(--font)">
                 ${u.attivo ? 'Disattiva' : 'Riattiva'}
               </button>
-              <button onclick="deleteUser('${u.id}','${u.nome}')"
+              <button onclick="deleteUser('${u.id}')"
                 style="padding:5px 10px;border-radius:6px;border:1.5px solid var(--border);
                 background:none;cursor:pointer;font-size:11px;font-weight:700;color:var(--gray);font-family:var(--font)">
                 🗑
@@ -841,8 +834,8 @@ async function loadUsers() {
         </div>
         <!-- notification info row -->
         <div style="display:flex;gap:16px;padding:6px 12px 10px 54px;font-size:11px;color:var(--gray)">
-          <span title="WhatsApp notifiche">📱 ${u.telefono || '<span style="color:#FCA5A5;font-weight:600">non impostato</span>'}</span>
-          <span title="Email notifiche">✉️ ${u.email || '<span style="color:#FCA5A5;font-weight:600">non impostata</span>'}</span>
+          <span title="WhatsApp notifiche">📱 ${u.telefono ? esc(u.telefono) : '<span style="color:#FCA5A5;font-weight:600">non impostato</span>'}</span>
+          <span title="Email notifiche">✉️ ${u.email ? esc(u.email) : '<span style="color:#FCA5A5;font-weight:600">non impostata</span>'}</span>
         </div>
       </div>`).join("");
   } catch(e) {
@@ -850,28 +843,14 @@ async function loadUsers() {
   }
 }
 
-async function addUser() {
-  const nome  = document.getElementById("new-user-nome").value.trim();
-  const pwd   = document.getElementById("new-user-pwd").value.trim();
-  const tel   = document.getElementById("new-user-tel").value.trim();
-  const email = document.getElementById("new-user-email").value.trim();
-  if (!nome || !pwd) { showToast("Inserisci almeno nome e password", "red"); return; }
-  try {
-    await sb("POST", "users", { nome, password: pwd, ruolo: "operatore", attivo: true,
-      telefono: tel || null, email: email || null });
-    document.getElementById("new-user-nome").value = "";
-    document.getElementById("new-user-pwd").value = "";
-    document.getElementById("new-user-tel").value = "";
-    document.getElementById("new-user-email").value = "";
-    showToast("Operatore aggiunto: " + nome, "green");
-    await loadUsers();
-  } catch(e) { showToast("Errore: " + e.message, "red"); }
-}
+// La creazione/eliminazione degli account operatore avviene in Supabase → Authentication,
+// non dall'app (richiede la service_role key, che non deve stare in una pagina pubblica).
 
-function openEditModal(u) {
+function openEditModal(id) {
+  const u = allUsers.find(x => x.id === id);
+  if (!u) return;
   document.getElementById("edit-user-id").value    = u.id;
   document.getElementById("edit-user-nome").value  = u.nome || "";
-  document.getElementById("edit-user-pwd").value   = u.password || "";
   document.getElementById("edit-user-tel").value   = u.telefono || "";
   document.getElementById("edit-user-email").value = u.email || "";
   document.getElementById("edit-modal").style.display = "flex";
@@ -884,13 +863,12 @@ function closeEditModal() {
 async function saveEditUser() {
   const id    = document.getElementById("edit-user-id").value;
   const nome  = document.getElementById("edit-user-nome").value.trim();
-  const pwd   = document.getElementById("edit-user-pwd").value.trim();
   const tel   = document.getElementById("edit-user-tel").value.trim();
   const email = document.getElementById("edit-user-email").value.trim();
-  if (!nome || !pwd) { showToast("Nome e password obbligatori", "red"); return; }
+  if (!nome) { showToast("Il nome è obbligatorio", "red"); return; }
   try {
-    await sb("PATCH", `users?id=eq.${id}`, {
-      nome, password: pwd,
+    await sb("PATCH", `profiles?id=eq.${id}`, {
+      nome,
       telefono: tel || null,
       email: email || null
     });
@@ -902,17 +880,19 @@ async function saveEditUser() {
 
 async function toggleUser(id, attivo) {
   try {
-    await sb("PATCH", `users?id=eq.${id}`, { attivo: !attivo });
+    await sb("PATCH", `profiles?id=eq.${id}`, { attivo: !attivo });
     showToast(attivo ? "Utente disattivato" : "Utente riattivato", attivo ? "red" : "green");
     await loadUsers();
   } catch(e) { showToast("Errore: " + e.message, "red"); }
 }
 
-async function deleteUser(id, nome) {
-  if (!confirm(`Eliminare definitivamente l'utente "${nome}"?`)) return;
+async function deleteUser(id) {
+  const u = allUsers.find(x => x.id === id);
+  const nome = u ? u.nome : "";
+  if (!confirm(`Rimuovere il profilo di "${nome}"?\n\nNota: l'account resta in Supabase → Authentication. Eliminalo da lì per revocare del tutto l'accesso.`)) return;
   try {
-    await sb("DELETE", `users?id=eq.${id}`);
-    showToast("Utente eliminato", "red");
+    await sb("DELETE", `profiles?id=eq.${id}`);
+    showToast("Profilo rimosso", "red");
     await loadUsers();
   } catch(e) { showToast("Errore: " + e.message, "red"); }
 }
@@ -1029,13 +1009,13 @@ function renderOrders() {
     <div class="order-row ${selectedOrderId === o.id ? 'selected' : ''}" onclick="openDetail('${o.id}')">
       <div class="order-id">${shortId(o.id)}</div>
       <div>
-        <div class="order-client">${o.nome || ""} ${o.cognome || ""}</div>
-        <div class="order-studio">${o.azienda || ""}</div>
+        <div class="order-client">${esc(o.nome)} ${esc(o.cognome)}</div>
+        <div class="order-studio">${esc(o.azienda)}</div>
       </div>
-      <div class="order-lav">${(o.lavorazione || "—").replace(/\n/g," ")}</div>
+      <div class="order-lav">${esc((o.lavorazione || "—").replace(/\n/g," "))}</div>
       <div class="order-price">${fmt(o.prezzo_base)}</div>
-      <div><span class="status-badge status-${o.status}">${statusLabel(o.status)}</span></div>
-      <div class="order-op">${o.operator || "—"}</div>
+      <div><span class="status-badge status-${esc(o.status)}">${esc(statusLabel(o.status))}</span></div>
+      <div class="order-op">${esc(o.operator || "—")}</div>
       <div class="order-date">${fmtDate(o.created_at)}</div>
     </div>`).join("");
 }
@@ -1072,7 +1052,7 @@ function openDetail(id) {
         <button class="status-action-btn concluso ${o.status==='concluso'?'current':''}"
           onclick="updateStatus('${o.id}','concluso')">✅<br>Concluso</button>
       </div>
-      <button class="delete-order-btn" onclick="deleteOrder('${o.id}', '${(o.nome||'').replace(/'/g,"\\'")} ${(o.cognome||'').replace(/'/g,"\\'")}')">
+      <button class="delete-order-btn" onclick="deleteOrder('${o.id}')">
         🗑️ Cancella ordine
       </button>
     </div>
@@ -1082,7 +1062,7 @@ function openDetail(id) {
       <div class="detail-section-title">Operatore</div>
       <div class="operator-section">
         ${o.operator
-          ? `<div class="operator-current">👤 ${o.operator}</div>
+          ? `<div class="operator-current">👤 ${esc(o.operator)}</div>
              ${!isMine ? `<button class="take-charge-btn" onclick="takeCharge('${o.id}')">Prendi in carico tu</button>` :
                `<button class="take-charge-btn mine" onclick="releaseCharge('${o.id}')">✓ In carico a te — Rilascia</button>`}`
           : `<div style="font-size:12px;color:var(--gray);margin-bottom:8px">Nessun operatore assegnato</div>
@@ -1103,8 +1083,8 @@ function openDetail(id) {
       <div class="detail-section-title">Dati cliente</div>
       ${row("Nome", (o.nome||"") + " " + (o.cognome||""))}
       ${row("Studio/Lab", o.azienda)}
-      ${row("Telefono", o.telefono ? `<a href="tel:${o.telefono}" style="color:var(--blue)">${o.telefono}</a>` : "—")}
-      ${row("Email", o.email ? `<a href="mailto:${o.email}" style="color:var(--blue)">${o.email}</a>` : "—")}
+      ${rowRaw("Telefono", o.telefono ? `<a href="tel:${encodeURIComponent(o.telefono)}" style="color:var(--blue)">${esc(o.telefono)}</a>` : "—")}
+      ${rowRaw("Email", o.email ? `<a href="mailto:${encodeURIComponent(o.email)}" style="color:var(--blue)">${esc(o.email)}</a>` : "—")}
       ${o.piva ? row("P.IVA / CF", o.piva) : ""}
       ${row("Fatturazione", addrFatt)}
       ${row("Spedizione", addrSped)}
@@ -1120,10 +1100,10 @@ function openDetail(id) {
       return `<div class="detail-section">
         <div class="detail-section-title">Dati clinici</div>
         ${paziente ? row("Paziente", paziente) : ''}
-        ${parsed.denti ? `<div class="detail-row"><span class="detail-key">Denti (FDI)</span><span class="detail-val">${parsed.denti.split(',').map(d=>`<span class="clinical-chip">${d.trim()}</span>`).join('')}</span></div>` : ''}
+        ${parsed.denti ? `<div class="detail-row"><span class="detail-key">Denti (FDI)</span><span class="detail-val">${parsed.denti.split(',').map(d=>`<span class="clinical-chip">${esc(d.trim())}</span>`).join('')}</span></div>` : ''}
         ${parsed.impianto ? row("Impianto", parsed.impianto) : ''}
         ${parsed.shade ? row("Shade", parsed.shade) : ''}
-        ${parsed.urgenza ? `<div class="detail-row"><span class="detail-key">Urgenza</span><span class="detail-val"><span class="clinical-chip ${urgClass}">${parsed.urgenza}</span></span></div>` : ''}
+        ${parsed.urgenza ? `<div class="detail-row"><span class="detail-key">Urgenza</span><span class="detail-val"><span class="clinical-chip ${urgClass}">${esc(parsed.urgenza)}</span></span></div>` : ''}
         ${parsed.noteTecn ? row("Note tecniche", parsed.noteTecn) : ''}
       </div>`;
     })()}
@@ -1162,9 +1142,9 @@ function openDetail(id) {
     <!-- FILE -->
     ${o.file_link ? `<div class="detail-section">
       <div class="detail-section-title">File ordine</div>
-      <a class="file-link-btn" href="${o.file_link}" target="_blank">
+      <a class="file-link-btn" href="${esc(safeUrl(o.file_link))}" target="_blank" rel="noopener noreferrer">
         📦 Scarica file ordine
-        ${o.file_name ? `<span style="font-weight:400;font-size:10px;color:var(--gray)">${o.file_name}</span>` : ""}
+        ${o.file_name ? `<span style="font-weight:400;font-size:10px;color:var(--gray)">${esc(o.file_name)}</span>` : ""}
       </a>
     </div>` : ""}
 
@@ -1175,14 +1155,14 @@ function openDetail(id) {
       if(!noteLibere) return '';
       return `<div class="detail-section">
         <div class="detail-section-title">Note cliente</div>
-        <div style="font-size:12px;color:var(--mid);background:var(--light);border-radius:8px;padding:10px;line-height:1.6">${noteLibere}</div>
+        <div style="font-size:12px;color:var(--mid);background:var(--light);border-radius:8px;padding:10px;line-height:1.6">${esc(noteLibere)}</div>
       </div>`;
     })()}
 
     <!-- NOTE OPERATORE -->
     <div class="detail-section">
       <div class="detail-section-title">Note operative interne</div>
-      <textarea class="note-area" id="op-note-${o.id}" placeholder="Aggiungi note interne sull'ordine…">${o.operator_note || ""}</textarea>
+      <textarea class="note-area" id="op-note-${o.id}" placeholder="Aggiungi note interne sull'ordine…">${esc(o.operator_note)}</textarea>
       <button class="save-note-btn" onclick="saveNote('${o.id}')">Salva nota</button>
     </div>
 
@@ -1191,7 +1171,7 @@ function openDetail(id) {
       <div class="detail-section-title">Info ordine</div>
       ${row("Ricevuto il", fmtDate(o.created_at))}
       ${row("Ultimo aggiornamento", fmtDate(o.updated_at))}
-      ${row("ID completo", `<span style="font-family:monospace;font-size:10px">${o.id}</span>`)}
+      ${rowRaw("ID completo", `<span style="font-family:monospace;font-size:10px">${esc(o.id)}</span>`)}
     </div>
   `;
 
@@ -1440,8 +1420,8 @@ function showNotifyModal(id, status) {
         <div>
           <div class="notify-title">Stato aggiornato — notifica il cliente?</div>
           <div class="notify-sub">
-            <strong>${(o.nome||'')} ${(o.cognome||'')}</strong> · ${o.azienda||''}
-            <br>Nuovo stato: <strong>${STATUS_LABELS_IT[status]||status}</strong>
+            <strong>${esc(o.nome)} ${esc(o.cognome)}</strong> · ${esc(o.azienda)}
+            <br>Nuovo stato: <strong>${esc(STATUS_LABELS_IT[status]||status)}</strong>
           </div>
         </div>
       </div>
@@ -1520,6 +1500,15 @@ function openEmail(id) {
 }
 
 function row(k, v) {
+  const val = v ? esc(v) : "—";
+  return `<div class="detail-row">
+    <span class="detail-key">${k}</span>
+    <span class="detail-val">${val}</span>
+  </div>`;
+}
+
+// Variante per valori che sono HTML costruito da noi (link, span): NON escapa.
+function rowRaw(k, v) {
   return `<div class="detail-row">
     <span class="detail-key">${k}</span>
     <span class="detail-val">${v || "—"}</span>
@@ -1528,7 +1517,7 @@ function row(k, v) {
 
 function prow(k, v) {
   if(!v) return '';
-  return `<div class="print-row"><span class="print-key">${k}</span><span class="print-val">${v}</span></div>`;
+  return `<div class="print-row"><span class="print-key">${k}</span><span class="print-val">${esc(v)}</span></div>`;
 }
 
 function printOrder() {
@@ -1549,7 +1538,7 @@ function printOrder() {
 
   const statusLabels = { ricevuto:'Ricevuto', in_lavorazione:'In Lavorazione', concluso:'Concluso' };
   const dentiChips = parsed.denti
-    ? parsed.denti.split(',').map(d => `<span class="print-chip">${d.trim()}</span>`).join('')
+    ? parsed.denti.split(',').map(d => `<span class="print-chip">${esc(d.trim())}</span>`).join('')
     : '';
 
   const urgLabel = {
@@ -1570,8 +1559,8 @@ function printOrder() {
         <strong>Ordine #${shortId(o.id)}</strong>
         <span>Ricevuto: ${fmtDate(o.created_at)}</span><br>
         <span>Stampato: ${new Date().toLocaleDateString('it-IT')}</span><br>
-        <span class="print-status ${o.status}">${statusLabels[o.status] || o.status}</span>
-        ${o.operator ? `<br><span style="font-size:9px;color:#6B7280">Operatore: ${o.operator}</span>` : ''}
+        <span class="print-status ${esc(o.status)}">${esc(statusLabels[o.status] || o.status)}</span>
+        ${o.operator ? `<br><span style="font-size:9px;color:#6B7280">Operatore: ${esc(o.operator)}</span>` : ''}
       </div>
     </div>
 
@@ -1627,17 +1616,17 @@ function printOrder() {
 
     ${parsed.noteLibere ? `<div class="print-section" style="margin-top:4px">
       <div class="print-section-title">Note cliente</div>
-      <div class="print-note-box">${parsed.noteLibere}</div>
+      <div class="print-note-box">${esc(parsed.noteLibere)}</div>
     </div>` : ''}
 
     ${o.operator_note ? `<div class="print-section">
       <div class="print-section-title">Note operative interne</div>
-      <div class="print-op-note">${o.operator_note}</div>
+      <div class="print-op-note">${esc(o.operator_note)}</div>
     </div>` : ''}
 
     <div class="print-footer">
       <span>AbutmentCompatibili.com · Biaggini Medical Devices S.r.l.</span>
-      <span>ID: ${o.id}</span>
+      <span>ID: ${esc(o.id)}</span>
       <span>${new Date().toLocaleString('it-IT')}</span>
     </div>
   `;
@@ -1693,8 +1682,9 @@ async function releaseCharge(id) {
   } catch(e) { showToast("Errore: " + e.message, "red"); }
 }
 
-async function deleteOrder(id, clienteNome) {
-  const name = clienteNome.trim() || "questo ordine";
+async function deleteOrder(id) {
+  const o = allOrders.find(x => x.id === id);
+  const name = ((o?.nome || "") + " " + (o?.cognome || "")).trim() || "questo ordine";
   if (!confirm(`⚠️ Sei sicuro di voler cancellare l'ordine di "${name}"?\n\nL'operazione è irreversibile.`)) return;
   if (!configured()) { demoDeleteOrder(id); return; }
   try {

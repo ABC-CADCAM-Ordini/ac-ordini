@@ -17,7 +17,7 @@
 <!-- ═══════════ -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
   :root {
     --blue:       #0065B3;
@@ -1226,7 +1226,8 @@ const MATERIALI = {
     //     Celtra/Suprinity condividono la colonna Silicato Litio Vetroceramica = stessi prezzi di DisilicatoElite (idx 3)
     //     Shofu non ha colonna propria → usa "Ceramica-Resina Composita" = Enamic (idx 6)
     //     NanoCeramica usa colonna "Composito Resina Nano" (idx 5)
-    {n:"Ti/CrCo Fresato",                    t:"metallo",  iva:4,  pIdx:0},
+    {n:"Titanio Fresato",                    t:"metallo",  iva:4,  pIdx:0},
+    {n:"CoCr Fresato",                    t:"metallo",  iva:4,  pIdx:0},
     {n:"Zirconia Elite",                      t:"zirconia", iva:4,  pIdx:1},
     {n:"Zirconia Eco",                        t:"zirconia", iva:4,  pIdx:2},
     {n:"Disilicato di Litio",                 t:"ceramica", iva:4,  pIdx:3},
@@ -1242,8 +1243,10 @@ const MATERIALI = {
     {n:"Resina 3D",                           t:"resina",   iva:22, pIdx:10}
   ],
   sing_avv: [
-    {n:"Ti/CrCo Fresato",    t:"metallo",  iva:4,  pIdx:0},
-    {n:"Ti/CrCo Laser M2",  t:"metallo",  iva:4,  pIdx:1},
+    {n:"Titanio Fresato",    t:"metallo",  iva:4,  pIdx:0},
+    {n:"CoCr Fresato",    t:"metallo",  iva:4,  pIdx:0},
+    {n:"Titanio Laser M2",  t:"metallo",  iva:4,  pIdx:1},
+    {n:"CoCr Laser M2",  t:"metallo",  iva:4,  pIdx:1},
     {n:"MBase Tech",         t:"metallo",  iva:4,  pIdx:2},
     {n:"Zirconia Elite",     t:"zirconia", iva:4,  pIdx:3},
     {n:"Zirconia Eco",       t:"zirconia", iva:4,  pIdx:4},
@@ -1253,8 +1256,10 @@ const MATERIALI = {
   ponte_cem: [
     // col: 0=Ti/CrCo Fresato, 1=Laser M2, 2=Allum, 3=ZircElite, 4=ZircEco, 5=Composito, 6=Enamic, 7=PEEK-BIOHPP, 8=FibraVetro, 9=PEEK-DD, 10=PMMA, 11=Resina3D
     // NanoCeramica → stessa col di Composito (5), Shofu → Enamic (6)
-    {n:"Ti/CrCo Fresato",        t:"metallo",  iva:4,  pIdx:0},
-    {n:"Ti/CrCo Laser M2",      t:"metallo",  iva:4,  pIdx:1},
+    {n:"Titanio Fresato",        t:"metallo",  iva:4,  pIdx:0},
+    {n:"CoCr Fresato",        t:"metallo",  iva:4,  pIdx:0},
+    {n:"Titanio Laser M2",      t:"metallo",  iva:4,  pIdx:1},
+    {n:"CoCr Laser M2",      t:"metallo",  iva:4,  pIdx:1},
     {n:"Zirconia Elite",         t:"zirconia", iva:4,  pIdx:3},
     {n:"Zirconia Eco",           t:"zirconia", iva:4,  pIdx:4},
     {n:"Composito Nano Ceramica",t:"nanocer",  iva:4,  pIdx:5},
@@ -1267,22 +1272,29 @@ const MATERIALI = {
     {n:"Resina 3D",              t:"resina",   iva:22, pIdx:11}
   ],
   ponte_avv: [
-    {n:"Ti/CrCo Fresato",  t:"metallo",  iva:4,  pIdx:0},
-    {n:"Ti/CrCo SMART",    t:"metallo",  iva:4,  pIdx:1},
-    {n:"Ti/CrCo Laser M2", t:"metallo",  iva:4,  pIdx:2},
+    {n:"Titanio Fresato",  t:"metallo",  iva:4,  pIdx:0},
+    {n:"CoCr Fresato",  t:"metallo",  iva:4,  pIdx:0},
+    {n:"Titanio SMART",    t:"metallo",  iva:4,  pIdx:1},
+    {n:"CoCr SMART",    t:"metallo",  iva:4,  pIdx:1},
+    {n:"Titanio Laser M2", t:"metallo",  iva:4,  pIdx:2},
+    {n:"CoCr Laser M2", t:"metallo",  iva:4,  pIdx:2},
     {n:"Zirconia Elite",   t:"zirconia", iva:4,  pIdx:4},
     {n:"Zirconia Eco",     t:"zirconia", iva:4,  pIdx:5},
     {n:"PMMA Multilayer",  t:"pmma",     iva:22, pIdx:6},
     {n:"Resina 3D",        t:"resina",   iva:22, pIdx:7}
   ],
   barre: [
-    {n:"Barra Elite — Ti/CrCo Fresato",       t:"metallo",  iva:4,  pIdx:0},
-    {n:"Barra Elite — Ti/CrCo Laser M2",      t:"metallo",  iva:4,  pIdx:1},
-    {n:"Barra Fast — Ti/CrCo",                t:"metallo",  iva:4,  pIdx:2},
+    {n:"Barra Elite — Titanio Fresato",       t:"metallo",  iva:4,  pIdx:0},
+    {n:"Barra Elite — CoCr Fresato",       t:"metallo",  iva:4,  pIdx:0},
+    {n:"Barra Elite — Titanio Laser M2",      t:"metallo",  iva:4,  pIdx:1},
+    {n:"Barra Elite — CoCr Laser M2",      t:"metallo",  iva:4,  pIdx:1},
+    {n:"Barra Fast — Titanio",                t:"metallo",  iva:4,  pIdx:2},
+    {n:"Barra Fast — CoCr",                t:"metallo",  iva:4,  pIdx:2},
 
   ],
   innova: [
-    {n:"Ti/CrCo Laser M2",  t:"metallo",  iva:4,  pIdx:0},
+    {n:"Titanio Laser M2",  t:"metallo",  iva:4,  pIdx:0},
+    {n:"CoCr Laser M2",  t:"metallo",  iva:4,  pIdx:0},
     {n:"Zirconia Elite",     t:"zirconia", iva:4,  pIdx:2},
     {n:"Zirconia Eco",       t:"zirconia", iva:4,  pIdx:3},
     {n:"PMMA Multilayer",    t:"pmma",     iva:22, pIdx:4},
@@ -1293,7 +1305,8 @@ const MATERIALI = {
     //           5=Composito, 6=Enamic, 7=FibraVetro, 8=PEEK-BIOHPP, 9=PEEK-DD, 10=PMMA, 11=Resina3D
     // (*) Il listino p.16 mostra Disilicato ECO con stesso prezzo di Elite (67,6€) → pIdx:3
     //     Shofu → Enamic (pIdx:6), NanoCeramica → Composito (pIdx:5)
-    {n:"Ti/CrCo Fresato",                    t:"metallo",  iva:4,  pIdx:0},
+    {n:"Titanio Fresato",                    t:"metallo",  iva:4,  pIdx:0},
+    {n:"CoCr Fresato",                    t:"metallo",  iva:4,  pIdx:0},
     {n:"Zirconia Elite",                      t:"zirconia", iva:4,  pIdx:1},
     {n:"Zirconia Eco",                        t:"zirconia", iva:4,  pIdx:2},
     {n:"Disilicato di Litio",                 t:"ceramica", iva:4,  pIdx:3},
@@ -1738,7 +1751,6 @@ async function saveOrderToSupabase(fileLink, fileName) {
     status: "ricevuto"
   };
 
-  console.log("📤 Invio a Supabase:", payload);
   const res = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
     method: "POST",
     headers: {
@@ -4784,6 +4796,6 @@ window.addEventListener('appinstalled', () => {
 });
 
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js" onload="emailjs.init('3k4qc95f0PzeJiGBG')"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js" integrity="sha384-SALc35EccAf6RzGw4iNsyj7kTPr33K7RoGzYu+7heZhT8s0GZouafRiCg1qy44AS" crossorigin="anonymous" referrerpolicy="no-referrer" onload="emailjs.init('3k4qc95f0PzeJiGBG')"></script>
 </body>
 </html>

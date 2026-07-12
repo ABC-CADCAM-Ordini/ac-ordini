@@ -1,9 +1,10 @@
-const CACHE_NAME = 'cadcam-v2';
+const CACHE_NAME = 'cadcam-v3';
+// Percorsi relativi alla posizione di sw.js (es. /ac-ordini/): robusti a un eventuale rename del repo.
 const ASSETS = [
-  '/ABC-CADCAM-Ordini/Configuratore_CAD_CAM_v12.html',
-  '/ABC-CADCAM-Ordini/manifest.json',
-  '/ABC-CADCAM-Ordini/icon-192.png',
-  '/ABC-CADCAM-Ordini/icon-512.png',
+  './Configuratore_CAD_CAM_v12.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
 ];
 
 self.addEventListener('install', event => {

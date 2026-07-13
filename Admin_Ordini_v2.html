@@ -1257,6 +1257,12 @@ function parseNote(noteStr) {
 }
 
 // ── Builder messaggi cliente ─────────────────────────────────
+// Blocco "link cliente" da appendere a ogni messaggio (email/WhatsApp) al cliente.
+const TRACCIA_URL = "https://abc-cadcam-ordini.github.io/ac-ordini/traccia-ordine.html?t=";
+const linkClienteBlocco = o => o.share_token
+  ? `\n\n🔗 Segua il suo ordine online (stato, scheda di produzione e tracking):\n${TRACCIA_URL}${o.share_token}`
+  : "";
+
 function buildWAText(o) {
   const parsed = parseNote(o.note);
   const paziente = o.paziente || parsed.paziente || '';
@@ -1515,7 +1521,7 @@ function sendStatusWA() {
   const o = allOrders.find(x => x.id === _notifyOrderId);
   if(!o || !o.telefono) return;
   const tel  = o.telefono.replace(/\D/g, '');
-  const text = STATUS_MSG[_notifyStatus] ? STATUS_MSG[_notifyStatus](o) : '';
+  const text = (STATUS_MSG[_notifyStatus] ? STATUS_MSG[_notifyStatus](o) : '') + linkClienteBlocco(o);
   window.open(`https://wa.me/${tel}?text=${encodeURIComponent(text)}`, '_blank');
   closeNotifyModal();
 }
@@ -1526,7 +1532,7 @@ function sendStatusEmail() {
   const subjectFn = STATUS_EMAIL_SUBJECT[_notifyStatus];
   const bodyFn    = STATUS_EMAIL_BODY[_notifyStatus];
   const subject   = encodeURIComponent(subjectFn ? subjectFn(o) : 'Aggiornamento ordine — AbutmentCompatibili.com');
-  const body      = encodeURIComponent(bodyFn ? bodyFn(o) : '');
+  const body      = encodeURIComponent((bodyFn ? bodyFn(o) : '') + linkClienteBlocco(o));
   window.location.href = `mailto:${o.email}?subject=${subject}&body=${body}`;
   closeNotifyModal();
 }
@@ -1535,7 +1541,7 @@ function openWA(id) {
   const o = allOrders.find(x => x.id === id);
   if(!o || !o.telefono) return;
   const tel = o.telefono.replace(/\D/g,'');
-  const text = buildWAText(o);
+  const text = buildWAText(o) + linkClienteBlocco(o);
   window.open(`https://wa.me/${tel}?text=${encodeURIComponent(text)}`, '_blank');
 }
 
@@ -1544,7 +1550,7 @@ function openEmail(id) {
   if(!o || !o.email) return;
   const lav = (o.lavorazione||'').split('\n').join(' ');
   const subject = encodeURIComponent(`Conferma ricezione ordine — ${lav} — AbutmentCompatibili.com`);
-  const body = encodeURIComponent(buildEmailBody(o));
+  const body = encodeURIComponent(buildEmailBody(o) + linkClienteBlocco(o));
   window.location.href = `mailto:${o.email}?subject=${subject}&body=${body}`;
 }
 

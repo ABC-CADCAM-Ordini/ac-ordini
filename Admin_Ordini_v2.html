@@ -217,6 +217,9 @@
   /* ── ANTEPRIMA / VIEWER STL 3D ── */
   .stl-chip { display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; color:#3730A3; background:#E0E7FF; border:1px solid #C7D2FE; border-radius:20px; padding:1px 7px; white-space:nowrap; cursor:pointer; }
   .stl-chip:hover { background:#C7D2FE; }
+  .order-thumb-row { display:flex; width:82px; height:54px; margin-bottom:5px; border-radius:6px; border:1px solid var(--border); overflow:hidden; align-items:center; justify-content:center; flex:none; cursor:pointer; background:radial-gradient(ellipse at 50% 35%, #F7FAFF 0%, #E7EEF6 100%); }
+  .order-thumb-row:hover { border-color:var(--blue); box-shadow:0 0 0 2px var(--blue-light); }
+  .order-thumb-row img { width:100%; height:100%; object-fit:contain; display:block; }
   .stl-preview-box { position:relative; margin-top:8px; border:1.5px solid var(--border); border-radius:10px; background:var(--light); overflow:hidden; min-height:56px; }
   .stl-preview-box.clickable { cursor:pointer; }
   .stl-preview-box.clickable:hover { border-color:var(--blue); }
@@ -492,7 +495,7 @@
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-13.1</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-13.2</span>
     </div>
     <div class="top-operator">
       Operatore: <strong id="operator-name-display"></strong>
@@ -1057,9 +1060,9 @@ function renderOrders() {
   body.innerHTML = orders.map(o => `
     <div class="order-row ${selectedOrderId === o.id ? 'selected' : ''}" onclick="openDetail('${o.id}')">
       <div class="order-idcol">
+        <div class="order-thumb-row" id="rthumb-${o.id}" style="display:none"></div>
         <span class="order-id" title="Clicca per copiare l'ID" onclick="event.stopPropagation();copyOrderId('${shortId(o.id)}')">${shortId(o.id)}</span>
         ${(o.scheda_dati && typeof o.scheda_dati === 'object' && Object.keys(o.scheda_dati).length) ? `<span class="sync-na" title="Sync NA avvenuta — scheda produzione ricevuta da New Ancorvis">✓ Sync NA</span>` : ''}
-        ${o.file_link ? `<span class="stl-chip" title="Anteprima 3D del modello STL" onclick="event.stopPropagation();openStlForOrder('${o.id}')">🧊 3D</span>` : ''}
       </div>
       <div>
         <div class="order-client">${esc(o.nome)} ${esc(o.cognome)}</div>
@@ -1071,6 +1074,7 @@ function renderOrders() {
       <div class="order-op">${esc(o.operator || "—")}</div>
       <div class="order-date">${fmtDate(o.created_at)}</div>
     </div>`).join("");
+  hydrateRowThumbs(orders);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1364,17 +1368,80 @@ async function initStlPreview(o) {
     } catch (e) { /* rete/CORS/offline → fallback manuale */ }
   }
   box.classList.remove("clickable"); box.onclick = null;
-  box.innerHTML = `<div class="stl-preview-msg">Nessuna anteprima automatica per questo ordine.<br>Scarica il file qui sopra, poi aprilo nel viewer 3D.<br><button class="stl-load-btn">🧊 Apri viewer 3D</button></div>`;
+  box.innerHTML = `<div class="stl-preview-msg">Anteprima automatica non disponibile per questo ordine: è stato inviato <b>prima dell'attivazione</b>, quindi il suo file non è nel tuo Storage.<br>Sui <b>nuovi ordini</b> l'anteprima compare da sola, qui e nella riga.<br><button class="stl-load-btn" style="background:var(--gray);font-weight:600">Aprire comunque caricando il file…</button></div>`;
   box.querySelector(".stl-load-btn").onclick = () => openStlViewer({ name: o.file_name || "" });
 }
 
-// Chip "🧊 3D" sulla riga: apre direttamente il viewer
+// Apre il viewer 3D per un ordine (dallo STL in Storage)
 function openStlForOrder(id) {
   const o = allOrders.find(x => x.id === id);
   if (!o) return;
   const url = stlUrlFor(o);
   if (url) openStlViewer({ url, name: o.file_name || "modello.stl" });
   else openStlViewer({ name: o.file_name || "" });
+}
+
+// ── Miniatura-immagine nelle righe ordine ─────────────────────
+// Renderizza (una volta, in coda) lo STL in Storage come PNG e lo mostra nella riga.
+// Cache per share_token: i re-render della lista (filtri/selezione) sono istantanei.
+const _stlThumbCache = new Map();   // share_token -> dataURL | 'none'
+const _thumbInFlight = new Set();
+let _thumbQueue = Promise.resolve();
+
+function setThumbImg(box, dataUrl, orderId) {
+  box.innerHTML = `<img src="${dataUrl}" alt="Anteprima STL">`;
+  box.style.display = "";
+  box.title = "Apri anteprima 3D";
+  box.onclick = e => { e.stopPropagation(); openStlForOrder(orderId); };
+}
+
+async function _renderThumbDataUrl(url) {
+  const { THREE, STLLoader } = await loadThree();
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const buf = await res.arrayBuffer();
+  const W = 164, H = 108;
+  const { scene, cam } = makeStlScene(THREE, W, H);
+  const geom = stlGeomFromBuffer(THREE, STLLoader, buf);
+  const mesh = new THREE.Mesh(geom, stlMaterial(THREE));
+  mesh.rotation.x = -Math.PI / 2;
+  scene.add(mesh);
+  frameCamera(cam, (geom.boundingSphere && geom.boundingSphere.radius) || 1);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(1); renderer.setSize(W, H);
+  renderer.render(scene, cam);
+  const dataUrl = renderer.domElement.toDataURL("image/png");
+  renderer.dispose(); renderer.forceContextLoss();
+  geom.dispose(); mesh.material.dispose();
+  return dataUrl;
+}
+
+function hydrateRowThumbs(orders) {
+  orders.forEach(o => {
+    const box = document.getElementById("rthumb-" + o.id);
+    if (!box) return;
+    const tok = o.share_token;
+    const cached = tok ? _stlThumbCache.get(tok) : "none";
+    if (cached && cached !== "none") { setThumbImg(box, cached, o.id); return; }
+    if (cached === "none" || !tok || _thumbInFlight.has(tok)) return;
+    const url = stlUrlFor(o);
+    if (!url) { _stlThumbCache.set(tok, "none"); return; }
+    _thumbInFlight.add(tok);
+    _thumbQueue = _thumbQueue.then(async () => {
+      try {
+        const head = await fetch(url, { method: "HEAD" });
+        if (!head.ok) { _stlThumbCache.set(tok, "none"); return; }
+        const dataUrl = await _renderThumbDataUrl(url);
+        _stlThumbCache.set(tok, dataUrl);
+        const b = document.getElementById("rthumb-" + o.id);
+        if (b) setThumbImg(b, dataUrl, o.id);
+      } catch (e) {
+        _stlThumbCache.set(tok, "none");
+      } finally {
+        _thumbInFlight.delete(tok);
+      }
+    });
+  });
 }
 
 // ArrayBuffer da un File (STL grezzo o ZIP con lo STL dentro)

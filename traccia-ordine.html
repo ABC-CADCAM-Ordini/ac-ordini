@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scheda ordine — AbutmentCompatibili.com</title>
+<link rel="icon" href="favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#0065B3; --blue-mid:#0077CC; --blue-dark:#005FA3; --blue-light:#E8F4FF;
+    --blue-glow:rgba(0,101,179,.16);
+    --dark:#0F1923; --mid:#3D5166; --gray:#7A90A4; --pearl:#F0F5FA; --light:#F7F9FC;
+    --border:#D6E4F0; --white:#fff; --green:#0D9E6E; --radius:14px;
+    --amber:#B45309; --blue-b:#1D4ED8; --green-b:#047857;
+    --font:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:var(--font); color:var(--dark);
+    background:#E2EBF5;
+    background-image:
+      radial-gradient(ellipse at 15% 0%, rgba(0,101,179,.08) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 100%, rgba(0,101,179,.05) 0%, transparent 50%);
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:28px 16px 48px; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%; max-width:660px}
+
+  /* ── Cornice "Siri" della piattaforma: bordo caldo animato ── */
+  @property --siri-angle{ syntax:'<angle>'; initial-value:0deg; inherits:false; }
+  .siri-wrapper{ position:relative; width:100%; border-radius:var(--radius); padding:3.5px; }
+  .siri-wrapper.online{
+    background:conic-gradient(from var(--siri-angle,0deg),
+      #FF8C42, #FF4D8D, #FFD166, #C84BFF, #FF6B35, #FF9FC8, #FF8C42);
+    animation:siriSpin 4s linear infinite;
+    box-shadow:0 0 22px rgba(255,140,66,.42), 0 0 52px rgba(200,75,255,.20), 0 0 90px rgba(255,180,50,.10);
+  }
+  @keyframes siriSpin{ to{ --siri-angle:360deg; } }
+  .siri-inner{ position:relative; background:var(--white);
+    border-radius:calc(var(--radius) - 2px); overflow:hidden; z-index:1; }
+
+  .logo-header{display:flex; align-items:center; justify-content:space-between; gap:14px;
+    padding:16px 24px 14px; border-bottom:3px solid var(--blue)}
+  .logo-img{height:70px; width:auto; max-width:78%; display:block;
+    filter:drop-shadow(0 1px 3px rgba(0,0,0,.08))}
+  .logo-fallback{font-weight:900; font-size:16px; letter-spacing:.5px; color:var(--blue)}
+  .logo-fallback b{color:#c0392b}
+  .htag{font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.11em;
+    color:var(--gray); text-align:right; line-height:1.5}
+
+  /* ── Banda ordine (blu brand) ── */
+  .order-band{padding:20px 24px; color:#fff;
+    background:linear-gradient(135deg, var(--blue-mid) 0%, var(--blue-dark) 100%)}
+  .order-band .code{font-size:11.5px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; opacity:.82}
+  .order-band .title{font-size:22px; font-weight:900; margin:4px 0 12px; line-height:1.18; letter-spacing:-.01em}
+  .status{display:inline-flex; align-items:center; gap:7px; font-size:12.5px; font-weight:800;
+    padding:6px 13px; border-radius:999px; background:rgba(255,255,255,.18); color:#fff}
+  .status .dot{width:8px; height:8px; border-radius:50%; background:#fff}
+
+  .body{padding:6px 24px 22px}
+  .sec{padding:18px 0; border-top:1px solid var(--border)}
+  .sec:first-child{border-top:0}
+  .sec h3{margin:0 0 12px; font-size:11px; font-weight:800; text-transform:uppercase;
+    letter-spacing:.1em; color:var(--blue)}
+
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px 20px}
+  @media(max-width:520px){.grid{grid-template-columns:1fr}}
+  .f .k{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--gray)}
+  .f .v{font-size:14.5px; font-weight:600; color:var(--dark); margin-top:1px}
+
+  table{width:100%; border-collapse:collapse; font-size:13.5px}
+  th{text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em;
+    color:var(--gray); font-weight:800; padding:0 10px 8px 0}
+  td{padding:8px 10px 8px 0; border-top:1px solid var(--border); color:var(--mid); font-weight:600}
+  td:first-child{color:var(--dark); font-weight:800}
+  .scroll{overflow-x:auto}
+
+  .chip{display:inline-block; background:var(--blue-light); color:var(--blue); font-weight:800;
+    font-size:12px; padding:3px 10px; border-radius:7px; margin:0 5px 5px 0}
+
+  .track-wait{display:flex; align-items:center; gap:10px; background:var(--light);
+    border:1px dashed var(--border); border-radius:12px; padding:12px 14px; font-size:13px;
+    color:var(--gray); font-weight:600}
+
+  .foot{padding:16px 24px 20px; border-top:1px solid var(--border); background:var(--light);
+    font-size:11px; color:var(--gray); line-height:1.6}
+  .foot b{color:var(--mid)}
+
+  .state{text-align:center; padding:54px 24px}
+  .state .emo{font-size:38px}
+  .state h2{margin:12px 0 6px; font-size:19px; color:var(--dark)}
+  .state p{margin:0 auto; color:var(--gray); font-size:14px; max-width:420px}
+  .skeleton{padding:48px; text-align:center; color:var(--gray); font-weight:600}
+  .demo-banner{background:#FEF3C7; color:var(--amber); font-weight:700; font-size:12.5px;
+    text-align:center; padding:9px 14px; border-radius:11px; margin-bottom:14px}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="demoBanner" class="demo-banner hidden">Anteprima con dati di esempio — apri con <code>?t=…</code> per un ordine reale</div>
+
+  <div class="siri-wrapper online">
+   <div class="siri-inner">
+    <header class="logo-header">
+      <img class="logo-img" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png"
+        alt="AbutmentCompatibili.com"
+        onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'logo-fallback',innerHTML:'ABUTMENT<b>COMPATIBILI</b>.COM'}))">
+      <div class="htag">Scheda<br>ordine</div>
+    </header>
+
+    <div id="loading" class="skeleton">Caricamento scheda…</div>
+
+    <div id="missing" class="state hidden">
+      <div class="emo">🔍</div>
+      <h2>Scheda non disponibile</h2>
+      <p>Il link non è valido oppure è scaduto (le schede restano consultabili per 30 giorni dalla conclusione dell'ordine). Scrivi a <b>ordini@abutmentcompatibili.com</b> se ti serve ancora.</p>
+    </div>
+
+    <div id="content" class="hidden">
+      <div class="order-band">
+        <div class="code">Ordine <span id="o-code"></span></div>
+        <div class="title" id="o-title"></div>
+        <div class="status"><span class="dot"></span><span id="o-status"></span></div>
+      </div>
+
+      <div class="body">
+        <div class="sec">
+          <h3>Lavorazione</h3>
+          <div class="grid" id="o-facts"></div>
+        </div>
+        <div class="sec" id="sec-elem">
+          <h3>Elementi</h3>
+          <div id="o-elem"></div>
+        </div>
+        <div class="sec" id="sec-imp">
+          <h3>Impianti</h3>
+          <div class="scroll"><table id="o-imp"></table></div>
+        </div>
+        <div class="sec" id="sec-lotti">
+          <h3>Tracciabilità materiali</h3>
+          <div class="scroll"><table id="o-lotti"></table></div>
+        </div>
+        <div class="sec">
+          <h3>Spedizione</h3>
+          <div class="grid" id="o-ship"></div>
+          <div id="o-track" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <div class="foot">
+        <b>Biaggini Medical Devices S.r.l.</b> · AbutmentCompatibili.com<br>
+        ISO 13485 · CE 0425 · MDR 745/2017 · EUDAMED
+      </div>
+    </div>
+   </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://gnqnebjuhnxvndrpcdtt.supabase.co";
+const SUPABASE_KEY = "sb_publishable_HXVNXs1d0mjbVg7gp_D-Cw_IrakErzk";
+
+const esc = v => (v==null?"":String(v))
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+  .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+
+const STATUS = {
+  ricevuto:{l:"Ordine ricevuto"}, in_lavorazione:{l:"In lavorazione"}, concluso:{l:"Concluso"}
+};
+
+const DEMO = {
+  codice:"62B007FC", stato:"in_lavorazione", tracking:null,
+  scheda:{
+    codice_ordine:"656052", id_na:"139552726CCLM0",
+    lavorazione:"IMPLANT BRIDGE / TORONTO", elementi:"12, 11, 21, 22",
+    materiale:"Co-Cr Laser Melting", colore:"Nessuna colorazione", tecnica:"Avvitata",
+    software:"Scanner Intraorale · EXOCAD · Lib. AQ", tecnico:"Francesco Maria Leone",
+    data_ricevimento:"13/07/2026 08:49", data_partenza:"16/07/2026",
+    consegna:"Presso laboratorio", corriere:"DHL",
+    file_stl:"1395527_BIAGGINI MEDICAL SRL.stl",
+    impianti:[
+      {dente:"12",tipo:"ACERBONI",conn:"Interna",diametro:"3.6",ingaggio:"Rotante",cod_vite:"47"},
+      {dente:"22",tipo:"ACERBONI",conn:"Interna",diametro:"3.6",ingaggio:"Rotante",cod_vite:"47"}
+    ],
+    lotti:[{materiale:"Cromo-Cobalto BEGO",lotto:"3559359"}]
+  }
+};
+
+const fact = (k,v)=> v ? `<div class="f"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>` : "";
+const show = id => document.getElementById(id).classList.remove("hidden");
+const hide = id => document.getElementById(id).classList.add("hidden");
+
+function render(row){
+  const s = row.scheda || {};
+  document.getElementById("o-code").textContent  = row.codice || "—";
+  document.getElementById("o-title").textContent = s.lavorazione || "Scheda ordine";
+  document.getElementById("o-status").textContent = (STATUS[row.stato]||{l:row.stato||"—"}).l;
+
+  document.getElementById("o-facts").innerHTML = [
+    fact("Materiale", s.materiale), fact("Tecnica", s.tecnica),
+    fact("Colore/Tipologia", s.colore), fact("Software", s.software),
+    fact("Tecnico di laboratorio", s.tecnico),
+    fact("Cod. ordine · Id", [s.codice_ordine,s.id_na].filter(Boolean).join(" · ")),
+    fact("File", s.file_stl)
+  ].join("");
+
+  if(s.elementi){
+    document.getElementById("o-elem").innerHTML =
+      String(s.elementi).split(/[,\s]+/).filter(Boolean).map(d=>`<span class="chip">${esc(d)}</span>`).join("");
+  } else hide("sec-elem");
+
+  const imp = Array.isArray(s.impianti)?s.impianti:[];
+  if(imp.length){
+    document.getElementById("o-imp").innerHTML =
+      `<tr><th>Dente</th><th>Tipo</th><th>Conn.</th><th>Ø</th><th>Ingaggio</th><th>Cod. vite</th></tr>` +
+      imp.map(i=>`<tr><td>${esc(i.dente)}</td><td>${esc(i.tipo)}</td><td>${esc(i.conn)}</td><td>${esc(i.diametro)}</td><td>${esc(i.ingaggio)}</td><td>${esc(i.cod_vite)}</td></tr>`).join("");
+  } else hide("sec-imp");
+
+  const lotti = Array.isArray(s.lotti)?s.lotti:[];
+  if(lotti.length){
+    document.getElementById("o-lotti").innerHTML =
+      `<tr><th>Materiale</th><th>Lotto</th></tr>` +
+      lotti.map(l=>`<tr><td>${esc(l.materiale)}</td><td>${esc(l.lotto)}</td></tr>`).join("");
+  } else hide("sec-lotti");
+
+  document.getElementById("o-ship").innerHTML = [
+    fact("Consegna", s.consegna), fact("Corriere", s.corriere),
+    fact("Data ricevimento", s.data_ricevimento), fact("Data partenza", s.data_partenza)
+  ].join("");
+
+  document.getElementById("o-track").innerHTML = row.tracking
+    ? `<div class="f"><div class="k">Tracking spedizione</div><div class="v">${esc(row.tracking)}</div></div>`
+    : `<div class="track-wait">🚚 Tracking spedizione — disponibile appena l'ordine parte</div>`;
+
+  hide("loading"); show("content");
+}
+
+async function load(){
+  const token = new URLSearchParams(location.search).get("t");
+  if(!token){ show("demoBanner"); render(DEMO); return; }
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/scheda_ordine_pubblica`,{
+      method:"POST",
+      headers:{ "apikey":SUPABASE_KEY, "Content-Type":"application/json" },
+      body: JSON.stringify({ p_token: token })
+    });
+    const rows = await res.json();
+    if(Array.isArray(rows) && rows.length) render(rows[0]);
+    else { hide("loading"); show("missing"); }
+  }catch(e){ hide("loading"); show("missing"); }
+}
+load();
+</script>
+</body>
+</html>

@@ -214,6 +214,39 @@
   }
   .file-link-btn:hover { background: var(--blue-light); border-color: var(--blue); }
 
+  /* ── ANTEPRIMA / VIEWER STL 3D ── */
+  .stl-chip { display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; color:#3730A3; background:#E0E7FF; border:1px solid #C7D2FE; border-radius:20px; padding:1px 7px; white-space:nowrap; cursor:pointer; }
+  .stl-chip:hover { background:#C7D2FE; }
+  .stl-preview-box { position:relative; margin-top:8px; border:1.5px solid var(--border); border-radius:10px; background:var(--light); overflow:hidden; min-height:56px; }
+  .stl-preview-box.clickable { cursor:pointer; }
+  .stl-preview-box.clickable:hover { border-color:var(--blue); }
+  .stl-preview-canvas { display:block; width:100%; height:190px; object-fit:cover; background:radial-gradient(ellipse at 50% 38%, #F7FAFF 0%, #E7EEF6 100%); }
+  .stl-preview-hint { position:absolute; bottom:0; left:0; right:0; display:flex; align-items:center; justify-content:center; gap:6px; font-size:11px; font-weight:700; color:#fff; background:linear-gradient(transparent, rgba(15,25,35,.55)); padding:16px 10px 7px; pointer-events:none; }
+  .stl-preview-msg { padding:14px; font-size:11.5px; color:var(--gray); text-align:center; line-height:1.55; }
+  .stl-load-btn { display:inline-flex; align-items:center; gap:6px; margin-top:9px; padding:8px 15px; background:var(--blue); color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; font-family:var(--font); cursor:pointer; }
+  .stl-load-btn:hover { background:#004E8C; }
+  /* modale a schermo intero */
+  .stl-modal { position:fixed; inset:0; z-index:9999; display:none; align-items:center; justify-content:center; background:rgba(10,18,28,.82); backdrop-filter:blur(3px); }
+  .stl-modal.open { display:flex; }
+  .stl-modal-inner { position:relative; width:min(93vw,880px); height:min(88vh,700px); background:#0F1923; border-radius:16px; overflow:hidden; box-shadow:0 24px 70px rgba(0,0,0,.5); display:flex; flex-direction:column; }
+  .stl-modal-head { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; color:#fff; font-size:13px; font-weight:700; background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.08); }
+  .stl-modal-head .stl-fname { font-weight:400; font-size:11px; color:#9FB2C4; }
+  .stl-modal-close { background:rgba(255,255,255,.1); color:#fff; border:none; width:30px; height:30px; border-radius:8px; font-size:17px; cursor:pointer; line-height:1; flex-shrink:0; }
+  .stl-modal-close:hover { background:rgba(255,255,255,.22); }
+  .stl-canvas-wrap { position:relative; flex:1; min-height:0; }
+  .stl-canvas-wrap canvas { display:block; width:100%; height:100%; touch-action:none; }
+  .stl-modal-foot { padding:8px 16px; font-size:10.5px; color:#7A90A4; text-align:center; background:rgba(255,255,255,.03); }
+  .stl-drop { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; color:#9FB2C4; text-align:center; padding:24px; }
+  .stl-drop.hidden { display:none; }
+  .stl-drop.dragover { background:rgba(0,101,179,.18); outline:2px dashed rgba(0,101,179,.5); outline-offset:-14px; }
+  .stl-drop-ic { font-size:44px; opacity:.85; }
+  .stl-drop b { color:#E7EEF6; }
+  .stl-drop-btn { margin-top:4px; padding:9px 18px; background:var(--blue); color:#fff; border:none; border-radius:9px; font-size:12.5px; font-weight:700; font-family:var(--font); cursor:pointer; }
+  .stl-drop-btn:hover { background:#004E8C; }
+  .stl-spinner-3d { position:absolute; inset:0; display:none; align-items:center; justify-content:center; color:#9FB2C4; font-size:12px; gap:10px; }
+  .stl-spin-ring { width:22px; height:22px; border:3px solid rgba(255,255,255,.15); border-top-color:#0077CC; border-radius:50%; animation:stlspin .8s linear infinite; }
+  @keyframes stlspin { to { transform:rotate(360deg); } }
+
   /* ── STATUS ACTIONS ── */
   .status-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
   .status-action-btn {
@@ -1025,6 +1058,7 @@ function renderOrders() {
       <div class="order-idcol">
         <span class="order-id" title="Clicca per copiare l'ID" onclick="event.stopPropagation();copyOrderId('${shortId(o.id)}')">${shortId(o.id)}</span>
         ${(o.scheda_dati && typeof o.scheda_dati === 'object' && Object.keys(o.scheda_dati).length) ? `<span class="sync-na" title="Sync NA avvenuta — scheda produzione ricevuta da New Ancorvis">✓ Sync NA</span>` : ''}
+        ${o.file_link ? `<span class="stl-chip" title="Anteprima 3D del modello STL" onclick="event.stopPropagation();openStlForOrder('${o.id}')">🧊 3D</span>` : ''}
       </div>
       <div>
         <div class="order-client">${esc(o.nome)} ${esc(o.cognome)}</div>
@@ -1194,13 +1228,14 @@ function openDetail(id) {
       </div>`;
     })() : ""}
 
-    <!-- FILE -->
+    <!-- FILE + ANTEPRIMA STL 3D -->
     ${o.file_link ? `<div class="detail-section">
       <div class="detail-section-title">File ordine</div>
       <a class="file-link-btn" href="${esc(safeUrl(o.file_link))}" target="_blank" rel="noopener noreferrer">
         📦 Scarica file ordine
         ${o.file_name ? `<span style="font-weight:400;font-size:10px;color:var(--gray)">${esc(o.file_name)}</span>` : ""}
       </a>
+      <div class="stl-preview-box" id="stl-prev"><div class="stl-preview-msg">Verifica anteprima 3D…</div></div>
     </div>` : ""}
 
     <!-- NOTE CLIENTE -->
@@ -1231,6 +1266,234 @@ function openDetail(id) {
   `;
 
   document.getElementById("detail-panel").classList.add("open");
+  if (o.file_link) initStlPreview(o);
+}
+
+// ══════════════════════════════════════════════════════════════
+// ANTEPRIMA / VIEWER STL 3D
+//  • Il configuratore salva lo STL grezzo in Storage: ordini-stl/<share_token>.stl
+//    → l'Admin ricava l'URL dal share_token (nessuna colonna extra) e lo mostra.
+//  • Se lo STL non c'è (ordini vecchi / upload fallito) → caricamento manuale:
+//    l'operatore trascina nel viewer lo STL o lo ZIP appena scaricato.
+//  • three.js + JSZip caricati on-demand da esm.sh solo al primo utilizzo.
+// ══════════════════════════════════════════════════════════════
+const STL_BUCKET = "ordini-stl";
+const stlUrlFor = o => (o && o.share_token)
+  ? `${SUPABASE_URL}/storage/v1/object/public/${STL_BUCKET}/${encodeURIComponent(o.share_token)}.stl`
+  : null;
+
+let _threePromise = null;
+function loadThree() {
+  if (!_threePromise) _threePromise = (async () => {
+    const V = "0.160.0";
+    const THREE = await import(`https://esm.sh/three@${V}`);
+    const { STLLoader } = await import(`https://esm.sh/three@${V}/examples/jsm/loaders/STLLoader.js`);
+    const { OrbitControls } = await import(`https://esm.sh/three@${V}/examples/jsm/controls/OrbitControls.js`);
+    return { THREE, STLLoader, OrbitControls };
+  })();
+  return _threePromise;
+}
+let _jszipPromise = null;
+function loadJSZip() {
+  if (!_jszipPromise) _jszipPromise = import("https://esm.sh/jszip@3.10.1").then(m => m.default || m);
+  return _jszipPromise;
+}
+
+// BufferGeometry centrata a partire da un ArrayBuffer STL
+function stlGeomFromBuffer(THREE, STLLoader, buf) {
+  const geom = new STLLoader().parse(buf);
+  geom.computeVertexNormals();
+  geom.center();
+  geom.computeBoundingSphere();
+  return geom;
+}
+// Scena + luci + camera comuni a miniatura e viewer
+function makeStlScene(THREE, w, h) {
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(38, w / h, 0.1, 100000);
+  const key = new THREE.DirectionalLight(0xffffff, 2.3); key.position.set(1, 1.3, 1.6);
+  const fill = new THREE.DirectionalLight(0xbcd3ea, 1.0); fill.position.set(-1.4, -0.6, -1);
+  scene.add(key, fill, new THREE.AmbientLight(0xffffff, 0.55), new THREE.HemisphereLight(0xffffff, 0x394a5a, 0.5));
+  return { scene, cam };
+}
+function stlMaterial(THREE) {
+  return new THREE.MeshStandardMaterial({ color: 0xC9D6E4, metalness: 0.14, roughness: 0.55 });
+}
+function frameCamera(cam, radius, close) {
+  const d = radius / Math.sin((cam.fov * Math.PI / 180) / 2) * (close || 1.2);
+  cam.position.set(d * 0.55, d * 0.5, d * 0.95);
+  cam.near = Math.max(d / 500, 0.01); cam.far = d * 500; cam.updateProjectionMatrix();
+  cam.lookAt(0, 0, 0);
+  return d;
+}
+
+// Miniatura statica (renderer usa-e-getta: snapshot → libera il contesto GL)
+async function renderStlThumb(url, box) {
+  const { THREE, STLLoader } = await loadThree();
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const buf = await res.arrayBuffer();
+  const W = box.clientWidth || 300, H = 190;
+  const { scene, cam } = makeStlScene(THREE, W, H);
+  const geom = stlGeomFromBuffer(THREE, STLLoader, buf);
+  const mesh = new THREE.Mesh(geom, stlMaterial(THREE));
+  mesh.rotation.x = -Math.PI / 2;
+  scene.add(mesh);
+  frameCamera(cam, (geom.boundingSphere && geom.boundingSphere.radius) || 1);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(W, H);
+  renderer.render(scene, cam);
+  const dataUrl = renderer.domElement.toDataURL("image/png");
+  renderer.dispose(); renderer.forceContextLoss();
+  geom.dispose(); mesh.material.dispose();
+  box.innerHTML = `<img class="stl-preview-canvas" src="${dataUrl}" alt="Anteprima STL"><div class="stl-preview-hint">🧊 Clicca per aprire in 3D</div>`;
+  box.classList.add("clickable");
+  box.onclick = () => openStlViewer({ buffer: buf, name: url.split("/").pop() || "modello.stl" });
+}
+
+// Popola il box anteprima nel dettaglio ordine
+async function initStlPreview(o) {
+  const box = document.getElementById("stl-prev");
+  if (!box) return;
+  const url = stlUrlFor(o);
+  if (url) {
+    try {
+      const head = await fetch(url, { method: "HEAD" });
+      if (head.ok) { await renderStlThumb(url, box); return; }
+    } catch (e) { /* rete/CORS/offline → fallback manuale */ }
+  }
+  box.classList.remove("clickable"); box.onclick = null;
+  box.innerHTML = `<div class="stl-preview-msg">Nessuna anteprima automatica per questo ordine.<br>Scarica il file qui sopra, poi aprilo nel viewer 3D.<br><button class="stl-load-btn">🧊 Apri viewer 3D</button></div>`;
+  box.querySelector(".stl-load-btn").onclick = () => openStlViewer({ name: o.file_name || "" });
+}
+
+// Chip "🧊 3D" sulla riga: apre direttamente il viewer
+function openStlForOrder(id) {
+  const o = allOrders.find(x => x.id === id);
+  if (!o) return;
+  const url = stlUrlFor(o);
+  if (url) openStlViewer({ url, name: o.file_name || "modello.stl" });
+  else openStlViewer({ name: o.file_name || "" });
+}
+
+// ArrayBuffer da un File (STL grezzo o ZIP con lo STL dentro)
+async function stlBufferFromFile(file) {
+  const name = (file.name || "").toLowerCase();
+  if (name.endsWith(".zip")) {
+    const JSZip = await loadJSZip();
+    const zip = await JSZip.loadAsync(file);
+    const entry = Object.values(zip.files).find(f => !f.dir && f.name.toLowerCase().endsWith(".stl"));
+    if (!entry) throw new Error("Nessun file .stl trovato nello ZIP");
+    return await entry.async("arraybuffer");
+  }
+  return await file.arrayBuffer();
+}
+
+// ── Modale viewer 3D ──────────────────────────────────────────
+let _stlActive = null; // sessione WebGL corrente (render loop + risorse)
+function stlDisposeActive() {
+  if (!_stlActive) return;
+  cancelAnimationFrame(_stlActive.raf);
+  try { _stlActive.resizeObs && _stlActive.resizeObs.disconnect(); } catch (e) {}
+  try { _stlActive.controls && _stlActive.controls.dispose(); } catch (e) {}
+  try { _stlActive.geom && _stlActive.geom.dispose(); _stlActive.mat && _stlActive.mat.dispose(); } catch (e) {}
+  try {
+    const el = _stlActive.renderer && _stlActive.renderer.domElement;
+    _stlActive.renderer.dispose(); _stlActive.renderer.forceContextLoss();
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  } catch (e) {}
+  _stlActive = null;
+}
+function ensureStlModal() {
+  let m = document.getElementById("stl-modal");
+  if (m) return m;
+  m = document.createElement("div");
+  m.id = "stl-modal"; m.className = "stl-modal";
+  m.innerHTML =
+    `<div class="stl-modal-inner">
+      <div class="stl-modal-head">
+        <div>🧊 Anteprima 3D <span class="stl-fname"></span></div>
+        <button class="stl-modal-close" title="Chiudi (Esc)">×</button>
+      </div>
+      <div class="stl-canvas-wrap">
+        <div class="stl-spinner-3d"><span class="stl-spin-ring"></span> Caricamento modello…</div>
+        <div class="stl-drop hidden">
+          <div class="stl-drop-ic">🧊</div>
+          <div class="stl-drop-msg"><b>Trascina qui lo STL</b><br>(oppure lo ZIP dell'ordine scaricato)</div>
+          <button class="stl-drop-btn">Scegli file…</button>
+          <input type="file" accept=".stl,.zip" hidden>
+        </div>
+      </div>
+      <div class="stl-modal-foot">Trascina per ruotare · rotella per zoom · tasto destro per spostare</div>
+    </div>`;
+  document.body.appendChild(m);
+  const close = () => { m.classList.remove("open"); stlDisposeActive(); };
+  m.querySelector(".stl-modal-close").onclick = close;
+  m.onclick = e => { if (e.target === m) close(); };
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && m.classList.contains("open")) close(); });
+  const drop = m.querySelector(".stl-drop");
+  const input = m.querySelector("input[type=file]");
+  m.querySelector(".stl-drop-btn").onclick = () => input.click();
+  input.onchange = () => { if (input.files[0]) openStlViewer({ file: input.files[0], name: input.files[0].name }); };
+  const wrap = m.querySelector(".stl-canvas-wrap");
+  ["dragenter", "dragover"].forEach(ev => wrap.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("dragover"); }));
+  ["dragleave", "dragend"].forEach(ev => wrap.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("dragover"); }));
+  wrap.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("dragover"); const f = e.dataTransfer.files[0]; if (f) openStlViewer({ file: f, name: f.name }); });
+  return m;
+}
+async function mountStlViewer(buf, wrap) {
+  const { THREE, STLLoader, OrbitControls } = await loadThree();
+  stlDisposeActive();
+  const W = wrap.clientWidth || 640, H = wrap.clientHeight || 420;
+  const { scene, cam } = makeStlScene(THREE, W, H);
+  const geom = stlGeomFromBuffer(THREE, STLLoader, buf);
+  const mat = stlMaterial(THREE);
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.rotation.x = -Math.PI / 2; // STL dentali di solito Z-up → raddrizza il modello
+  scene.add(mesh);
+  frameCamera(cam, (geom.boundingSphere && geom.boundingSphere.radius) || 1);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(W, H);
+  wrap.appendChild(renderer.domElement);
+  const controls = new OrbitControls(cam, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.autoRotate = true; controls.autoRotateSpeed = 1.5;
+  renderer.domElement.addEventListener("pointerdown", () => { controls.autoRotate = false; });
+  const session = { renderer, controls, geom, mat, resizeObs: null, raf: 0 };
+  const tick = () => { session.raf = requestAnimationFrame(tick); controls.update(); renderer.render(scene, cam); };
+  session.resizeObs = new ResizeObserver(() => {
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    if (w && h) { cam.aspect = w / h; cam.updateProjectionMatrix(); renderer.setSize(w, h); }
+  });
+  session.resizeObs.observe(wrap);
+  _stlActive = session;
+  tick();
+}
+// Punto d'ingresso unico. opts: { url? | buffer? | file? , name? }
+async function openStlViewer(opts) {
+  opts = opts || {};
+  const modal = ensureStlModal();
+  modal.classList.add("open");
+  const spin = modal.querySelector(".stl-spinner-3d");
+  const drop = modal.querySelector(".stl-drop");
+  const wrap = modal.querySelector(".stl-canvas-wrap");
+  modal.querySelector(".stl-fname").textContent = opts.name ? "· " + opts.name : "";
+  stlDisposeActive();
+  drop.classList.add("hidden"); spin.style.display = "none";
+  const showDrop = msg => { drop.classList.remove("hidden"); if (msg) drop.querySelector(".stl-drop-msg").innerHTML = msg; };
+  try {
+    let buf = opts.buffer || null;
+    if (!buf && opts.file) buf = await stlBufferFromFile(opts.file);
+    if (!buf && opts.url) { spin.style.display = "flex"; const r = await fetch(opts.url); if (!r.ok) throw new Error("HTTP " + r.status); buf = await r.arrayBuffer(); }
+    if (!buf) { showDrop(); return; } // modalità caricamento manuale
+    spin.style.display = "flex";
+    await mountStlViewer(buf, wrap);
+    spin.style.display = "none";
+  } catch (e) {
+    spin.style.display = "none";
+    console.warn("Viewer STL:", e);
+    showDrop("<b>Impossibile aprire automaticamente.</b><br>Trascina qui lo STL o lo ZIP dell'ordine.");
+  }
 }
 
 // ── Parsing note strutturate ────────────────────────────────

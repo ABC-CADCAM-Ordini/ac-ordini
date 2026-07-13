@@ -1139,6 +1139,43 @@ function openDetail(id) {
       ${row("Workflow", o.workflow)}
     </div>
 
+    <!-- SCHEDA PRODUZIONE (New Ancorvis, dal sync) -->
+    ${(() => {
+      const sp = o.scheda_dati;
+      if (!sp || typeof sp !== 'object' || !Object.keys(sp).length) return '';
+      const imp = Array.isArray(sp.impianti) ? sp.impianti.map(i =>
+        `${esc(i.dente)} · ${esc(i.tipo)} · Ø${esc(i.diametro)}${i.ingaggio ? ' · ' + esc(i.ingaggio) : ''}${i.cod_vite ? ' · vite ' + esc(i.cod_vite) : ''}`).join('<br>') : '';
+      const lot = Array.isArray(sp.lotti) ? sp.lotti.map(l =>
+        `${esc(l.materiale)}${l.lotto ? ' — lotto ' + esc(l.lotto) : ''}`).join('<br>') : '';
+      return `<div class="detail-section" style="background:#F0F9FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px 14px">
+        <div class="detail-section-title">🏭 Scheda produzione — New Ancorvis</div>
+        ${sp.materiale ? row("Materiale", sp.materiale) : ""}
+        ${sp.tecnica ? row("Tecnica", sp.tecnica) : ""}
+        ${sp.elementi ? row("Elementi", sp.elementi) : ""}
+        ${sp.tecnico ? row("Tecnico NA", sp.tecnico) : ""}
+        ${sp.software ? row("Software", sp.software) : ""}
+        ${imp ? rowRaw("Impianti", imp) : ""}
+        ${lot ? rowRaw("Tracciabilità lotti", lot) : ""}
+        ${o.tracking ? row("Tracking spedizione", o.tracking) : ""}
+        ${(sp.codice_ordine || sp.id_na) ? row("Rif. NA", [sp.codice_ordine, sp.id_na].filter(Boolean).join(" · ")) : ""}
+      </div>`;
+    })()}
+
+    <!-- LINK CLIENTE -->
+    ${o.share_token ? (() => {
+      const url = `https://abc-cadcam-ordini.github.io/ac-ordini/traccia-ordine.html?t=${o.share_token}`;
+      return `<div class="detail-section">
+        <div class="detail-section-title">🔗 Link cliente</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input readonly value="${esc(url)}" onclick="this.select()"
+            style="flex:1;min-width:180px;font-size:11px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:monospace;color:var(--mid)">
+          <button onclick="navigator.clipboard.writeText('${esc(url)}').then(()=>{this.textContent='Copiato ✓'})"
+            style="padding:8px 14px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;font-family:var(--font);cursor:pointer;white-space:nowrap">Copia</button>
+        </div>
+        <div style="font-size:10.5px;color:var(--gray);margin-top:6px">Da inviare al cliente per seguire stato, scheda e tracking.</div>
+      </div>`;
+    })() : ""}
+
     <!-- FILE -->
     ${o.file_link ? `<div class="detail-section">
       <div class="detail-section-title">File ordine</div>

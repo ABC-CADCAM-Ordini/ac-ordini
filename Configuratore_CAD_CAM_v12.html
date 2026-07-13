@@ -4163,29 +4163,36 @@ async function uploadZipGetLink(blob) {
 const STL_VIEWER_WINDOW_HTML = `<!doctype html>
 <html lang="it"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Anteprima STL — %%NAME%%</title>
+<title>Anteprima 3D — %%NAME%%</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap');
   *{margin:0;box-sizing:border-box}
   html,body{height:100%}
-  body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#0F1923;color:#E7EEF6;display:flex;flex-direction:column;overflow:hidden}
-  header{display:flex;align-items:center;gap:8px;padding:12px 16px;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;font-weight:700}
-  header .name{font-weight:400;font-size:12px;color:#9FB2C4}
-  #wrap{position:relative;flex:1;min-height:0}
+  body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;color:#1A2733;background:#EEF3F8;display:flex;flex-direction:column;overflow:hidden}
+  header{display:flex;align-items:center;gap:9px;padding:13px 18px;background:#fff;border-bottom:1px solid #E1E9F1;font-size:14px;font-weight:800;color:#0F1923;box-shadow:0 1px 3px rgba(15,25,35,.05);z-index:2}
+  header .ic{font-size:17px}
+  header .name{font-weight:500;font-size:12px;color:#7A90A4}
+  #wrap{position:relative;flex:1;min-height:0;background:radial-gradient(120% 90% at 50% 12%, #FFFFFF 0%, #F2F6FA 42%, #E4EBF2 100%)}
   canvas{display:block;width:100%;height:100%;touch-action:none}
-  #msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;color:#9FB2C4;font-size:13px;text-align:center;padding:24px}
-  .ring{width:22px;height:22px;border:3px solid rgba(255,255,255,.15);border-top-color:#3B9CFF;border-radius:50%;animation:sp .8s linear infinite;flex:none}
+  #msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;color:#7A90A4;font-size:13px;text-align:center;padding:24px}
+  .ring{width:22px;height:22px;border:3px solid #DCE6F0;border-top-color:#0F5282;border-radius:50%;animation:sp .8s linear infinite;flex:none}
   @keyframes sp{to{transform:rotate(360deg)}}
-  footer{padding:8px;font-size:11px;color:#7A90A4;text-align:center;background:rgba(255,255,255,.03)}
+  #reset{position:absolute;right:14px;bottom:14px;display:none;align-items:center;gap:6px;background:#fff;border:1px solid #D6E1EC;color:#0F5282;font:600 11.5px/1 'Plus Jakarta Sans',system-ui,sans-serif;padding:8px 12px;border-radius:9px;cursor:pointer;box-shadow:0 2px 6px rgba(15,25,35,.08)}
+  #reset:hover{background:#F0F6FC;border-color:#0F5282}
+  footer{padding:9px;font-size:11px;color:#8496A6;text-align:center;background:#fff;border-top:1px solid #E1E9F1}
 </style></head>
 <body>
-  <header><span>🧊 Anteprima STL</span><span class="name">%%NAME%%</span></header>
-  <div id="wrap"><div id="msg"><span class="ring"></span> Caricamento visualizzatore 3D…</div></div>
+  <header><span class="ic">🦷</span><span>Anteprima 3D</span><span class="name">%%NAME%%</span></header>
+  <div id="wrap">
+    <div id="msg"><span class="ring"></span> Caricamento visualizzatore 3D…</div>
+    <button id="reset" title="Reimposta vista">⟲ Reimposta vista</button>
+  </div>
   <footer>Trascina per ruotare · rotella per zoom · tasto destro per spostare</footer>
   <script type="module">
     import * as THREE from 'https://esm.sh/three@0.160.0';
     import { STLLoader } from 'https://esm.sh/three@0.160.0/examples/jsm/loaders/STLLoader.js';
     import { OrbitControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js';
-    const wrap = document.getElementById('wrap'), msg = document.getElementById('msg');
+    const wrap = document.getElementById('wrap'), msg = document.getElementById('msg'), resetBtn = document.getElementById('reset');
     const fail = function(t){ msg.style.display='flex'; msg.innerHTML = t; };
     window.__stlError = function(){ fail('Impossibile leggere il file STL.'); };
     function waitData(){
@@ -4203,23 +4210,45 @@ const STL_VIEWER_WINDOW_HTML = `<!doctype html>
         const buf = await waitData();
         const W = wrap.clientWidth || 900, H = wrap.clientHeight || 600;
         const scene = new THREE.Scene();
-        const cam = new THREE.PerspectiveCamera(38, W/H, 0.1, 100000);
-        scene.add(new THREE.AmbientLight(0xffffff, .55), new THREE.HemisphereLight(0xffffff, 0x394a5a, .5));
-        const k = new THREE.DirectionalLight(0xffffff, 2.3); k.position.set(1, 1.3, 1.6); scene.add(k);
-        const f = new THREE.DirectionalLight(0xbcd3ea, 1); f.position.set(-1.4, -.6, -1); scene.add(f);
+        const cam = new THREE.PerspectiveCamera(36, W/H, 0.1, 100000);
+        // Luce ambientale morbida da studio chiaro
+        scene.add(new THREE.HemisphereLight(0xffffff, 0xd6dee7, .95));
+        scene.add(new THREE.AmbientLight(0xffffff, .35));
         const geom = new STLLoader().parse(buf);
-        geom.computeVertexNormals(); geom.center(); geom.computeBoundingSphere();
-        const mesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({ color: 0xC9D6E4, metalness: .14, roughness: .55 }));
-        mesh.rotation.x = -Math.PI/2; scene.add(mesh);
-        const r = (geom.boundingSphere && geom.boundingSphere.radius) || 1;
-        const d = r / Math.sin((38 * Math.PI/180)/2) * 1.2;
-        cam.position.set(d*.55, d*.5, d*.95); cam.near = Math.max(d/500, .01); cam.far = d*500; cam.updateProjectionMatrix(); cam.lookAt(0,0,0);
+        geom.computeVertexNormals(); geom.center();
+        // Materiale avorio-ceramica con leggera finitura lucida (clearcoat)
+        const mat = new THREE.MeshPhysicalMaterial({ color: 0xEAE1D0, roughness: .48, metalness: 0, clearcoat: .35, clearcoatRoughness: .35 });
+        const mesh = new THREE.Mesh(geom, mat);
+        mesh.rotation.x = -Math.PI/2; mesh.castShadow = true; scene.add(mesh);
+        mesh.updateMatrixWorld(true);
+        const box = new THREE.Box3().setFromObject(mesh);
+        const sph = box.getBoundingSphere(new THREE.Sphere());
+        const c = sph.center, r = sph.radius || 1;
+        // Luce principale che proietta l'ombra di contatto
+        const key = new THREE.DirectionalLight(0xffffff, 2.1);
+        key.position.set(c.x + r*1.6, c.y + r*2.6, c.z + r*1.9); key.target.position.copy(c);
+        key.castShadow = true; key.shadow.mapSize.set(1024, 1024); key.shadow.bias = -0.0006;
+        const scam = key.shadow.camera; scam.near = r*0.2; scam.far = r*12; scam.left = -r*2.2; scam.right = r*2.2; scam.top = r*2.2; scam.bottom = -r*2.2; scam.updateProjectionMatrix();
+        scene.add(key); scene.add(key.target);
+        const fill = new THREE.DirectionalLight(0xffffff, .55); fill.position.set(c.x - r*2, c.y + r*.7, c.z - r*1.2); scene.add(fill);
+        const rim = new THREE.DirectionalLight(0xdfe8ff, .5); rim.position.set(c.x, c.y + r*.4, c.z - r*2.6); scene.add(rim);
+        // Piano invisibile che riceve solo l'ombra (contatto morbido)
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(r*16, r*16), new THREE.ShadowMaterial({ opacity: .17 }));
+        ground.rotation.x = -Math.PI/2; ground.position.y = box.min.y - r*0.005; ground.receiveShadow = true; scene.add(ground);
+        // Inquadratura
+        const d = r / Math.sin((36 * Math.PI/180)/2) * 1.15;
+        const home = new THREE.Vector3(c.x + d*.45, c.y + d*.4, c.z + d*.9);
+        cam.position.copy(home); cam.near = Math.max(d/500, .01); cam.far = d*500; cam.updateProjectionMatrix(); cam.lookAt(c);
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); renderer.setSize(W, H);
+        renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         wrap.appendChild(renderer.domElement);
         const ctrl = new OrbitControls(cam, renderer.domElement);
-        ctrl.enableDamping = true; ctrl.dampingFactor = .08; ctrl.autoRotate = true; ctrl.autoRotateSpeed = 1.5;
+        ctrl.enableDamping = true; ctrl.dampingFactor = .08; ctrl.autoRotate = true; ctrl.autoRotateSpeed = 1.4;
+        ctrl.target.copy(c); ctrl.update();
         renderer.domElement.addEventListener('pointerdown', function(){ ctrl.autoRotate = false; });
+        resetBtn.style.display = 'inline-flex';
+        resetBtn.addEventListener('click', function(){ cam.position.copy(home); ctrl.target.copy(c); ctrl.autoRotate = false; ctrl.update(); });
         msg.style.display = 'none';
         window.addEventListener('resize', function(){ const w = wrap.clientWidth, h = wrap.clientHeight; if(w&&h){ cam.aspect = w/h; cam.updateProjectionMatrix(); renderer.setSize(w, h); } });
         (function tick(){ requestAnimationFrame(tick); ctrl.update(); renderer.render(scene, cam); })();

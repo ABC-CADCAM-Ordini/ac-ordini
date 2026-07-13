@@ -1668,9 +1668,15 @@ function getPrice(lavId,wf,matIdx,tb,nEl) {
 const SUPABASE_URL = "https://gnqnebjuhnxvndrpcdtt.supabase.co";
 const SUPABASE_KEY = "sb_publishable_HXVNXs1d0mjbVg7gp_D-Cw_IrakErzk";
 
+// Token del link "traccia ordine" dell'ultimo ordine creato (generato lato client:
+// con la RLS attiva l'anon non può rileggere l'ordine dopo l'insert).
+let lastOrderToken = null;
+
 async function saveOrderToSupabase(fileLink, fileName) {
   if (SUPABASE_URL.includes("YOUR_PROJECT")) return;
   const lav = LAVORAZIONI.find(x => x.id === state.lavId);
+  const shareToken = crypto.randomUUID();
+  lastOrderToken = shareToken;
 
   // Payload BeFree
   if(lav && lav.befree) {
@@ -1701,6 +1707,7 @@ async function saveOrderToSupabase(fileLink, fileName) {
       prezzo_base: prod.prezzo ? prod.prezzo * (state.befreeQty||1) + (state.befreeAnalogo ? 55*(state.befreeQty||1) : 0) : null,
       iva: prod.iva || 4,
       file_link: null, file_name: null,
+      share_token: shareToken,
       status: "ricevuto"
     };
     const res = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
@@ -1748,6 +1755,7 @@ async function saveOrderToSupabase(fileLink, fileName) {
     iva: mat ? mat.iva : 4,
     file_link: fileLink || null,
     file_name: fileName || null,
+    share_token: shareToken,
     status: "ricevuto"
   };
 
@@ -4212,6 +4220,8 @@ function renderConfirmScreen() {
     </div>`;
   }
 
+  const trackBox = lastOrderToken ? `<div style="margin:16px 0;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:12px;padding:14px 16px;text-align:center"><div style="font-size:11px;font-weight:800;color:#1E40AF;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">🔗 Segui il tuo ordine online</div><div style="font-size:12.5px;color:#3D5166;margin-bottom:10px;line-height:1.5">Salva questo link: la scheda di produzione e il tracking della spedizione compariranno qui man mano.</div><a href="traccia-ordine.html?t=${lastOrderToken}" target="_blank" rel="noopener" style="display:inline-block;background:#0F5282;color:#fff;font-size:12.5px;font-weight:700;padding:9px 18px;border-radius:8px;text-decoration:none">Apri la pagina del mio ordine</a></div>` : "";
+
   return `<div class="confirm-screen">
     <div class="confirm-icon">
       <svg viewBox="0 0 48 48" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="36" height="36">
@@ -4225,6 +4235,7 @@ function renderConfirmScreen() {
       ${isBefree ? "Stampa il modulo e prenota il ritiro per completare la spedizione." : "Il nostro team ti contatterà per confermare il preventivo definitivo."}
     </div>
     <div class="confirm-detail">${detailRows}</div>
+    ${trackBox}
     ${actionBtns}
   </div>`;
 }

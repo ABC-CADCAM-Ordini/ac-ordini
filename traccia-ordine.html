@@ -201,7 +201,10 @@ function render(row){
   document.getElementById("o-title").textContent = s.lavorazione || "Scheda ordine";
   document.getElementById("o-status").textContent = (STATUS[row.stato]||{l:row.stato||"—"}).l;
 
-  document.getElementById("o-facts").innerHTML = [
+  const vuota = !s.lavorazione && !s.materiale && !(Array.isArray(s.impianti) && s.impianti.length);
+  document.getElementById("o-facts").innerHTML = vuota
+    ? `<div style="grid-column:1 / -1;background:var(--light);border:1px dashed var(--border);border-radius:12px;padding:16px 18px;color:var(--gray);font-size:13.5px;line-height:1.6">⏳ <b style="color:var(--mid)">Ordine ricevuto — produzione in corso.</b><br>I dettagli (materiale, impianti, lotti) e il tracking della spedizione compariranno qui appena disponibili.</div>`
+    : [
     fact("Materiale", s.materiale), fact("Tecnica", s.tecnica),
     fact("Colore/Tipologia", s.colore), fact("Software", s.software),
     fact("Tecnico di laboratorio", s.tecnico),

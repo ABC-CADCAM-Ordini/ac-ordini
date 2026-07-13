@@ -145,6 +145,8 @@
   .order-id { font-size: 11px; font-weight: 800; color: var(--blue); font-family: monospace; cursor: pointer; }
   .order-id:hover { text-decoration: underline; }
   .order-idcol { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+  body.no-prezzo .table-head, body.no-prezzo .order-row { grid-template-columns: 90px 1fr 1fr 120px 130px 110px; }
+  body.no-prezzo .th-prezzo, body.no-prezzo .order-price, body.no-prezzo .detail-prezzo { display: none !important; }
   .sync-na { display: inline-flex; align-items: center; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: #047857; background: #D1FAE5; border: 1px solid #A7F3D0; border-radius: 20px; padding: 1px 7px; white-space: nowrap; }
   .order-client { font-size: 13px; font-weight: 700; color: var(--dark); }
   .order-studio { font-size: 11px; color: var(--gray); margin-top: 1px; }
@@ -540,7 +542,7 @@
           <div>ID</div>
           <div>Cliente</div>
           <div>Lavorazione</div>
-          <div>Prezzo</div>
+          <div class="th-prezzo">Prezzo</div>
           <div>Stato</div>
           <div>Operatore</div>
           <div>Data</div>
@@ -650,6 +652,9 @@ let currentFilter = "all";
 let currentSearch = "";
 let selectedOrderId = null;
 let allUsers = [];
+
+// ── Interruttore PREZZO ── metti true per rimostrare i prezzi ovunque.
+const SHOW_PREZZO = false;
 
 // ── Escaping output (anti-XSS) ──────────────────────────────────
 // I dati di ordini/utenti arrivano dal DB e includono testo inserito
@@ -770,6 +775,7 @@ async function doLogout() {
 
 // Ripristina la sessione se l'operatore è già autenticato (token in localStorage).
 window.addEventListener("load", async () => {
+  if (!SHOW_PREZZO) document.body.classList.add("no-prezzo");
   try {
     const { data: { session } } = await sbAuth.auth.getSession();
     if (session && session.user) await enterAppFromSession(session.user);
@@ -1084,7 +1090,7 @@ function openDetail(id) {
     </div>
 
     <!-- PREZZO -->
-    <div class="detail-section">
+    <div class="detail-section detail-prezzo">
       <div class="detail-section-title">Prezzo indicativo</div>
       <div class="detail-price-big">${fmt(o.prezzo_base)}</div>
       <div class="detail-price-iva">IVA ${iva}% inclusa: ${prezzoIva}</div>
@@ -1309,7 +1315,7 @@ function buildEmailBody(o) {
     paziente     ? `Paziente      : ${paziente}` : null,
     parsed.denti ? `Denti (FDI)   : ${parsed.denti}` : null,
     parsed.impianto ? `Impianto      : ${parsed.impianto}` : null,
-    o.prezzo_base? `Prezzo ind.   : ${o.prezzo_base.toFixed ? o.prezzo_base.toFixed(1) : o.prezzo_base} € + IVA ${o.iva||4}%` : null,
+    (SHOW_PREZZO && o.prezzo_base)? `Prezzo ind.   : ${o.prezzo_base.toFixed ? o.prezzo_base.toFixed(1) : o.prezzo_base} € + IVA ${o.iva||4}%` : null,
     `───────────────────────────────`,
     ``,
     `Il suo ordine è stato preso in carico e sarà lavorato nei prossimi giorni.`,

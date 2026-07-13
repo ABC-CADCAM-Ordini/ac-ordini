@@ -57,6 +57,7 @@
     width: 100%;
     max-width: 700px;
   }
+  body.no-prezzo .price-bar, body.no-prezzo .price-hero { display: none !important; }
 
   /* HEADER */
   .app-header {
@@ -1671,6 +1672,9 @@ const SUPABASE_KEY = "sb_publishable_HXVNXs1d0mjbVg7gp_D-Cw_IrakErzk";
 // Token del link "traccia ordine" dell'ultimo ordine creato (generato lato client:
 // con la RLS attiva l'anon non può rileggere l'ordine dopo l'insert).
 let lastOrderToken = null;
+
+// ── Interruttore PREZZO ── metti true per rimostrare i prezzi ovunque.
+const SHOW_PREZZO = false;
 
 async function saveOrderToSupabase(fileLink, fileName) {
   if (SUPABASE_URL.includes("YOUR_PROJECT")) return;
@@ -4170,8 +4174,8 @@ function renderConfirmScreen() {
     const analogoPrice = state.befreeAnalogo ? 55 * qty : 0;
     const grandTotal = (prod.prezzo||0) * qty + analogoPrice;
     detailRows += `<div class="confirm-detail-row"><span>Prodotto</span><span>${prod.n||"—"}${qty>1?" × "+qty:""}</span></div>`;
-    if(state.befreeAnalogo) detailRows += `<div class="confirm-detail-row"><span>+ Analogo × ${qty}</span><span>${fmt(analogoPrice)} + IVA 22%</span></div>`;
-    detailRows += `<div class="confirm-detail-row"><span>Totale indicativo</span><span>${fmt(grandTotal)} (IVA esclusa)</span></div>`;
+    if(SHOW_PREZZO && state.befreeAnalogo) detailRows += `<div class="confirm-detail-row"><span>+ Analogo × ${qty}</span><span>${fmt(analogoPrice)} + IVA 22%</span></div>`;
+    if(SHOW_PREZZO) detailRows += `<div class="confirm-detail-row"><span>Totale indicativo</span><span>${fmt(grandTotal)} (IVA esclusa)</span></div>`;
   } else {
     const mats = MATERIALI[state.lavId] || [];
     const mat = mats[state.matIdx];
@@ -4179,7 +4183,7 @@ function renderConfirmScreen() {
     const iva = mat?.iva || 4;
     detailRows += `<div class="confirm-detail-row"><span>Lavorazione</span><span>${lav?.l.replace("\n"," ") || "—"}</span></div>`;
     if(mat) detailRows += `<div class="confirm-detail-row"><span>Materiale</span><span>${mat.n}</span></div>`;
-    detailRows += `<div class="confirm-detail-row"><span>Prezzo indicativo</span><span>${fmt(base)} + IVA ${iva}%</span></div>`;
+    if(SHOW_PREZZO) detailRows += `<div class="confirm-detail-row"><span>Prezzo indicativo</span><span>${fmt(base)} + IVA ${iva}%</span></div>`;
   }
   detailRows += `<div class="confirm-detail-row"><span>Metodo invio</span><span>${methodLabel[state.sendMethod] || "—"}</span></div>`;
 
@@ -4736,6 +4740,7 @@ function updatePriceBar() {
 }
 
 // INIT
+if (!SHOW_PREZZO) document.body.classList.add("no-prezzo");
 render();
 
 // ═══════════════════════════════════════════════════════

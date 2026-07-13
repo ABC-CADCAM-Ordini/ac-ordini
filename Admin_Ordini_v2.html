@@ -142,7 +142,8 @@
   .order-row:last-child { border-bottom: none; }
   .order-row:hover { background: var(--light); }
   .order-row.selected { background: var(--blue-light); }
-  .order-id { font-size: 11px; font-weight: 800; color: var(--blue); font-family: monospace; }
+  .order-id { font-size: 11px; font-weight: 800; color: var(--blue); font-family: monospace; cursor: pointer; }
+  .order-id:hover { text-decoration: underline; }
   .order-client { font-size: 13px; font-weight: 700; color: var(--dark); }
   .order-studio { font-size: 11px; color: var(--gray); margin-top: 1px; }
   .order-lav { font-size: 12px; color: var(--mid); }
@@ -996,6 +997,12 @@ function shortId(id) {
   return id ? id.substring(0,8).toUpperCase() : "—";
 }
 
+function copyOrderId(id) {
+  navigator.clipboard.writeText(id)
+    .then(() => showToast("ID copiato: " + id, "green"))
+    .catch(() => showToast("Copia non riuscita", "red"));
+}
+
 function renderOrders() {
   const orders = filteredOrders();
   const body = document.getElementById("orders-body");
@@ -1007,7 +1014,7 @@ function renderOrders() {
 
   body.innerHTML = orders.map(o => `
     <div class="order-row ${selectedOrderId === o.id ? 'selected' : ''}" onclick="openDetail('${o.id}')">
-      <div class="order-id">${shortId(o.id)}</div>
+      <div class="order-id" title="Clicca per copiare l'ID" onclick="event.stopPropagation();copyOrderId('${shortId(o.id)}')">${shortId(o.id)}</div>
       <div>
         <div class="order-client">${esc(o.nome)} ${esc(o.cognome)}</div>
         <div class="order-studio">${esc(o.azienda)}</div>

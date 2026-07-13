@@ -1676,6 +1676,26 @@ let lastOrderToken = null;
 // ── Interruttore PREZZO ── metti true per rimostrare i prezzi ovunque.
 const SHOW_PREZZO = false;
 
+// Salva lo STL grezzo su Supabase Storage con path deterministico = share_token.
+// Serve all'Admin per mostrare l'anteprima 3D del modello (bucket "ordini-stl").
+// Non blocca l'ordine: in caso di errore si prosegue (l'Admin userà il caricamento manuale).
+async function uploadStlToStorage(shareToken) {
+  const f = uploadedFiles.stl;
+  if (!f || !shareToken || SUPABASE_URL.includes("YOUR_PROJECT")) return;
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/ordini-stl/${shareToken}.stl`, {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/octet-stream",
+      "x-upsert": "true"
+    },
+    body: f
+  });
+  if (!res.ok) throw new Error(`Storage ${res.status}: ${await res.text()}`);
+  console.log("✅ STL salvato su Storage: ordini-stl/" + shareToken + ".stl");
+}
+
 async function saveOrderToSupabase(fileLink, fileName) {
   if (SUPABASE_URL.includes("YOUR_PROJECT")) return;
   const lav = LAVORAZIONI.find(x => x.id === state.lavId);
@@ -1723,6 +1743,9 @@ async function saveOrderToSupabase(fileLink, fileName) {
     if(!res.ok) { const e=await res.text(); throw new Error(`Supabase ${res.status}: ${e}`); }
     return;
   }
+
+  // Anteprima 3D lato Admin: carica lo STL grezzo su Storage (non blocca l'ordine se fallisce).
+  await uploadStlToStorage(shareToken).catch(e => console.warn("⚠️ STL storage:", e.message));
 
   const mats = MATERIALI[state.lavId] || [];
   const mat = mats[state.matIdx] || null;
@@ -3371,6 +3394,9 @@ function renderStep() {
       caricalo qui: leggeremo automaticamente denti, impianti e connessioni.
     </div>`;
     html += uploadZone("stl","File STL","Geometria del restauro","Trascina o clicca — .stl",".stl",true);
+    if(uploadedFiles.stl) {
+      html += `<div style="margin:-6px 0 16px;text-align:center"><button type="button" onclick="openStlInNewWindow(uploadedFiles.stl)" style="display:inline-flex;align-items:center;gap:7px;background:var(--blue);color:#fff;border:none;border-radius:9px;padding:9px 17px;font-size:12.5px;font-weight:700;font-family:var(--font);cursor:pointer">🧊 Apri file STL in 3D</button></div>`;
+    }
     html += uploadZone("infoConstr","ConstructionInfo XML","Parametri tecnici — opzionale","Trascina o clicca — .xml .pdf .docx",".xml,.pdf,.doc,.docx,.txt,.xlsx",false);
     if(xmlParsed && !xmlParsed.error) {
       const elems = (xmlParsed.elementiDettaglio||[]).filter(e=>e.rtype!=='Antagonist');
@@ -3665,6 +3691,9 @@ function renderStep() {
     });
     if(fileList.length) {
       html+=`<div class="summary-row"><span class="summary-key">File allegati</span><span class="summary-val" style="font-size:11px">${fileList.join("<br>")}</span></div>`;
+    }
+    if(uploadedFiles.stl) {
+      html+=`<div class="summary-row"><span class="summary-key">Anteprima 3D</span><span class="summary-val"><button type="button" onclick="openStlInNewWindow(uploadedFiles.stl)" style="display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border:none;border-radius:7px;padding:7px 13px;font-size:11.5px;font-weight:700;font-family:var(--font);cursor:pointer">🧊 Apri file STL</button></span></div>`;
     }
     html += buildXMLSummaryPanel();
     html+=`</div>`;
@@ -4126,6 +4155,91 @@ async function uploadZipGetLink(blob) {
 
   // Tutti e tre i provider falliti
   throw new Error("Tutti i provider falliti:\n" + errors.join("\n"));
+}
+
+// ── Anteprima STL in una nuova finestra ───────────────────────
+// Pagina viewer autonoma: three.js + STLLoader + OrbitControls da esm.sh.
+// Riceve i byte dello STL dalla finestra madre (stessa origine) via window.__stlData.
+const STL_VIEWER_WINDOW_HTML = `<!doctype html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Anteprima STL — %%NAME%%</title>
+<style>
+  *{margin:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#0F1923;color:#E7EEF6;display:flex;flex-direction:column;overflow:hidden}
+  header{display:flex;align-items:center;gap:8px;padding:12px 16px;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;font-weight:700}
+  header .name{font-weight:400;font-size:12px;color:#9FB2C4}
+  #wrap{position:relative;flex:1;min-height:0}
+  canvas{display:block;width:100%;height:100%;touch-action:none}
+  #msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;color:#9FB2C4;font-size:13px;text-align:center;padding:24px}
+  .ring{width:22px;height:22px;border:3px solid rgba(255,255,255,.15);border-top-color:#3B9CFF;border-radius:50%;animation:sp .8s linear infinite;flex:none}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  footer{padding:8px;font-size:11px;color:#7A90A4;text-align:center;background:rgba(255,255,255,.03)}
+</style></head>
+<body>
+  <header><span>🧊 Anteprima STL</span><span class="name">%%NAME%%</span></header>
+  <div id="wrap"><div id="msg"><span class="ring"></span> Caricamento visualizzatore 3D…</div></div>
+  <footer>Trascina per ruotare · rotella per zoom · tasto destro per spostare</footer>
+  <script type="module">
+    import * as THREE from 'https://esm.sh/three@0.160.0';
+    import { STLLoader } from 'https://esm.sh/three@0.160.0/examples/jsm/loaders/STLLoader.js';
+    import { OrbitControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+    const wrap = document.getElementById('wrap'), msg = document.getElementById('msg');
+    const fail = function(t){ msg.style.display='flex'; msg.innerHTML = t; };
+    window.__stlError = function(){ fail('Impossibile leggere il file STL.'); };
+    function waitData(){
+      return new Promise(function(res, rej){
+        if (window.__stlData) return res(window.__stlData);
+        window.__stlReady = function(){ if (window.__stlData) res(window.__stlData); };
+        var n = 0, t = setInterval(function(){
+          if (window.__stlData){ clearInterval(t); res(window.__stlData); }
+          else if (++n > 300){ clearInterval(t); rej(new Error('timeout')); }
+        }, 100);
+      });
+    }
+    (async function(){
+      try{
+        const buf = await waitData();
+        const W = wrap.clientWidth || 900, H = wrap.clientHeight || 600;
+        const scene = new THREE.Scene();
+        const cam = new THREE.PerspectiveCamera(38, W/H, 0.1, 100000);
+        scene.add(new THREE.AmbientLight(0xffffff, .55), new THREE.HemisphereLight(0xffffff, 0x394a5a, .5));
+        const k = new THREE.DirectionalLight(0xffffff, 2.3); k.position.set(1, 1.3, 1.6); scene.add(k);
+        const f = new THREE.DirectionalLight(0xbcd3ea, 1); f.position.set(-1.4, -.6, -1); scene.add(f);
+        const geom = new STLLoader().parse(buf);
+        geom.computeVertexNormals(); geom.center(); geom.computeBoundingSphere();
+        const mesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({ color: 0xC9D6E4, metalness: .14, roughness: .55 }));
+        mesh.rotation.x = -Math.PI/2; scene.add(mesh);
+        const r = (geom.boundingSphere && geom.boundingSphere.radius) || 1;
+        const d = r / Math.sin((38 * Math.PI/180)/2) * 1.2;
+        cam.position.set(d*.55, d*.5, d*.95); cam.near = Math.max(d/500, .01); cam.far = d*500; cam.updateProjectionMatrix(); cam.lookAt(0,0,0);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); renderer.setSize(W, H);
+        wrap.appendChild(renderer.domElement);
+        const ctrl = new OrbitControls(cam, renderer.domElement);
+        ctrl.enableDamping = true; ctrl.dampingFactor = .08; ctrl.autoRotate = true; ctrl.autoRotateSpeed = 1.5;
+        renderer.domElement.addEventListener('pointerdown', function(){ ctrl.autoRotate = false; });
+        msg.style.display = 'none';
+        window.addEventListener('resize', function(){ const w = wrap.clientWidth, h = wrap.clientHeight; if(w&&h){ cam.aspect = w/h; cam.updateProjectionMatrix(); renderer.setSize(w, h); } });
+        (function tick(){ requestAnimationFrame(tick); ctrl.update(); renderer.render(scene, cam); })();
+      }catch(e){ fail('Impossibile aprire l\\'anteprima 3D.<br>' + (e && e.message ? e.message : e)); }
+    })();
+  <\/script>
+</body></html>`;
+
+function openStlInNewWindow(file){
+  if(!file){ return; }
+  const w = window.open("", "_blank", "width=980,height=760,resizable=yes,scrollbars=no");
+  if(!w){ alert("Per aprire l'anteprima 3D, consenti le finestre popup per questo sito."); return; }
+  const safeName = String(file.name || "modello.stl").replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; });
+  w.document.open();
+  w.document.write(STL_VIEWER_WINDOW_HTML.replace(/%%NAME%%/g, safeName));
+  w.document.close();
+  // Passa i byte STL alla nuova finestra (stessa origine): il viewer li attende.
+  file.arrayBuffer()
+    .then(function(buf){ try { w.__stlData = buf; if(typeof w.__stlReady === "function") w.__stlReady(); } catch(e){} })
+    .catch(function(){ try { if(typeof w.__stlError === "function") w.__stlError(); } catch(e){} });
 }
 
 // ── Send method selection ─────────────────────────────────────

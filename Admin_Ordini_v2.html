@@ -144,6 +144,8 @@
   .order-row.selected { background: var(--blue-light); }
   .order-id { font-size: 11px; font-weight: 800; color: var(--blue); font-family: monospace; cursor: pointer; }
   .order-id:hover { text-decoration: underline; }
+  .order-idcol { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .sync-na { display: inline-flex; align-items: center; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: #047857; background: #D1FAE5; border: 1px solid #A7F3D0; border-radius: 20px; padding: 1px 7px; white-space: nowrap; }
   .order-client { font-size: 13px; font-weight: 700; color: var(--dark); }
   .order-studio { font-size: 11px; color: var(--gray); margin-top: 1px; }
   .order-lav { font-size: 12px; color: var(--mid); }
@@ -1014,7 +1016,10 @@ function renderOrders() {
 
   body.innerHTML = orders.map(o => `
     <div class="order-row ${selectedOrderId === o.id ? 'selected' : ''}" onclick="openDetail('${o.id}')">
-      <div class="order-id" title="Clicca per copiare l'ID" onclick="event.stopPropagation();copyOrderId('${shortId(o.id)}')">${shortId(o.id)}</div>
+      <div class="order-idcol">
+        <span class="order-id" title="Clicca per copiare l'ID" onclick="event.stopPropagation();copyOrderId('${shortId(o.id)}')">${shortId(o.id)}</span>
+        ${(o.scheda_dati && typeof o.scheda_dati === 'object' && Object.keys(o.scheda_dati).length) ? `<span class="sync-na" title="Sync NA avvenuta — scheda produzione ricevuta da New Ancorvis">✓ Sync NA</span>` : ''}
+      </div>
       <div>
         <div class="order-client">${esc(o.nome)} ${esc(o.cognome)}</div>
         <div class="order-studio">${esc(o.azienda)}</div>

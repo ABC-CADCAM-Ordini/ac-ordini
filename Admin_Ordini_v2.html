@@ -220,6 +220,10 @@
   .order-thumb-row { display:flex; width:82px; height:54px; margin-bottom:5px; border-radius:6px; border:1px solid var(--border); overflow:hidden; align-items:center; justify-content:center; flex:none; cursor:pointer; background:radial-gradient(ellipse at 50% 35%, #F7FAFF 0%, #E7EEF6 100%); }
   .order-thumb-row:hover { border-color:var(--blue); box-shadow:0 0 0 2px var(--blue-light); }
   .order-thumb-row img { width:100%; height:100%; object-fit:contain; display:block; }
+  .order-id-row { display:flex; align-items:center; gap:6px; }
+  .sync-dot { width:9px; height:9px; border-radius:50%; flex:none; }
+  .sync-dot.ok { background:#16A34A; box-shadow:0 0 0 2px #D1FAE5; }
+  .sync-dot.no { background:#DC2626; box-shadow:0 0 0 2px #FEE2E2; }
   .stl-preview-box { position:relative; margin-top:8px; border:1.5px solid var(--border); border-radius:10px; background:var(--light); overflow:hidden; min-height:56px; }
   .stl-preview-box.clickable { cursor:pointer; }
   .stl-preview-box.clickable:hover { border-color:var(--blue); }
@@ -495,7 +499,7 @@
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-13.2</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-13.3</span>
     </div>
     <div class="top-operator">
       Operatore: <strong id="operator-name-display"></strong>
@@ -1048,6 +1052,11 @@ function copyOrderId(id) {
     .catch(() => showToast("Copia non riuscita", "red"));
 }
 
+// Sync NA avvenuta = è arrivata la scheda produzione da New Ancorvis (scheda_dati valorizzato)
+function isSyncedNA(o) {
+  return !!(o.scheda_dati && typeof o.scheda_dati === 'object' && Object.keys(o.scheda_dati).length);
+}
+
 function renderOrders() {
   const orders = filteredOrders();
   const body = document.getElementById("orders-body");
@@ -1061,8 +1070,10 @@ function renderOrders() {
     <div class="order-row ${selectedOrderId === o.id ? 'selected' : ''}" onclick="openDetail('${o.id}')">
       <div class="order-idcol">
         <div class="order-thumb-row" id="rthumb-${o.id}" style="display:none"></div>
-        <span class="order-id" title="Clicca per copiare l'ID" onclick="event.stopPropagation();copyOrderId('${shortId(o.id)}')">${shortId(o.id)}</span>
-        ${(o.scheda_dati && typeof o.scheda_dati === 'object' && Object.keys(o.scheda_dati).length) ? `<span class="sync-na" title="Sync NA avvenuta — scheda produzione ricevuta da New Ancorvis">✓ Sync NA</span>` : ''}
+        <div class="order-id-row">
+          <span class="order-id" title="Clicca per copiare l'ID" onclick="event.stopPropagation();copyOrderId('${shortId(o.id)}')">${shortId(o.id)}</span>
+          <span class="sync-dot ${isSyncedNA(o) ? 'ok' : 'no'}" title="${isSyncedNA(o) ? 'Sync NA avvenuta — scheda produzione ricevuta da New Ancorvis' : 'In attesa della scheda produzione (sync NA)'}"></span>
+        </div>
       </div>
       <div>
         <div class="order-client">${esc(o.nome)} ${esc(o.cognome)}</div>

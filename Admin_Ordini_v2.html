@@ -197,13 +197,13 @@
   .orders-scroll { overflow-x: auto; }
   .orders-table { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.06); min-width: 820px; }
   .table-head {
-    display: grid; grid-template-columns: 116px 1.3fr 1.15fr 84px 104px 92px 92px;
+    display: grid; grid-template-columns: 124px 1.3fr 1.15fr 84px 104px 92px 92px;
     padding: 10px 16px; background: var(--pearl);
     border-bottom: 1.5px solid var(--border);
     font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--gray);
   }
   .order-row {
-    display: grid; grid-template-columns: 116px 1.3fr 1.15fr 84px 104px 92px 92px;
+    display: grid; grid-template-columns: 124px 1.3fr 1.15fr 84px 104px 92px 92px;
     padding: 14px 16px; border-bottom: 1px solid var(--border);
     align-items: center; cursor: pointer; transition: background .12s;
   }
@@ -214,7 +214,7 @@
   .order-id-row { max-width: 100%; }
   .order-id:hover { text-decoration: underline; }
   .order-idcol { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; overflow: hidden; }
-  body.no-prezzo .table-head, body.no-prezzo .order-row { grid-template-columns: 116px 1.4fr 1.3fr 108px 96px 96px; }
+  body.no-prezzo .table-head, body.no-prezzo .order-row { grid-template-columns: 124px 1.4fr 1.3fr 108px 96px 96px; }
   body.no-prezzo .th-prezzo, body.no-prezzo .order-price, body.no-prezzo .detail-prezzo { display: none !important; }
   .sync-na { display: inline-flex; align-items: center; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: #047857; background: #D1FAE5; border: 1px solid #A7F3D0; border-radius: 20px; padding: 1px 7px; white-space: nowrap; }
   .order-client { font-size: 13px; font-weight: 700; color: var(--dark); }
@@ -296,9 +296,11 @@
   /* ── ANTEPRIMA / VIEWER STL 3D ── */
   .stl-chip { display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; color:#3730A3; background:#E0E7FF; border:1px solid #C7D2FE; border-radius:20px; padding:1px 7px; white-space:nowrap; cursor:pointer; }
   .stl-chip:hover { background:#C7D2FE; }
-  .order-thumb-row { display:flex; width:82px; height:54px; margin-bottom:5px; border-radius:6px; border:1px solid var(--border); overflow:hidden; align-items:center; justify-content:center; flex:none; cursor:pointer; background:radial-gradient(ellipse at 50% 35%, #F7FAFF 0%, #E7EEF6 100%); }
+  .order-thumb-row { display:flex; width:112px; height:74px; margin-bottom:7px; border-radius:9px; border:1px solid var(--border); overflow:hidden; align-items:center; justify-content:center; flex:none; cursor:pointer; background:radial-gradient(ellipse at 50% 32%, #F7FAFF 0%, #E7EEF6 100%); transition:border-color .12s, box-shadow .12s; }
   .order-thumb-row:hover { border-color:var(--blue); box-shadow:0 0 0 2px var(--blue-light); }
   .order-thumb-row img { width:100%; height:100%; object-fit:contain; display:block; }
+  .order-thumb-row.is-icon { color:#5E82AD; }
+  .order-thumb-row.is-icon svg { width:58%; height:58%; display:block; }
   .order-id-row { display:flex; align-items:center; gap:6px; }
   .sync-dot { width:9px; height:9px; border-radius:50%; flex:none; }
   .sync-dot.ok { background:#16A34A; box-shadow:0 0 0 2px #D1FAE5; }
@@ -701,7 +703,7 @@ body{
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-14.5</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-14.6</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
@@ -1539,6 +1541,30 @@ function isSyncedNA(o) {
   return !!(o.scheda_dati && typeof o.scheda_dati === 'object' && Object.keys(o.scheda_dati).length);
 }
 
+// ── Icone tipo-lavorazione (famiglia Configuratore) per la miniatura riga ──
+const LAV_IC = {
+  sing_cem: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="20" y="32" width="8" height="12" rx="4"/><line x1="20" y1="35" x2="28" y2="35"/><line x1="20" y1="38" x2="28" y2="38"/><line x1="20" y1="41" x2="28" y2="41"/><path d="M21 32 L22 26 L26 26 L27 32"/><line x1="21" y1="29" x2="27" y2="29"/><path d="M16 18 C16 12 20 8 24 8 C28 8 32 12 32 18 C32 21 30 23 29 25 C28 26 27 26 26 26 L22 26 C21 26 20 26 19 25 C18 23 16 21 16 18Z"/></svg>`,
+  sing_avv: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="20" y="33" width="8" height="12" rx="4"/><line x1="20" y1="36" x2="28" y2="36"/><line x1="20" y1="39" x2="28" y2="39"/><line x1="20" y1="42" x2="28" y2="42"/><path d="M21.5 33 L22 26 L26 26 L26.5 33"/><path d="M16 18 C16 12 20 8 24 8 C28 8 32 12 32 18 C32 21 30 23 29 25 C28 26 27 26 26 26 L22 26 C21 26 20 26 19 25 C18 23 16 21 16 18Z"/><circle cx="24" cy="18" r="2.5"/><line x1="24" y1="21" x2="24" y2="26"/></svg>`,
+  ponte_cem: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="33" width="7" height="11" rx="3.5"/><line x1="5" y1="36" x2="12" y2="36"/><line x1="5" y1="39" x2="12" y2="39"/><rect x="36" y="33" width="7" height="11" rx="3.5"/><line x1="36" y1="36" x2="43" y2="36"/><line x1="36" y1="39" x2="43" y2="39"/><path d="M6.5 33 L8 28 L10.5 28 L12 33"/><path d="M36 33 L37.5 28 L40 28 L41.5 33"/><path d="M8 28 C8 22 11 17 14.5 16 L24 15 L33.5 16 C37 17 40 22 40 28"/><path d="M14.5 16 C14.5 11 18 8 24 8 C30 8 33.5 11 33.5 16"/><line x1="14.5" y1="16" x2="14.5" y2="28"/><line x1="33.5" y1="16" x2="33.5" y2="28"/></svg>`,
+  ponte_avv: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="34" width="6" height="11" rx="3"/><line x1="4" y1="37" x2="10" y2="37"/><line x1="4" y1="40" x2="10" y2="40"/><rect x="21" y="34" width="6" height="11" rx="3"/><line x1="21" y1="37" x2="27" y2="37"/><line x1="21" y1="40" x2="27" y2="40"/><rect x="38" y="34" width="6" height="11" rx="3"/><line x1="38" y1="37" x2="44" y2="37"/><line x1="38" y1="40" x2="44" y2="40"/><path d="M7 34 L7 20 Q7 14 24 12 Q41 14 41 20 L41 34"/><path d="M10 34 L10 22 Q10 17 24 15 Q38 17 38 22 L38 34"/><circle cx="7" cy="27" r="1.8"/><circle cx="24" cy="25" r="1.8"/><circle cx="41" cy="27" r="1.8"/></svg>`,
+  barre: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="30" width="8" height="14" rx="4"/><line x1="7" y1="33" x2="15" y2="33"/><line x1="7" y1="36" x2="15" y2="36"/><line x1="7" y1="39" x2="15" y2="39"/><rect x="33" y="30" width="8" height="14" rx="4"/><line x1="33" y1="33" x2="41" y2="33"/><line x1="33" y1="36" x2="41" y2="36"/><line x1="33" y1="39" x2="41" y2="39"/><rect x="9" y="24" width="6" height="6" rx="1"/><rect x="33" y="24" width="6" height="6" rx="1"/><rect x="15" y="25" width="18" height="4" rx="2"/><path d="M18 25 L18 20 Q18 17 24 17 Q30 17 30 20 L30 25"/><line x1="18" y1="22" x2="30" y2="22"/></svg>`,
+  naturali: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 28 L18 36 Q17 42 19 44"/><path d="M28 28 L30 36 Q31 42 29 44"/><path d="M19 44 Q21 46 24 45 Q27 46 29 44"/><path d="M14 20 C14 13 18 8 24 8 C30 8 34 13 34 20 C34 24 32 26 30 27.5 C28.5 28.5 26.5 29 24 29 C21.5 29 19.5 28.5 18 27.5 C16 26 14 24 14 20Z"/><path d="M18 14 Q20 11 22 14"/><path d="M26 14 Q28 11 30 14"/><line x1="24" y1="14" x2="24" y2="19"/><line x1="18" y1="20" x2="30" y2="20"/><path d="M18 27.5 Q18 29 20 28 L28 28 Q30 29 30 27.5" stroke-dasharray="2 1.5"/></svg>`,
+  stl: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22 C12 14 16 8 24 8 C32 8 36 14 36 22 C36 26 34 29 32 31 L29 35 L19 35 L16 31 C14 29 12 26 12 22Z"/><line x1="24" y1="8" x2="16" y2="22"/><line x1="24" y1="8" x2="32" y2="22"/><line x1="16" y1="22" x2="32" y2="22"/><line x1="16" y1="22" x2="24" y2="35"/><line x1="32" y1="22" x2="24" y2="35"/><line x1="12" y1="22" x2="24" y2="15"/><line x1="36" y1="22" x2="24" y2="15"/><rect x="14" y="36" width="20" height="8" rx="2"/><text x="24" y="43" font-size="5.5" font-weight="700" text-anchor="middle" stroke="none" fill="currentColor" font-family="monospace">STL</text></svg>`,
+};
+// Mappa il testo lavorazione (ABC o NA) a un'icona della famiglia.
+function lavIconKey(o){
+  const s = ((o && o.lavorazione) || "").toLowerCase() + " " + (((o && o.scheda_dati && o.scheda_dati.tipo) || "")).toLowerCase();
+  const has = (...w) => w.some(x => s.includes(x));
+  if (has("natural")) return "naturali";
+  if (has("barra","overdenture")) return "barre";
+  if (has("ponte","arcata","bridge","toronto","full arch","full-arch")) return has("cement") ? "ponte_cem" : "ponte_avv";
+  if (has("avvit","screw")) return "sing_avv";
+  if (has("cement","ti base","tibase")) return "sing_cem";
+  if (has("corona","crown","zirconia","elemento","singolo","moncone","abutment","befree","dente")) return "sing_avv";
+  return "stl";
+}
+function lavIcon(o){ return LAV_IC[lavIconKey(o)] || LAV_IC.stl; }
+
 function renderOrders() {
   const orders = filteredOrders();
   const body = document.getElementById("orders-body");
@@ -1551,7 +1577,7 @@ function renderOrders() {
   body.innerHTML = orders.map(o => `
     <div class="order-row ${selectedOrderId === o.id ? 'selected' : ''}" onclick="openDetail('${o.id}')">
       <div class="order-idcol">
-        <div class="order-thumb-row" id="rthumb-${o.id}" style="display:none"></div>
+        <div class="order-thumb-row is-icon" id="rthumb-${o.id}" title="Tipo lavorazione · anteprima 3D quando disponibile">${lavIcon(o)}</div>
         <div class="order-id-row">
           <span class="order-id" title="Clicca per copiare l'ID" onclick="event.stopPropagation();copyOrderId(this.textContent)">${esc(orderCode(o))}</span>
           <span class="sync-dot ${isSyncedNA(o) ? 'ok' : 'no'}" title="${isSyncedNA(o) ? 'Sync NA avvenuta — scheda produzione ricevuta da New Ancorvis' : 'In attesa della scheda produzione (sync NA)'}"></span>
@@ -1934,6 +1960,7 @@ function _thumbLsSet(tok, dataUrl) {
 }
 
 function setThumbImg(box, dataUrl, orderId) {
+  box.classList.remove("is-icon");
   box.innerHTML = `<img src="${dataUrl}" alt="Anteprima STL">`;
   box.style.display = "";
   box.title = "Apri anteprima 3D";

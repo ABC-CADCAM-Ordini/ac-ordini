@@ -87,8 +87,9 @@
   .diag-head button { border: none; background: none; font-size: 18px; cursor: pointer; color: var(--gray); padding: 2px 8px; }
   .diag-head button:hover { color: var(--dark); }
   .diag-actions { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--border); background: var(--light); flex-wrap: wrap; }
-  .diag-force { display: inline-flex; align-items: center; gap: 6px; background: var(--blue); color: #fff; text-decoration: none; font-weight: 800; font-size: 13px; padding: 9px 16px; border-radius: 9px; white-space: nowrap; }
+  .diag-force { display: inline-flex; align-items: center; gap: 6px; background: var(--blue); color: #fff; text-decoration: none; font-weight: 800; font-size: 13px; padding: 9px 16px; border-radius: 9px; white-space: nowrap; border: none; cursor: pointer; font-family: var(--font); }
   .diag-force:hover { filter: brightness(.92); }
+  .diag-force:disabled { opacity: .6; cursor: default; filter: none; }
   .diag-force-hint { font-size: 11px; color: var(--gray); font-weight: 600; flex: 1; min-width: 150px; line-height: 1.4; }
   .diag-body { padding: 16px 18px; overflow-y: auto; }
   .diag-loading, .diag-empty { text-align: center; color: var(--gray); padding: 30px; font-weight: 600; line-height: 1.6; }
@@ -1122,8 +1123,8 @@ function openDiag() {
       <div class="diag-head"><span>🩺 Diagnostica sync — New Ancorvis</span>
         <div><button class="diag-refresh" title="Ricarica">↻</button><button class="diag-close" title="Chiudi">×</button></div></div>
       <div class="diag-actions">
-        <a class="diag-force" href="https://github.com/ABC-CADCAM-Ordini/na-abc-sync/actions/workflows/main.yml" target="_blank" rel="noopener">⟳ Forza sincronizzazione ora</a>
-        <span class="diag-force-hint">Si apre GitHub → clicca <b>Run workflow</b>. Il giro schedulato vicino verrà saltato per non sovrapporsi.</span>
+        <button class="diag-force" onclick="forzaSync(this)">⟳ Forza sincronizzazione ora</button>
+        <span class="diag-force-hint">Avvia subito una sincronizzazione. Il giro schedulato vicino verrà saltato per non sovrapporsi (parte tra ~10-30 secondi).</span>
       </div>
       <div class="diag-body"><div class="diag-loading">Caricamento…</div></div>
     </div>`;
@@ -1166,6 +1167,30 @@ async function loadDiag() {
     <div class="diag-log-title">Storico (${runs.length})</div>
     <div class="diag-history">${runs.map(r => `<div class="diag-hrow">${badge(r)} <span>${esc(whenFmt(r.ts))}</span><span class="diag-hstats">letti ${r.letti | 0} · agg ${r.aggiornati | 0} · creati ${r.creati | 0} · saltati ${r.saltati | 0}</span></div>`).join('')}</div>
   `;
+}
+
+// Forza una sincronizzazione: chiama la Edge Function "forza-sync" (che tiene il token GitHub
+// al sicuro e fa partire l'Action). Richiede un utente loggato.
+async function forzaSync(btn) {
+  const old = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Avvio…';
+  try {
+    const { data: { session } } = await sbAuth.auth.getSession();
+    if (!session) throw new Error('Sessione scaduta — rifai il login');
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/forza-sync`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session.access_token}`, apikey: SUPABASE_KEY, 'Content-Type': 'application/json' }
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    btn.textContent = '✓ Avviata!';
+    showToast('Sincronizzazione avviata — tra poco compare il nuovo giro qui sotto', 'green');
+    setTimeout(() => loadDiag(), 20000); // ricarico la diagnostica quando il run avrà scritto
+    setTimeout(() => { btn.disabled = false; btn.textContent = old; }, 10000);
+  } catch (e) {
+    btn.disabled = false; btn.textContent = old;
+    showToast('Errore: ' + e.message, 'red');
+  }
 }
 
 function copyOrderId(id) {

@@ -27,6 +27,8 @@
     --purple-light: #EDE9FE;
     --font: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
     --sidebar: 300px;
+    --topbar: 92px;   /* altezza barra header (era 58) */
+    --logo-h: 74px;   /* logo header ~2x (era 38) */
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: var(--font); background: #E8EEF5; color: var(--dark); min-height: 100vh; }
@@ -64,12 +66,12 @@
   #app { display: none; }
   .app-top {
     background: white; border-bottom: 2px solid var(--blue);
-    padding: 0 24px; height: 58px;
+    padding: 0 24px; height: var(--topbar);
     display: flex; align-items: center; justify-content: space-between;
     position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.06);
   }
   .top-left { display: flex; align-items: center; gap: 16px; }
-  .top-logo { height: 38px; }
+  .top-logo { height: var(--logo-h); }
   .top-badge {
     font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em;
     background: var(--blue); color: white; padding: 3px 9px; border-radius: 4px;
@@ -140,13 +142,13 @@
   .rub-edit-tipo { font-family: var(--font); font-size: 13px; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; }
   .rub-empty { text-align: center; color: var(--gray); padding: 24px; font-weight: 600; }
 
-  .app-body { display: flex; min-height: calc(100vh - 58px); }
+  .app-body { display: flex; min-height: calc(100vh - var(--topbar)); }
 
   /* ── SIDEBAR ── */
   .sidebar {
     width: var(--sidebar); background: white; border-right: 1.5px solid var(--border);
-    padding: 20px 0; flex-shrink: 0; position: sticky; top: 58px;
-    height: calc(100vh - 58px); overflow-y: auto;
+    padding: 20px 0; flex-shrink: 0; position: sticky; top: var(--topbar);
+    height: calc(100vh - var(--topbar)); overflow-y: auto;
   }
   .sidebar-section { padding: 0 16px 16px; }
   .sidebar-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--gray); margin-bottom: 8px; padding: 0 4px; }
@@ -244,7 +246,7 @@
   /* ── DETAIL PANEL ── */
   .detail-panel {
     width: 420px; background: white; border-left: 1.5px solid var(--border);
-    position: sticky; top: 58px; height: calc(100vh - 58px);
+    position: sticky; top: var(--topbar); height: calc(100vh - var(--topbar));
     overflow-y: auto; flex-shrink: 0; display: none;
   }
   .detail-panel.open { display: block; }
@@ -574,10 +576,10 @@ body{
 
 /* ── HEADER: masthead a doppio-filo (ink 2px + blu 1px), NIENTE vetro ── */
 .app-top{
-  height:58px; background:#fff; border-bottom:2px solid var(--ink);
+  height:var(--topbar); background:#fff; border-bottom:2px solid var(--ink);
   box-shadow:0 3px 0 -1px var(--blue), 0 6px 16px -10px rgba(var(--sh),.22);
 }
-.top-logo{ height:38px; width:auto; }   /* logo aziendale ufficiale: dimensione invariata */
+.top-logo{ height:var(--logo-h); width:auto; }   /* logo aziendale ufficiale, ~2x */
 .top-badge{
   background:none; color:var(--ink);
   border:1px solid var(--ink); border-radius:2px;
@@ -699,7 +701,7 @@ body{
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-14.4</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-14.5</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>

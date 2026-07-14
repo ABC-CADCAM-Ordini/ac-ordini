@@ -68,6 +68,8 @@ as $$
   join collaboratori c on c.id = oc.collaboratore_id and c.attivo = true
   join orders o        on o.id = oc.order_id
   where c.token = p_token
+    -- ricevuti/in lavorazione sempre; conclusi solo entro la scadenza (chiusura + 30 giorni)
+    and (o.status <> 'concluso' or (o.share_expires_at is not null and o.share_expires_at > now()))
   order by o.created_at desc;
 $$;
 

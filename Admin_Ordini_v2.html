@@ -995,7 +995,7 @@ function filteredOrders() {
     if (currentFilter === "unassigned" && o.operator) return false;
     if (!["all","mine","unassigned"].includes(currentFilter) && o.status !== currentFilter) return false;
     if (currentSearch) {
-      const hay = [o.nome, o.cognome, o.azienda, o.telefono, o.email, o.lavorazione].join(" ").toLowerCase();
+      const hay = [o.nome, o.cognome, o.azienda, o.telefono, o.email, o.lavorazione, orderCode(o), (o.scheda_dati && o.scheda_dati.id_na)].join(" ").toLowerCase();
       if (!hay.includes(currentSearch)) return false;
     }
     return true;
@@ -1046,6 +1046,16 @@ function shortId(id) {
   return id ? id.substring(0,8).toUpperCase() : "—";
 }
 
+// ID visibile dell'ordine. Per gli ordini importati da New Ancorvis (origine 'NA')
+// mostra NA<id_na> (es. NA139552726CCLM0); per tutti gli altri il consueto short-UUID.
+// NB: è solo l'ID *visibile* — l'UUID interno (o.id) resta invariato per link/RLS.
+function orderCode(o) {
+  const sp = o && o.scheda_dati;
+  // id_na arriva da fonti esterne (sync NA / REST pubblico): whitelist anti-XSS alla fonte
+  if (sp && sp.origine === 'NA' && sp.id_na) return 'NA' + String(sp.id_na).replace(/[^A-Za-z0-9_-]/g, '');
+  return shortId(o.id);
+}
+
 function copyOrderId(id) {
   navigator.clipboard.writeText(id)
     .then(() => showToast("ID copiato: " + id, "green"))
@@ -1071,7 +1081,7 @@ function renderOrders() {
       <div class="order-idcol">
         <div class="order-thumb-row" id="rthumb-${o.id}" style="display:none"></div>
         <div class="order-id-row">
-          <span class="order-id" title="Clicca per copiare l'ID" onclick="event.stopPropagation();copyOrderId('${shortId(o.id)}')">${shortId(o.id)}</span>
+          <span class="order-id" title="Clicca per copiare l'ID" onclick="event.stopPropagation();copyOrderId(this.textContent)">${esc(orderCode(o))}</span>
           <span class="sync-dot ${isSyncedNA(o) ? 'ok' : 'no'}" title="${isSyncedNA(o) ? 'Sync NA avvenuta — scheda produzione ricevuta da New Ancorvis' : 'In attesa della scheda produzione (sync NA)'}"></span>
         </div>
       </div>
@@ -1097,7 +1107,7 @@ function openDetail(id) {
   selectedOrderId = id;
   renderOrders(); // refresh selection highlight
 
-  document.getElementById("d-id").textContent = "Ordine #" + shortId(o.id);
+  document.getElementById("d-id").textContent = "Ordine #" + orderCode(o);
   document.getElementById("d-name").textContent = (o.nome || "") + " " + (o.cognome || "");
   document.getElementById("d-studio").textContent = o.azienda || "";
 
@@ -1229,6 +1239,21 @@ function openDetail(id) {
       </div>`;
     })()}
 
+    <!-- DOCUMENTI (New Ancorvis: conformità, garanzia, ecc.) -->
+    ${(() => {
+      const docs = (o.scheda_dati && Array.isArray(o.scheda_dati.documenti)) ? o.scheda_dati.documenti : [];
+      if (!docs.length) return '';
+      const ic = t => /conform/i.test(t || '') ? '📋' : /garanz/i.test(t || '') ? '🛡️' : /track/i.test(t || '') ? '🚚' : '📄';
+      return `<div class="detail-section">
+        <div class="detail-section-title">📎 Documenti</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          ${docs.map(d => `<a class="file-link-btn" href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener noreferrer">
+            ${ic(d.tipo)} ${esc(d.nome || d.tipo || 'Documento')}
+          </a>`).join('')}
+        </div>
+      </div>`;
+    })()}
+
     <!-- LINK CLIENTE -->
     ${o.share_token ? (() => {
       const url = `https://abc-cadcam-ordini.github.io/ac-ordini/traccia-ordine.html?t=${o.share_token}`;
@@ -1298,6 +1323,31 @@ const stlUrlFor = o => (o && o.share_token)
   ? `${SUPABASE_URL}/storage/v1/object/public/${STL_BUCKET}/${encodeURIComponent(o.share_token)}.stl`
   : null;
 
+// Cache di sessione degli ArrayBuffer STL (LRU, max 3 voci): lo stesso file serve
+// a miniatura riga, anteprima dettaglio e viewer 3D → scaricalo una volta sola.
+const _stlBufCache = new Map(); // share_token -> ArrayBuffer
+function _stlBufGet(tok) {
+  if (!tok || !_stlBufCache.has(tok)) return null;
+  const buf = _stlBufCache.get(tok);
+  _stlBufCache.delete(tok); _stlBufCache.set(tok, buf); // rinfresca la posizione LRU
+  return buf;
+}
+function _stlBufSet(tok, buf) {
+  if (!tok) return;
+  _stlBufCache.delete(tok); _stlBufCache.set(tok, buf);
+  if (_stlBufCache.size > 3) _stlBufCache.delete(_stlBufCache.keys().next().value); // via la più vecchia
+}
+// fetch dell'STL con cache: tok è opzionale (senza token niente cache)
+async function _stlBufFetch(url, tok) {
+  const hit = _stlBufGet(tok);
+  if (hit) return hit;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const buf = await res.arrayBuffer();
+  _stlBufSet(tok, buf);
+  return buf;
+}
+
 let _threePromise = null;
 function loadThree() {
   if (!_threePromise) _threePromise = (async () => {
@@ -1343,12 +1393,10 @@ function frameCamera(cam, radius, close) {
   return d;
 }
 
-// Miniatura statica (renderer usa-e-getta: snapshot → libera il contesto GL)
-async function renderStlThumb(url, box) {
+// Miniatura statica (renderer usa-e-getta: snapshot → libera il contesto GL); tok opzionale per la cache buffer
+async function renderStlThumb(url, box, tok) {
   const { THREE, STLLoader } = await loadThree();
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  const buf = await res.arrayBuffer();
+  const buf = await _stlBufFetch(url, tok);
   const W = box.clientWidth || 300, H = 190;
   const { scene, cam } = makeStlScene(THREE, W, H);
   const geom = stlGeomFromBuffer(THREE, STLLoader, buf);
@@ -1375,7 +1423,7 @@ async function initStlPreview(o) {
   if (url) {
     try {
       const head = await fetch(url, { method: "HEAD" });
-      if (head.ok) { await renderStlThumb(url, box); return; }
+      if (head.ok) { await renderStlThumb(url, box, o.share_token); return; }
     } catch (e) { /* rete/CORS/offline → fallback manuale */ }
   }
   box.classList.remove("clickable"); box.onclick = null;
@@ -1388,16 +1436,31 @@ function openStlForOrder(id) {
   const o = allOrders.find(x => x.id === id);
   if (!o) return;
   const url = stlUrlFor(o);
-  if (url) openStlViewer({ url, name: o.file_name || "modello.stl" });
+  if (url) openStlViewer({ url, token: o.share_token, name: o.file_name || "modello.stl" });
   else openStlViewer({ name: o.file_name || "" });
 }
 
 // ── Miniatura-immagine nelle righe ordine ─────────────────────
 // Renderizza (una volta, in coda) lo STL in Storage come PNG e lo mostra nella riga.
 // Cache per share_token: i re-render della lista (filtri/selezione) sono istantanei.
+// La PNG (~20-40KB) è persistita anche in localStorage ('stlthumb:'+token):
+// al reload della pagina le miniature appaiono subito, senza riscaricare gli STL.
 const _stlThumbCache = new Map();   // share_token -> dataURL | 'none'
 const _thumbInFlight = new Set();
 let _thumbQueue = Promise.resolve();
+
+function _thumbLsGet(tok) {
+  try { return localStorage.getItem("stlthumb:" + tok); } catch (e) { return null; }
+}
+function _thumbLsSet(tok, dataUrl) {
+  try { localStorage.setItem("stlthumb:" + tok, dataUrl); }
+  catch (e) { // quota piena: butta tutte le miniature e riprova una volta
+    try {
+      Object.keys(localStorage).filter(k => k.startsWith("stlthumb:")).forEach(k => localStorage.removeItem(k));
+      localStorage.setItem("stlthumb:" + tok, dataUrl);
+    } catch (e2) { /* rifallisce: pazienza, resta la sola cache in RAM */ }
+  }
+}
 
 function setThumbImg(box, dataUrl, orderId) {
   box.innerHTML = `<img src="${dataUrl}" alt="Anteprima STL">`;
@@ -1406,11 +1469,9 @@ function setThumbImg(box, dataUrl, orderId) {
   box.onclick = e => { e.stopPropagation(); openStlForOrder(orderId); };
 }
 
-async function _renderThumbDataUrl(url) {
+async function _renderThumbDataUrl(url, tok) {
   const { THREE, STLLoader } = await loadThree();
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  const buf = await res.arrayBuffer();
+  const buf = await _stlBufFetch(url, tok);
   const W = 164, H = 108;
   const { scene, cam } = makeStlScene(THREE, W, H);
   const geom = stlGeomFromBuffer(THREE, STLLoader, buf);
@@ -1432,7 +1493,11 @@ function hydrateRowThumbs(orders) {
     const box = document.getElementById("rthumb-" + o.id);
     if (!box) return;
     const tok = o.share_token;
-    const cached = tok ? _stlThumbCache.get(tok) : "none";
+    let cached = tok ? _stlThumbCache.get(tok) : "none";
+    if (!cached && tok) { // miss in RAM: prova localStorage (sopravvive al reload)
+      const ls = _thumbLsGet(tok);
+      if (ls) { _stlThumbCache.set(tok, ls); cached = ls; }
+    }
     if (cached && cached !== "none") { setThumbImg(box, cached, o.id); return; }
     if (cached === "none" || !tok || _thumbInFlight.has(tok)) return;
     const url = stlUrlFor(o);
@@ -1442,8 +1507,9 @@ function hydrateRowThumbs(orders) {
       try {
         const head = await fetch(url, { method: "HEAD" });
         if (!head.ok) { _stlThumbCache.set(tok, "none"); return; }
-        const dataUrl = await _renderThumbDataUrl(url);
+        const dataUrl = await _renderThumbDataUrl(url, tok);
         _stlThumbCache.set(tok, dataUrl);
+        _thumbLsSet(tok, dataUrl);
         const b = document.getElementById("rthumb-" + o.id);
         if (b) setThumbImg(b, dataUrl, o.id);
       } catch (e) {
@@ -1548,7 +1614,7 @@ async function mountStlViewer(buf, wrap) {
   _stlActive = session;
   tick();
 }
-// Punto d'ingresso unico. opts: { url? | buffer? | file? , name? }
+// Punto d'ingresso unico. opts: { url? | buffer? | file? , name?, token? }
 async function openStlViewer(opts) {
   opts = opts || {};
   const modal = ensureStlModal();
@@ -1563,7 +1629,7 @@ async function openStlViewer(opts) {
   try {
     let buf = opts.buffer || null;
     if (!buf && opts.file) buf = await stlBufferFromFile(opts.file);
-    if (!buf && opts.url) { spin.style.display = "flex"; const r = await fetch(opts.url); if (!r.ok) throw new Error("HTTP " + r.status); buf = await r.arrayBuffer(); }
+    if (!buf && opts.url) { spin.style.display = "flex"; buf = await _stlBufFetch(opts.url, opts.token); }
     if (!buf) { showDrop(); return; } // modalità caricamento manuale
     spin.style.display = "flex";
     await mountStlViewer(buf, wrap);
@@ -1959,7 +2025,7 @@ function printOrder() {
         <p>ISO 13485 · CE 0425 · MDR 745/2017</p>
       </div>
       <div class="print-order-meta">
-        <strong>Ordine #${shortId(o.id)}</strong>
+        <strong>Ordine #${esc(orderCode(o))}</strong>
         <span>Ricevuto: ${fmtDate(o.created_at)}</span><br>
         <span>Stampato: ${new Date().toLocaleDateString('it-IT')}</span><br>
         <span class="print-status ${esc(o.status)}">${esc(statusLabels[o.status] || o.status)}</span>

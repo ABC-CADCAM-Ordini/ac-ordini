@@ -96,6 +96,35 @@
   .skeleton{padding:48px; text-align:center; color:var(--gray); font-weight:600}
   .demo-banner{background:#FEF3C7; color:var(--amber); font-weight:700; font-size:12.5px;
     text-align:center; padding:9px 14px; border-radius:11px; margin-bottom:14px}
+
+  /* ── Anteprima 3D STL ── */
+  .stl3d-wrap{position:relative; width:100%; height:320px; border-radius:12px; overflow:hidden;
+    background:radial-gradient(ellipse at 50% 30%, #f4f8fc 0%, #e6eef7 100%);
+    border:1px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:grab}
+  .stl3d-wrap:active{cursor:grabbing}
+  .stl3d-wrap canvas{display:block; width:100%; height:100%}
+  .stl3d-spin{display:flex; align-items:center; gap:10px; color:var(--gray); font-size:13px; font-weight:600}
+  .stl3d-ring{width:16px; height:16px; border:2.5px solid var(--border); border-top-color:var(--blue);
+    border-radius:50%; animation:stl3dspin .8s linear infinite}
+  @keyframes stl3dspin{to{transform:rotate(360deg)}}
+  .stl3d-hint{margin-top:8px; font-size:11px; color:var(--gray); text-align:center; font-weight:600}
+  .stl3d-load{font:inherit; font-size:13.5px; font-weight:800; color:var(--blue); background:var(--white);
+    border:1px solid var(--border); border-radius:10px; padding:11px 18px; cursor:pointer;
+    box-shadow:0 1px 4px rgba(15,25,35,.06)}
+  .stl3d-load:hover{border-color:var(--blue); background:var(--blue-light)}
+
+  /* ── Documenti scaricabili ── */
+  .docs{display:flex; flex-direction:column; gap:9px}
+  .doc-btn{display:flex; align-items:center; gap:12px; text-decoration:none;
+    background:var(--light); border:1px solid var(--border); border-radius:11px; padding:12px 15px;
+    color:var(--dark); font-weight:700; font-size:13.5px; transition:border-color .15s, background .15s}
+  .doc-btn:hover{border-color:var(--blue); background:var(--blue-light)}
+  .doc-btn .ic{font-size:20px; flex-shrink:0; line-height:1}
+  .doc-btn .dt{flex:1; min-width:0}
+  .doc-btn .dt small{display:block; font-weight:600; font-size:11px; color:var(--gray); margin-top:1px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .doc-btn .dl{font-size:11px; font-weight:800; color:var(--blue); text-transform:uppercase; letter-spacing:.04em; flex-shrink:0}
+
   .hidden{display:none}
 </style>
 </head>
@@ -132,6 +161,15 @@
         <div class="sec">
           <h3>Lavorazione</h3>
           <div class="grid" id="o-facts"></div>
+        </div>
+        <div class="sec hidden" id="sec-3d">
+          <h3>Anteprima 3D</h3>
+          <div class="stl3d-wrap" id="o-3d"><div class="stl3d-spin"><span class="stl3d-ring"></span> Caricamento modello…</div></div>
+          <div class="stl3d-hint" id="stl-hint">Trascina per ruotare · rotella per zoom</div>
+        </div>
+        <div class="sec hidden" id="sec-docs">
+          <h3>Documenti</h3>
+          <div class="docs" id="o-docs"></div>
         </div>
         <div class="sec" id="sec-elem">
           <h3>Elementi</h3>
@@ -195,9 +233,11 @@ const fact = (k,v)=> v ? `<div class="f"><div class="k">${esc(k)}</div><div clas
 const show = id => document.getElementById(id).classList.remove("hidden");
 const hide = id => document.getElementById(id).classList.add("hidden");
 
-function render(row){
+function render(row, token){
   const s = row.scheda || {};
-  document.getElementById("o-code").textContent  = row.codice || "—";
+  // Ordini importati da New Ancorvis (origine 'NA') -> ID NA<id_na>; gli altri il codice consueto.
+  const code = (s.origine === "NA" && s.id_na) ? ("NA" + s.id_na) : (row.codice || "—");
+  document.getElementById("o-code").textContent  = code;
   document.getElementById("o-title").textContent = s.lavorazione || "Scheda ordine";
   document.getElementById("o-status").textContent = (STATUS[row.stato]||{l:row.stato||"—"}).l;
 
@@ -240,7 +280,108 @@ function render(row){
     ? `<div class="f"><div class="k">Tracking spedizione</div><div class="v">${esc(row.tracking)}</div></div>`
     : `<div class="track-wait">🚚 Tracking spedizione — disponibile appena l'ordine parte</div>`;
 
+  if(token) initStl(token);
+  renderDocs(s);
   hide("loading"); show("content");
+}
+
+// ── Anteprima 3D STL + Documenti scaricabili ──────────────────
+let _three = null;
+function loadThree(){
+  if(!_three) _three = (async () => {
+    const V = "0.160.0";
+    const THREE = await import(`https://esm.sh/three@${V}`);
+    const { STLLoader } = await import(`https://esm.sh/three@${V}/examples/jsm/loaders/STLLoader.js`);
+    const { OrbitControls } = await import(`https://esm.sh/three@${V}/examples/jsm/controls/OrbitControls.js`);
+    return { THREE, STLLoader, OrbitControls };
+  })();
+  return _three;
+}
+const stlUrlFor = token => `${SUPABASE_URL}/storage/v1/object/public/ordini-stl/${token}.stl`;
+// Byte -> testo leggibile (es. "4,2 MB")
+const fmtSize = b => b >= 1048576 ? (b/1048576).toFixed(1).replace(".", ",") + " MB" : Math.max(1, Math.round(b/1024)) + " KB";
+let _stlResObs = null; // ResizeObserver del viewer: disconnesso se si rimonta
+
+async function mountViewer(buf, wrap){
+  const { THREE, STLLoader, OrbitControls } = await loadThree();
+  wrap.innerHTML = "";
+  const W = wrap.clientWidth || 600, H = wrap.clientHeight || 320;
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(38, W / H, 0.1, 100000);
+  const key = new THREE.DirectionalLight(0xffffff, 2.3); key.position.set(1, 1.3, 1.6);
+  const fill = new THREE.DirectionalLight(0xbcd3ea, 1.0); fill.position.set(-1.4, -0.6, -1);
+  scene.add(key, fill, new THREE.AmbientLight(0xffffff, 0.55), new THREE.HemisphereLight(0xffffff, 0x394a5a, 0.5));
+  const geom = new STLLoader().parse(buf);
+  geom.computeVertexNormals(); geom.center(); geom.computeBoundingSphere();
+  const mesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({ color: 0xC9D6E4, metalness: 0.14, roughness: 0.55 }));
+  mesh.rotation.x = -Math.PI / 2; scene.add(mesh);
+  const rad = (geom.boundingSphere && geom.boundingSphere.radius) || 1;
+  const d = rad / Math.sin((cam.fov * Math.PI / 180) / 2) * 1.2;
+  cam.position.set(d * 0.55, d * 0.5, d * 0.95);
+  cam.near = Math.max(d / 500, 0.01); cam.far = d * 500; cam.updateProjectionMatrix(); cam.lookAt(0, 0, 0);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(W, H);
+  wrap.appendChild(renderer.domElement);
+  const controls = new OrbitControls(cam, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08; controls.autoRotate = true; controls.autoRotateSpeed = 1.5;
+  controls.enableZoom = false; // niente zoom da rotella/pinch prima che l'utente tocchi il modello
+  renderer.domElement.style.touchAction = "pan-y"; // dopo OrbitControls (che mette 'none'): lo swipe verticale scorre la pagina
+  // Render loop parsimonioso: rAF continuo solo con autoRotate o interazione, poi on-demand su 'change'.
+  let raf = 0, quiet = 0;
+  const tick = () => { raf = requestAnimationFrame(tick); controls.update(); renderer.render(scene, cam); };
+  const startLoop = () => { if(!raf && !document.hidden) tick(); };
+  const stopLoop = () => { cancelAnimationFrame(raf); raf = 0; };
+  const wake = () => { // tiene vivo il loop durante interazione/damping, poi 2s di quiete e stop
+    startLoop(); clearTimeout(quiet);
+    quiet = setTimeout(() => { if(!controls.autoRotate) stopLoop(); }, 2000);
+  };
+  controls.addEventListener("change", () => { if(!raf) renderer.render(scene, cam); wake(); });
+  renderer.domElement.addEventListener("pointerdown", () => { controls.autoRotate = false; controls.enableZoom = true; wake(); });
+  document.addEventListener("visibilitychange", () => { document.hidden ? stopLoop() : wake(); });
+  startLoop();
+  if(_stlResObs) _stlResObs.disconnect();
+  _stlResObs = new ResizeObserver(() => { const w = wrap.clientWidth, h = wrap.clientHeight; if (w && h) { cam.aspect = w / h; cam.updateProjectionMatrix(); renderer.setSize(w, h); if(!raf) renderer.render(scene, cam); } });
+  _stlResObs.observe(wrap);
+}
+
+async function initStl(token){
+  if(!token) return;
+  const url = stlUrlFor(token);
+  try {
+    const head = await fetch(url, { method: "HEAD" });
+    if(!head.ok) return; // nessuno STL per quest'ordine → sezione resta nascosta
+  } catch(e){ return; }
+
+  // Lo STL esiste: mostro sezione + bottone di download SUBITO (lo spinner è già nel box).
+  show("sec-3d");
+  addDoc({ ic: "🧊", nome: "File STL 3D", sub: "modello.stl", url });
+  if(matchMedia("(pointer:coarse)").matches)
+    document.getElementById("stl-hint").textContent = "Trascina per ruotare · pinch per zoom";
+
+  // Carico e mostro il modello 3D SUBITO: è bello da vedere, niente attese né pulsanti.
+  const wrap = document.getElementById("o-3d");
+  try {
+    const r = await fetch(url);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    await mountViewer(await r.arrayBuffer(), wrap);
+  } catch(e){ wrap.innerHTML = '<div class="stl3d-spin">Anteprima 3D non disponibile</div>'; hide("stl-hint"); }
+}
+
+function addDoc(d){
+  // Solo schemi sicuri (https/http, path relativi, mailto, tel): il resto viene scartato.
+  if(!/^(https?:\/\/|\/|\.\/|mailto:|tel:)/i.test(String(d.url || "").trim())) return;
+  const a = document.createElement("a");
+  a.className = "doc-btn"; a.href = d.url; a.target = "_blank"; a.rel = "noopener";
+  a.innerHTML = `<span class="ic">${esc(d.ic)}</span><span class="dt">${esc(d.nome)}${d.sub ? `<small>${esc(d.sub)}</small>` : ""}</span><span class="dl">Scarica</span>`;
+  document.getElementById("o-docs").appendChild(a);
+  show("sec-docs");
+}
+function renderDocs(s){
+  const docs = Array.isArray(s.documenti) ? s.documenti : [];
+  for(const d of docs){
+    const ic = /conform/i.test(d.tipo || "") ? "📋" : /garanz/i.test(d.tipo || "") ? "🛡️" : "📄";
+    addDoc({ ic, nome: d.nome || d.tipo || "Documento", sub: d.tipo || "", url: d.url });
+  }
 }
 
 async function load(){
@@ -253,7 +394,7 @@ async function load(){
       body: JSON.stringify({ p_token: token })
     });
     const rows = await res.json();
-    if(Array.isArray(rows) && rows.length) render(rows[0]);
+    if(Array.isArray(rows) && rows.length) render(rows[0], token);
     else { hide("loading"); show("missing"); }
   }catch(e){ hide("loading"); show("missing"); }
 }

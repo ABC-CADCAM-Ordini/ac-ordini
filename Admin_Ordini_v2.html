@@ -112,14 +112,20 @@
   .rub-add input, .rub-add select { font-family: var(--font); font-size: 13px; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; background: #fff; }
   .rub-add input { flex: 1; min-width: 160px; }
   .rub-add button { background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 800; font-size: 12.5px; cursor: pointer; font-family: var(--font); white-space: nowrap; }
-  .rub-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--light); }
+  .rub-filter { width: 100%; font-family: var(--font); font-size: 13px; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; margin-bottom: 12px; background: #fff; }
+  .rub-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--light); flex-wrap: wrap; }
   .rub-row.off { opacity: .55; }
   .rub-check { width: 18px; height: 18px; flex-shrink: 0; cursor: pointer; accent-color: var(--blue); }
-  .rub-info { flex: 1; min-width: 0; }
+  .rub-info { flex: 1; min-width: 150px; }
   .rub-info b { font-size: 13.5px; }
   .rub-tipo { font-size: 10.5px; color: var(--gray); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin-left: 6px; }
+  .rub-count { font-size: 11px; color: var(--gray); font-weight: 600; margin-top: 2px; }
+  .rub-actions { display: flex; gap: 6px; flex-wrap: wrap; }
   .rub-act { background: none; border: 1.5px solid var(--border); border-radius: 7px; padding: 5px 10px; font-size: 11.5px; font-weight: 700; cursor: pointer; font-family: var(--font); color: var(--mid); white-space: nowrap; }
   .rub-act:hover { border-color: var(--blue); color: var(--blue); }
+  .rub-del:hover { border-color: var(--red); color: var(--red); }
+  .rub-edit-nome { flex: 1; min-width: 140px; font-family: var(--font); font-size: 13px; padding: 7px 10px; border: 1.5px solid var(--blue); border-radius: 8px; }
+  .rub-edit-tipo { font-family: var(--font); font-size: 13px; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; }
   .rub-empty { text-align: center; color: var(--gray); padding: 24px; font-weight: 600; }
 
   .app-body { display: flex; min-height: calc(100vh - 58px); }
@@ -173,23 +179,23 @@
   /* ── ORDER TABLE ── */
   .orders-table { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
   .table-head {
-    display: grid; grid-template-columns: 90px 1fr 1fr 100px 120px 130px 110px;
+    display: grid; grid-template-columns: 102px 1.25fr 1.1fr 84px 100px 88px 88px;
     padding: 10px 16px; background: var(--pearl);
     border-bottom: 1.5px solid var(--border);
     font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--gray);
   }
   .order-row {
-    display: grid; grid-template-columns: 90px 1fr 1fr 100px 120px 130px 110px;
+    display: grid; grid-template-columns: 102px 1.25fr 1.1fr 84px 100px 88px 88px;
     padding: 14px 16px; border-bottom: 1px solid var(--border);
     align-items: center; cursor: pointer; transition: background .12s;
   }
   .order-row:last-child { border-bottom: none; }
   .order-row:hover { background: var(--light); }
   .order-row.selected { background: var(--blue-light); }
-  .order-id { font-size: 11px; font-weight: 800; color: var(--blue); font-family: monospace; cursor: pointer; }
+  .order-id { font-size: 10px; font-weight: 800; color: var(--blue); font-family: monospace; cursor: pointer; letter-spacing: -.2px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .order-id:hover { text-decoration: underline; }
-  .order-idcol { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-  body.no-prezzo .table-head, body.no-prezzo .order-row { grid-template-columns: 90px 1fr 1fr 120px 130px 110px; }
+  .order-idcol { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; overflow: hidden; }
+  body.no-prezzo .table-head, body.no-prezzo .order-row { grid-template-columns: 102px 1.35fr 1.25fr 104px 90px 88px; }
   body.no-prezzo .th-prezzo, body.no-prezzo .order-price, body.no-prezzo .detail-prezzo { display: none !important; }
   .sync-na { display: inline-flex; align-items: center; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: #047857; background: #D1FAE5; border: 1px solid #A7F3D0; border-radius: 20px; padding: 1px 7px; white-space: nowrap; }
   .order-client { font-size: 13px; font-weight: 700; color: var(--dark); }
@@ -198,6 +204,10 @@
   .order-price { font-size: 13px; font-weight: 800; color: var(--dark); }
   .order-date { font-size: 11px; color: var(--gray); }
   .order-op { font-size: 11px; color: var(--mid); font-style: italic; }
+  /* Celle griglia: possono restringersi + testo troncato con "…" invece di accavallarsi */
+  .table-head > *, .order-row > * { min-width: 0; }
+  .order-client, .order-studio, .order-lav, .order-op { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .order-row .status-badge { white-space: nowrap; font-size: 9.5px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 
   /* ── STATUS BADGE ── */
   .status-badge {
@@ -1214,7 +1224,7 @@ async function forzaSync(btn) {
 // ── RUBRICA + CONDIVISIONE ORDINI ─────────────────────────────
 // openRubrica(orderId) → modalità "condividi quest'ordine" (con spunte);
 // openRubrica(null)    → modalità "gestione rubrica" (link, attiva/disattiva).
-let rubOrderId = null;
+let rubOrderId = null, rubData = null, rubFilter = '', rubEditingId = null;
 const portaleLink = token => `https://abc-cadcam-ordini.github.io/ac-ordini/portale.html?c=${token}`;
 function openRubrica(orderId) {
   rubOrderId = orderId || null;
@@ -1230,6 +1240,7 @@ function openRubrica(orderId) {
           <select id="rub-tipo"><option value="commerciale">Commerciale</option><option value="cliente">Cliente</option></select>
           <button onclick="rubAdd()">+ Aggiungi</button>
         </div>
+        <input id="rub-filter" class="rub-filter" placeholder="🔍 Cerca in rubrica…" oninput="rubFilter=this.value;renderRubrica()">
         <div id="rub-list"><div class="rub-empty">Caricamento…</div></div>
       </div>
     </div>`;
@@ -1246,22 +1257,50 @@ async function loadRubrica() {
   list.innerHTML = '<div class="rub-empty">Caricamento…</div>';
   try {
     const cols = (await sb('GET', 'collaboratori?select=*&order=nome')) || [];
-    let shared = new Set();
+    const shares = (await sb('GET', 'ordini_condivisi?select=collaboratore_id')) || [];
+    const counts = {};
+    shares.forEach(s => { counts[s.collaboratore_id] = (counts[s.collaboratore_id] || 0) + 1; });
+    let sharedIds = new Set();
     if (rubOrderId) {
       const sh = (await sb('GET', `ordini_condivisi?order_id=eq.${rubOrderId}&select=collaboratore_id`)) || [];
-      shared = new Set(sh.map(x => x.collaboratore_id));
+      sharedIds = new Set(sh.map(x => x.collaboratore_id));
     }
-    if (!cols.length) { list.innerHTML = '<div class="rub-empty">Nessun collaboratore ancora. Aggiungine uno qui sopra.</div>'; return; }
-    list.innerHTML = cols.map(c => {
-      const chk = rubOrderId ? `<input type="checkbox" class="rub-check" ${shared.has(c.id) ? 'checked' : ''} onchange="rubToggle('${c.id}', this.checked)">` : '';
-      return `<div class="rub-row ${c.attivo ? '' : 'off'}">
-        ${chk}
-        <div class="rub-info"><b>${esc(c.nome)}</b><span class="rub-tipo">${esc(c.tipo)}</span>${c.attivo ? '' : ' <span class="rub-tipo" style="color:var(--red)">disattivo</span>'}</div>
-        <button class="rub-act" onclick="rubCopyLink('${esc(c.token)}')">🔗 Copia link</button>
-        <button class="rub-act" onclick="rubToggleActive('${c.id}', ${c.attivo})">${c.attivo ? 'Disattiva' : 'Riattiva'}</button>
-      </div>`;
-    }).join('');
+    rubData = { cols, counts, sharedIds };
+    renderRubrica();
   } catch (e) { list.innerHTML = `<div class="rub-empty">Errore: ${esc(e.message)}</div>`; }
+}
+function renderRubrica() {
+  const list = document.getElementById('rub-list');
+  if (!rubData) return;
+  const { cols, counts, sharedIds } = rubData;
+  if (!cols.length) { list.innerHTML = '<div class="rub-empty">Nessun collaboratore ancora. Aggiungine uno qui sopra.</div>'; return; }
+  const f = rubFilter.trim().toLowerCase();
+  const shown = f ? cols.filter(c => (c.nome + ' ' + c.tipo).toLowerCase().includes(f)) : cols;
+  if (!shown.length) { list.innerHTML = `<div class="rub-empty">Nessun risultato per «${esc(rubFilter)}».</div>`; return; }
+  list.innerHTML = shown.map(c => {
+    if (c.id === rubEditingId) {
+      return `<div class="rub-row" data-id="${c.id}">
+        <input class="rub-edit-nome" value="${esc(c.nome)}">
+        <select class="rub-edit-tipo"><option value="commerciale" ${c.tipo === 'commerciale' ? 'selected' : ''}>Commerciale</option><option value="cliente" ${c.tipo === 'cliente' ? 'selected' : ''}>Cliente</option></select>
+        <div class="rub-actions"><button class="rub-act" onclick="rubSave('${c.id}')">Salva</button><button class="rub-act" onclick="rubEditingId=null;renderRubrica()">Annulla</button></div>
+      </div>`;
+    }
+    const chk = rubOrderId ? `<input type="checkbox" class="rub-check" ${sharedIds.has(c.id) ? 'checked' : ''} onchange="rubToggle('${c.id}', this.checked)">` : '';
+    const n = counts[c.id] || 0;
+    return `<div class="rub-row ${c.attivo ? '' : 'off'}">
+      ${chk}
+      <div class="rub-info">
+        <div><b>${esc(c.nome)}</b><span class="rub-tipo">${esc(c.tipo)}</span>${c.attivo ? '' : ' <span class="rub-tipo" style="color:var(--red)">disattivo</span>'}</div>
+        <div class="rub-count">Vede ${n} ordin${n === 1 ? 'e' : 'i'}</div>
+      </div>
+      <div class="rub-actions">
+        <button class="rub-act" onclick="rubCopyLink('${esc(c.token)}')">🔗 Link</button>
+        <button class="rub-act" onclick="rubEditingId='${c.id}';renderRubrica()">Modifica</button>
+        <button class="rub-act" onclick="rubToggleActive('${c.id}', ${c.attivo})">${c.attivo ? 'Disattiva' : 'Riattiva'}</button>
+        <button class="rub-act rub-del" onclick="rubDelete('${c.id}')">Cancella</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 async function rubAdd() {
   const nome = document.getElementById('rub-nome').value.trim();
@@ -1274,6 +1313,11 @@ async function rubToggle(collabId, checked) {
   try {
     if (checked) await sb('POST', 'ordini_condivisi', { order_id: rubOrderId, collaboratore_id: collabId });
     else await sb('DELETE', `ordini_condivisi?order_id=eq.${rubOrderId}&collaboratore_id=eq.${collabId}`);
+    if (rubData) {
+      rubData.counts[collabId] = Math.max(0, (rubData.counts[collabId] || 0) + (checked ? 1 : -1));
+      if (checked) rubData.sharedIds.add(collabId); else rubData.sharedIds.delete(collabId);
+      renderRubrica();
+    }
     showToast(checked ? 'Ordine condiviso ✓' : 'Condivisione rimossa', 'green');
   } catch (e) { showToast('Errore: ' + e.message, 'red'); loadRubrica(); }
 }
@@ -1283,6 +1327,22 @@ function rubCopyLink(token) {
 }
 async function rubToggleActive(collabId, currentlyActive) {
   try { await sb('PATCH', `collaboratori?id=eq.${collabId}`, { attivo: !currentlyActive }); loadRubrica(); }
+  catch (e) { showToast('Errore: ' + e.message, 'red'); }
+}
+async function rubSave(id) {
+  const row = document.querySelector(`.rub-row[data-id="${id}"]`);
+  if (!row) return;
+  const nome = row.querySelector('.rub-edit-nome').value.trim();
+  const tipo = row.querySelector('.rub-edit-tipo').value;
+  if (!nome) { showToast('Il nome non può essere vuoto', 'red'); return; }
+  try { await sb('PATCH', `collaboratori?id=eq.${id}`, { nome, tipo }); rubEditingId = null; showToast('Modificato', 'green'); loadRubrica(); }
+  catch (e) { showToast('Errore: ' + e.message, 'red'); }
+}
+async function rubDelete(id) {
+  const c = (rubData && rubData.cols || []).find(x => x.id === id);
+  const nome = c ? c.nome : 'questo collaboratore';
+  if (!confirm(`Cancellare definitivamente "${nome}"?\nPerderà l'accesso al portale e le sue condivisioni verranno rimosse.`)) return;
+  try { await sb('DELETE', `collaboratori?id=eq.${id}`); showToast('Collaboratore cancellato', 'green'); loadRubrica(); }
   catch (e) { showToast('Errore: ' + e.message, 'red'); }
 }
 

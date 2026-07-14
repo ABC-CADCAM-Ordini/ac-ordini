@@ -132,9 +132,10 @@ function codeOf(o){
 }
 function dmy(s){ const d = new Date(s); return isNaN(d) ? "" : d.toLocaleDateString("it-IT"); }
 
-function render(rows){
+function render(rows, info){
   hide("loading");
-  document.getElementById("sub").textContent = rows.length + (rows.length === 1 ? " ordine" : " ordini");
+  const cnt = rows.length + (rows.length === 1 ? " ordine" : " ordini");
+  document.getElementById("sub").textContent = info ? `${info.nome} · ${info.tipo} · ${cnt}` : cnt;
   if(!rows.length){ show("empty"); return; }
   const list = document.getElementById("list");
   list.innerHTML = rows.map(o => {
@@ -159,14 +160,16 @@ function render(rows){
 async function load(){
   const token = new URLSearchParams(location.search).get("c");
   if(!token){ hide("loading"); show("empty"); return; }
+  const call = (fn) => fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method:"POST", headers:{ "apikey":SUPABASE_KEY, "Content-Type":"application/json" },
+    body: JSON.stringify({ p_token: token })
+  }).then(r => r.json());
   try{
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/ordini_collaboratore`, {
-      method:"POST",
-      headers:{ "apikey":SUPABASE_KEY, "Content-Type":"application/json" },
-      body: JSON.stringify({ p_token: token })
-    });
-    const rows = await res.json();
-    render(Array.isArray(rows) ? rows : []);
+    const [info, rows] = await Promise.all([
+      call("collaboratore_info").catch(() => []),
+      call("ordini_collaboratore")
+    ]);
+    render(Array.isArray(rows) ? rows : [], Array.isArray(info) ? info[0] : null);
   }catch(e){ hide("loading"); show("empty"); }
 }
 load();

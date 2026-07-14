@@ -74,3 +74,11 @@ as $$
 $$;
 
 grant execute on function ordini_collaboratore(uuid) to anon;
+
+-- 5) RPC pubblica: nome/tipo del collaboratore dal token (per personalizzare il portale).
+create or replace function collaboratore_info(p_token uuid)
+returns table (nome text, tipo text)
+language sql security definer set search_path = public as $$
+  select c.nome, c.tipo from collaboratori c where c.token = p_token and c.attivo = true;
+$$;
+grant execute on function collaboratore_info(uuid) to anon;

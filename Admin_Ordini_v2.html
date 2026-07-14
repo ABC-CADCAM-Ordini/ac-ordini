@@ -213,6 +213,12 @@
     transition: all .12s; margin-top: 6px;
   }
   .file-link-btn:hover { background: var(--blue-light); border-color: var(--blue); }
+  .file-link-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .online-badge { display: inline-flex; align-items: center; font-size: 10px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .08em; padding: 3px 10px; border-radius: 20px;
+    background: #051A0A; color: #4ADE80; border: 1px solid rgba(74,222,128,.4);
+    box-shadow: 0 0 10px rgba(74,222,128,.28); white-space: nowrap; margin-right: 10px; }
+  .online-badge.offline { background: #6A6058; color: #D2CBC3; border-color: rgba(175,165,158,.25); box-shadow: none; }
 
   /* ── ANTEPRIMA / VIEWER STL 3D ── */
   .stl-chip { display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; color:#3730A3; background:#E0E7FF; border:1px solid #C7D2FE; border-radius:20px; padding:1px 7px; white-space:nowrap; cursor:pointer; }
@@ -502,6 +508,7 @@
       <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-13.4</span>
     </div>
     <div class="top-operator">
+      <span class="online-badge" id="status-badge">⬤ Online</span>
       Operatore: <strong id="operator-name-display"></strong>
       <button class="top-logout" onclick="doLogout()">Esci</button>
     </div>
@@ -1056,6 +1063,27 @@ function orderCode(o) {
   return shortId(o.id);
 }
 
+// Icone documento in stile piattaforma (line-art, stroke=currentColor).
+function docIcon(t) {
+  t = String(t || '').toLowerCase();
+  const S = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">';
+  if (/conform/.test(t)) return S + '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 14.5l2 2 4-4"/></svg>';
+  if (/garanz/.test(t)) return S + '<path d="M12 3l7 3v5c0 4.4-3 8.2-7 10-4-1.8-7-5.6-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>';
+  if (/track|spediz|corriere/.test(t)) return S + '<path d="M3 6.5h11v9H3z"/><path d="M14 9.5h3.5l3 3v3H14z"/><circle cx="7" cy="17.5" r="1.7"/><circle cx="17.5" cy="17.5" r="1.7"/></svg>';
+  if (/stl|3d|modello/.test(t)) return S + '<path d="M12 2.8l8 4.6v9.2L12 21.2l-8-4.6V7.4z"/><path d="M4 7.4l8 4.6 8-4.6"/><path d="M12 12v9.2"/></svg>';
+  return S + '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 13h7M8.5 16.5h5"/></svg>';
+}
+
+// Indicatore stato connessione nell'header (stile piattaforma).
+(function initOnline() {
+  const b = document.getElementById('status-badge');
+  if (!b) { addEventListener('DOMContentLoaded', initOnline); return; }
+  const set = on => { b.className = 'online-badge' + (on ? '' : ' offline'); b.textContent = on ? '⬤ Online' : '⬤ Offline'; };
+  set(navigator.onLine);
+  addEventListener('online', () => set(true));
+  addEventListener('offline', () => set(false));
+})();
+
 function copyOrderId(id) {
   navigator.clipboard.writeText(id)
     .then(() => showToast("ID copiato: " + id, "green"))
@@ -1243,12 +1271,11 @@ function openDetail(id) {
     ${(() => {
       const docs = (o.scheda_dati && Array.isArray(o.scheda_dati.documenti)) ? o.scheda_dati.documenti : [];
       if (!docs.length) return '';
-      const ic = t => /conform/i.test(t || '') ? '📋' : /garanz/i.test(t || '') ? '🛡️' : /track/i.test(t || '') ? '🚚' : '📄';
       return `<div class="detail-section">
         <div class="detail-section-title">📎 Documenti</div>
         <div style="display:flex;flex-direction:column;gap:7px">
           ${docs.map(d => `<a class="file-link-btn" href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener noreferrer">
-            ${ic(d.tipo)} ${esc(d.nome || d.tipo || 'Documento')}
+            ${docIcon(d.tipo)}<span>${esc(d.nome || d.tipo || 'Documento')}</span>
           </a>`).join('')}
         </div>
       </div>`;

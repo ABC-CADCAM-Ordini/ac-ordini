@@ -41,6 +41,14 @@
   @keyframes siriSpin{ to{ --siri-angle:360deg; } }
   .siri-inner{ position:relative; background:var(--white);
     border-radius:calc(var(--radius) - 2px); overflow:hidden; z-index:1; }
+  .siri-wrapper.offline{ background:#C4CDD6; animation:none; box-shadow:none; }
+  /* ── Indicatore stato connessione (stile piattaforma) ── */
+  .status-badge{ position:absolute; top:-11px; right:18px; font-size:9px; font-weight:800;
+    text-transform:uppercase; letter-spacing:.1em; padding:3px 10px; border-radius:20px;
+    z-index:10; transition:all .4s ease; pointer-events:none; }
+  .status-badge.online{ background:#051A0A; color:#4ADE80;
+    border:1px solid rgba(74,222,128,.4); box-shadow:0 0 10px rgba(74,222,128,.32); }
+  .status-badge.offline{ background:#6A6058; color:#D2CBC3; border:1px solid rgba(175,165,158,.25); }
 
   .logo-header{display:flex; align-items:center; justify-content:space-between; gap:14px;
     padding:16px 24px 14px; border-bottom:3px solid var(--blue)}
@@ -119,7 +127,8 @@
     background:var(--light); border:1px solid var(--border); border-radius:11px; padding:12px 15px;
     color:var(--dark); font-weight:700; font-size:13.5px; transition:border-color .15s, background .15s}
   .doc-btn:hover{border-color:var(--blue); background:var(--blue-light)}
-  .doc-btn .ic{font-size:20px; flex-shrink:0; line-height:1}
+  .doc-btn .ic{flex-shrink:0; line-height:0; color:var(--blue); display:flex}
+  .doc-btn .ic svg{width:22px; height:22px; display:block}
   .doc-btn .dt{flex:1; min-width:0}
   .doc-btn .dt small{display:block; font-weight:600; font-size:11px; color:var(--gray); margin-top:1px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -133,7 +142,8 @@
 
   <div id="demoBanner" class="demo-banner hidden">Anteprima con dati di esempio — apri con <code>?t=…</code> per un ordine reale</div>
 
-  <div class="siri-wrapper online">
+  <div class="siri-wrapper online" id="siri-wrapper">
+   <div class="status-badge online" id="status-badge">⬤ Online</div>
    <div class="siri-inner">
     <header class="logo-header">
       <img class="logo-img" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png"
@@ -354,7 +364,7 @@ async function initStl(token){
 
   // Lo STL esiste: mostro sezione + bottone di download SUBITO (lo spinner è già nel box).
   show("sec-3d");
-  addDoc({ ic: "🧊", nome: "File STL 3D", sub: "modello.stl", url });
+  addDoc({ ic: docIcon("stl"), nome: "File STL 3D", sub: "modello.stl", url });
   if(matchMedia("(pointer:coarse)").matches)
     document.getElementById("stl-hint").textContent = "Trascina per ruotare · pinch per zoom";
 
@@ -367,21 +377,29 @@ async function initStl(token){
   } catch(e){ wrap.innerHTML = '<div class="stl3d-spin">Anteprima 3D non disponibile</div>'; hide("stl-hint"); }
 }
 
+// Icone documento in stile piattaforma (line-art, stroke=currentColor).
+function docIcon(t){
+  t = String(t || "").toLowerCase();
+  const S = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">';
+  if(/conform/.test(t)) return S+'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 14.5l2 2 4-4"/></svg>';
+  if(/garanz/.test(t)) return S+'<path d="M12 3l7 3v5c0 4.4-3 8.2-7 10-4-1.8-7-5.6-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>';
+  if(/track|spediz|corriere/.test(t)) return S+'<path d="M3 6.5h11v9H3z"/><path d="M14 9.5h3.5l3 3v3H14z"/><circle cx="7" cy="17.5" r="1.7"/><circle cx="17.5" cy="17.5" r="1.7"/></svg>';
+  if(/stl|3d|modello/.test(t)) return S+'<path d="M12 2.8l8 4.6v9.2L12 21.2l-8-4.6V7.4z"/><path d="M4 7.4l8 4.6 8-4.6"/><path d="M12 12v9.2"/></svg>';
+  return S+'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 13h7M8.5 16.5h5"/></svg>';
+}
 function addDoc(d){
   // Solo schemi sicuri (https/http, path relativi, mailto, tel): il resto viene scartato.
   if(!/^(https?:\/\/|\/|\.\/|mailto:|tel:)/i.test(String(d.url || "").trim())) return;
   const a = document.createElement("a");
   a.className = "doc-btn"; a.href = d.url; a.target = "_blank"; a.rel = "noopener";
-  a.innerHTML = `<span class="ic">${esc(d.ic)}</span><span class="dt">${esc(d.nome)}${d.sub ? `<small>${esc(d.sub)}</small>` : ""}</span><span class="dl">Scarica</span>`;
+  // d.ic proviene da docIcon() (SVG fisso interno, non dato utente) → iniezione sicura; nome/sub sempre esc().
+  a.innerHTML = `<span class="ic">${d.ic}</span><span class="dt">${esc(d.nome)}${d.sub ? `<small>${esc(d.sub)}</small>` : ""}</span><span class="dl">Scarica</span>`;
   document.getElementById("o-docs").appendChild(a);
   show("sec-docs");
 }
 function renderDocs(s){
   const docs = Array.isArray(s.documenti) ? s.documenti : [];
-  for(const d of docs){
-    const ic = /conform/i.test(d.tipo || "") ? "📋" : /garanz/i.test(d.tipo || "") ? "🛡️" : "📄";
-    addDoc({ ic, nome: d.nome || d.tipo || "Documento", sub: d.tipo || "", url: d.url });
-  }
+  for(const d of docs) addDoc({ ic: docIcon(d.tipo), nome: d.nome || d.tipo || "Documento", sub: d.tipo || "", url: d.url });
 }
 
 async function load(){
@@ -399,6 +417,19 @@ async function load(){
   }catch(e){ hide("loading"); show("missing"); }
 }
 load();
+
+// ── Indicatore stato connessione online/offline (cornice + pillola) ──
+(function(){
+  const w = document.getElementById("siri-wrapper"), b = document.getElementById("status-badge");
+  const set = on => {
+    w.className = "siri-wrapper " + (on ? "online" : "offline");
+    b.className = "status-badge " + (on ? "online" : "offline");
+    b.textContent = on ? "⬤ Online" : "⬤ Offline";
+  };
+  set(navigator.onLine);
+  addEventListener("online", () => set(true));
+  addEventListener("offline", () => set(false));
+})();
 </script>
 </body>
 </html>

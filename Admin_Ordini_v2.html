@@ -296,11 +296,14 @@
   /* ── ANTEPRIMA / VIEWER STL 3D ── */
   .stl-chip { display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; color:#3730A3; background:#E0E7FF; border:1px solid #C7D2FE; border-radius:20px; padding:1px 7px; white-space:nowrap; cursor:pointer; }
   .stl-chip:hover { background:#C7D2FE; }
+  .thumb-wrap { position:relative; width:112px; }
   .order-thumb-row { display:flex; width:112px; height:74px; margin-bottom:7px; border-radius:9px; border:1px solid var(--border); overflow:hidden; align-items:center; justify-content:center; flex:none; cursor:pointer; background:radial-gradient(ellipse at 50% 32%, #F7FAFF 0%, #E7EEF6 100%); transition:border-color .12s, box-shadow .12s; }
   .order-thumb-row:hover { border-color:var(--blue); box-shadow:0 0 0 2px var(--blue-light); }
-  .order-thumb-row img { width:100%; height:100%; object-fit:contain; display:block; }
+  .order-thumb-row img { width:100%; height:100%; object-fit:contain; display:block; padding:6px; }
   .order-thumb-row.is-icon { color:#5E82AD; }
-  .order-thumb-row.is-icon svg { width:58%; height:58%; display:block; }
+  .order-thumb-row.is-icon svg { width:78%; height:78%; display:block; }
+  /* Pallino sync in posizione FISSA sull'angolo della miniatura: uguale su ogni riga, a prescindere dalla lunghezza del codice */
+  .thumb-wrap .sync-dot { position:absolute; top:6px; right:6px; z-index:2; box-shadow:0 0 0 2px #fff, 0 1px 2px rgba(0,0,0,.25); }
   .order-id-row { display:flex; align-items:center; gap:6px; }
   .sync-dot { width:9px; height:9px; border-radius:50%; flex:none; }
   .sync-dot.ok { background:#16A34A; box-shadow:0 0 0 2px #D1FAE5; }
@@ -703,7 +706,7 @@ body{
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-14.6</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-14.7</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
@@ -1577,10 +1580,12 @@ function renderOrders() {
   body.innerHTML = orders.map(o => `
     <div class="order-row ${selectedOrderId === o.id ? 'selected' : ''}" onclick="openDetail('${o.id}')">
       <div class="order-idcol">
-        <div class="order-thumb-row is-icon" id="rthumb-${o.id}" title="Tipo lavorazione · anteprima 3D quando disponibile">${lavIcon(o)}</div>
+        <div class="thumb-wrap">
+          <div class="order-thumb-row is-icon" id="rthumb-${o.id}" title="Tipo lavorazione · anteprima 3D quando disponibile">${lavIcon(o)}</div>
+          <span class="sync-dot ${isSyncedNA(o) ? 'ok' : 'no'}" title="${isSyncedNA(o) ? 'Sync NA avvenuta — scheda produzione ricevuta da New Ancorvis' : 'In attesa della scheda produzione (sync NA)'}"></span>
+        </div>
         <div class="order-id-row">
           <span class="order-id" title="Clicca per copiare l'ID" onclick="event.stopPropagation();copyOrderId(this.textContent)">${esc(orderCode(o))}</span>
-          <span class="sync-dot ${isSyncedNA(o) ? 'ok' : 'no'}" title="${isSyncedNA(o) ? 'Sync NA avvenuta — scheda produzione ricevuta da New Ancorvis' : 'In attesa della scheda produzione (sync NA)'}"></span>
         </div>
       </div>
       <div>

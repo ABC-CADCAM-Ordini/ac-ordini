@@ -112,7 +112,13 @@
   .rub-add input, .rub-add select { font-family: var(--font); font-size: 13px; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; background: #fff; }
   .rub-add input { flex: 1; min-width: 160px; }
   .rub-add button { background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 800; font-size: 12.5px; cursor: pointer; font-family: var(--font); white-space: nowrap; }
-  .rub-filter { width: 100%; font-family: var(--font); font-size: 13px; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; margin-bottom: 12px; background: #fff; }
+  .rub-filter { width: 100%; font-family: var(--font); font-size: 13px; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; margin-bottom: 10px; background: #fff; }
+  .rub-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .rub-chip { background: #fff; border: 1.5px solid var(--border); border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 700; color: var(--mid); cursor: pointer; font-family: var(--font); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .rub-chip:hover { border-color: var(--blue); color: var(--blue); }
+  .rub-chip.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .rub-chip span { font-size: 10.5px; font-weight: 800; background: var(--light); color: var(--gray); border-radius: 999px; padding: 0 6px; min-width: 16px; text-align: center; }
+  .rub-chip.on span { background: rgba(255,255,255,.28); color: #fff; }
   .rub-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--light); flex-wrap: wrap; }
   .rub-row.off { opacity: .55; }
   .rub-check { width: 18px; height: 18px; flex-shrink: 0; cursor: pointer; accent-color: var(--blue); }
@@ -154,7 +160,10 @@
   .filter-btn.active .count { background: var(--blue); color: white; }
 
   .stat-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px 16px; }
-  .stat-card { background: var(--light); border-radius: 10px; padding: 12px; text-align: center; }
+  .stat-card { background: var(--light); border-radius: 10px; padding: 12px; text-align: center; cursor: pointer; border: 1.5px solid transparent; transition: box-shadow .12s, border-color .12s, transform .05s; }
+  .stat-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+  .stat-card:active { transform: scale(.98); }
+  .stat-card.active { background: var(--blue-light); border-color: var(--blue); }
   .stat-num { font-size: 26px; font-weight: 900; line-height: 1; }
   .stat-label { font-size: 10px; color: var(--gray); margin-top: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
 
@@ -561,7 +570,7 @@
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-14.1</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-14.2</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
@@ -576,19 +585,19 @@
     <!-- Sidebar -->
     <div class="sidebar">
       <div class="stat-cards">
-        <div class="stat-card">
+        <div class="stat-card active" data-filter="all" onclick="setFilter('all')" title="Ordini in corso (ricevuti + in lavorazione)">
           <div class="stat-num" id="stat-total" style="color:var(--dark)">—</div>
-          <div class="stat-label">Totale</div>
+          <div class="stat-label">Attivi</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" data-filter="ricevuto" onclick="setFilter('ricevuto')" title="Mostra solo i ricevuti">
           <div class="stat-num" id="stat-ricevuti" style="color:var(--amber)">—</div>
           <div class="stat-label">Ricevuti</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" data-filter="in_lavorazione" onclick="setFilter('in_lavorazione')" title="Mostra solo gli ordini in lavorazione">
           <div class="stat-num" id="stat-lavorazione" style="color:var(--blue)">—</div>
           <div class="stat-label">In Lav.</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" data-filter="concluso" onclick="setFilter('concluso')" title="Clicca per vedere gli ordini conclusi (nascosti di default)">
           <div class="stat-num" id="stat-conclusi" style="color:var(--green)">—</div>
           <div class="stat-label">Conclusi</div>
         </div>
@@ -597,7 +606,7 @@
       <div class="sidebar-section">
         <div class="sidebar-title">Filtra per stato</div>
         <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">
-          Tutti gli ordini <span class="count" id="count-all">0</span>
+          Ordini attivi <span class="count" id="count-all">0</span>
         </button>
         <button class="filter-btn" data-filter="ricevuto" onclick="setFilter('ricevuto',this)">
           Ricevuti <span class="count" id="count-ricevuto">0</span>
@@ -1041,11 +1050,12 @@ async function loadOrders() {
 // ══════════════════════════════════════════════════════════════
 function setFilter(filter, btn) {
   currentFilter = filter;
-  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
+  // Sincronizza lo stato attivo sia sui bottoni sidebar sia sulle stat-card (che ora sono cliccabili).
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.toggle("active", b.dataset.filter === filter));
+  document.querySelectorAll(".stat-card").forEach(c => c.classList.toggle("active", c.dataset.filter === filter));
   const titles = {
-    all: "Tutti gli ordini", ricevuto: "Ordini ricevuti",
-    in_lavorazione: "In lavorazione", concluso: "Conclusi",
+    all: "Ordini attivi", ricevuto: "Ordini ricevuti",
+    in_lavorazione: "In lavorazione", concluso: "Ordini conclusi",
     mine: "I miei ordini", unassigned: "Non assegnati"
   };
   document.getElementById("main-title").textContent = titles[filter] || filter;
@@ -1059,9 +1069,13 @@ function setSearch(val) {
 
 function filteredOrders() {
   return allOrders.filter(o => {
-    if (currentFilter === "mine" && o.operator !== currentOperator) return false;
-    if (currentFilter === "unassigned" && o.operator) return false;
-    if (!["all","mine","unassigned"].includes(currentFilter) && o.status !== currentFilter) return false;
+    const concluso = o.status === "concluso";
+    // Le viste "di lavoro" (attivi / miei / non assegnati) NON mostrano i conclusi:
+    // per vederli si clicca il riquadro "Conclusi" (filtro dedicato).
+    if (currentFilter === "mine") { if (o.operator !== currentOperator || concluso) return false; }
+    else if (currentFilter === "unassigned") { if (o.operator || concluso) return false; }
+    else if (currentFilter === "all") { if (concluso) return false; }
+    else if (o.status !== currentFilter) return false; // ricevuto / in_lavorazione / concluso
     if (currentSearch) {
       const hay = [o.nome, o.cognome, o.azienda, o.telefono, o.email, o.lavorazione, orderCode(o), (o.scheda_dati && o.scheda_dati.id_na)].join(" ").toLowerCase();
       if (!hay.includes(currentSearch)) return false;
@@ -1081,12 +1095,12 @@ function updateStats() {
   const mine = allOrders.filter(o => o.operator === currentOperator).length;
   const una = allOrders.filter(o => !o.operator).length;
 
-  document.getElementById("stat-total").textContent = total;
+  document.getElementById("stat-total").textContent = ric + lav;   // "Attivi" = ricevuti + in lavorazione
   document.getElementById("stat-ricevuti").textContent = ric;
   document.getElementById("stat-lavorazione").textContent = lav;
   document.getElementById("stat-conclusi").textContent = con;
 
-  document.getElementById("count-all").textContent = total;
+  document.getElementById("count-all").textContent = ric + lav;
   document.getElementById("count-ricevuto").textContent = ric;
   document.getElementById("count-in_lavorazione").textContent = lav;
   document.getElementById("count-concluso").textContent = con;
@@ -1228,7 +1242,19 @@ async function forzaSync(btn) {
 // ── RUBRICA + CONDIVISIONE ORDINI ─────────────────────────────
 // openRubrica(orderId) → modalità "condividi quest'ordine" (con spunte);
 // openRubrica(null)    → modalità "gestione rubrica" (link, attiva/disattiva).
-let rubOrderId = null, rubData = null, rubFilter = '', rubEditingId = null;
+// Categorie della rubrica: liberamente filtrabili. "tipo" nel DB è testo libero,
+// quindi si possono aggiungere altre voci qui senza toccare lo schema.
+const RUB_TIPI = [
+  { v: 'commerciale', l: 'Commerciale' },
+  { v: 'cliente',     l: 'Cliente' },
+  { v: 'preferiti1',  l: 'Preferiti 1' },
+  { v: 'preferiti2',  l: 'Preferiti 2' },
+  { v: 'preferiti3',  l: 'Preferiti 3' },
+];
+const rubTipoLabel = v => (RUB_TIPI.find(t => t.v === v) || {}).l || v;
+const rubTipoOptions = sel => RUB_TIPI.map(t => `<option value="${t.v}" ${t.v === sel ? 'selected' : ''}>${t.l}</option>`).join('');
+function rubSetTipo(v) { rubTipoFilter = v; renderRubrica(); }
+let rubOrderId = null, rubData = null, rubFilter = '', rubEditingId = null, rubTipoFilter = '';
 const portaleLink = token => `https://abc-cadcam-ordini.github.io/ac-ordini/portale.html?c=${token}`;
 function openRubrica(orderId) {
   rubOrderId = orderId || null;
@@ -1241,10 +1267,11 @@ function openRubrica(orderId) {
       <div class="diag-body">
         <div class="rub-add">
           <input id="rub-nome" placeholder="Nome commerciale o cliente" onkeydown="if(event.key==='Enter')rubAdd()">
-          <select id="rub-tipo"><option value="commerciale">Commerciale</option><option value="cliente">Cliente</option></select>
+          <select id="rub-tipo">${rubTipoOptions('commerciale')}</select>
           <button onclick="rubAdd()">+ Aggiungi</button>
         </div>
         <input id="rub-filter" class="rub-filter" placeholder="🔍 Cerca in rubrica…" oninput="rubFilter=this.value;renderRubrica()">
+        <div id="rub-chips" class="rub-chips"></div>
         <div id="rub-list"><div class="rub-empty">Caricamento…</div></div>
       </div>
     </div>`;
@@ -1253,6 +1280,8 @@ function openRubrica(orderId) {
     m.onclick = e => { if (e.target === m) m.classList.remove('open'); };
   }
   document.getElementById('rub-title').textContent = rubOrderId ? '🔗 Condividi ordine con…' : '👥 Rubrica collaboratori';
+  rubTipoFilter = ''; rubFilter = ''; rubEditingId = null;
+  const fInput = document.getElementById('rub-filter'); if (fInput) fInput.value = '';
   m.classList.add('open');
   loadRubrica();
 }
@@ -1277,15 +1306,29 @@ function renderRubrica() {
   const list = document.getElementById('rub-list');
   if (!rubData) return;
   const { cols, counts, sharedIds } = rubData;
+  // Chip per categoria (con conteggi) — sempre visibili anche a rubrica vuota.
+  const tipiCount = {};
+  cols.forEach(c => { const t = c.tipo || ''; tipiCount[t] = (tipiCount[t] || 0) + 1; });
+  const allTipi = [...RUB_TIPI.map(t => t.v), ...Object.keys(tipiCount).filter(v => v && !RUB_TIPI.some(t => t.v === v))];
+  const chips = document.getElementById('rub-chips');
+  if (chips) {
+    chips.innerHTML =
+      `<button class="rub-chip ${rubTipoFilter === '' ? 'on' : ''}" onclick="rubSetTipo('')">Tutti <span>${cols.length}</span></button>` +
+      allTipi.map(v => `<button class="rub-chip ${rubTipoFilter === v ? 'on' : ''}" onclick="rubSetTipo('${esc(v)}')">${esc(rubTipoLabel(v))} <span>${tipiCount[v] || 0}</span></button>`).join('');
+  }
   if (!cols.length) { list.innerHTML = '<div class="rub-empty">Nessun collaboratore ancora. Aggiungine uno qui sopra.</div>'; return; }
   const f = rubFilter.trim().toLowerCase();
-  const shown = f ? cols.filter(c => (c.nome + ' ' + c.tipo).toLowerCase().includes(f)) : cols;
-  if (!shown.length) { list.innerHTML = `<div class="rub-empty">Nessun risultato per «${esc(rubFilter)}».</div>`; return; }
+  let shown = rubTipoFilter ? cols.filter(c => (c.tipo || '') === rubTipoFilter) : cols;
+  if (f) shown = shown.filter(c => (c.nome + ' ' + rubTipoLabel(c.tipo)).toLowerCase().includes(f));
+  if (!shown.length) {
+    const perCat = rubTipoFilter ? ` in «${esc(rubTipoLabel(rubTipoFilter))}»` : '';
+    list.innerHTML = `<div class="rub-empty">Nessun risultato${f ? ` per «${esc(rubFilter)}»` : ''}${perCat}.</div>`; return;
+  }
   list.innerHTML = shown.map(c => {
     if (c.id === rubEditingId) {
       return `<div class="rub-row" data-id="${c.id}">
         <input class="rub-edit-nome" value="${esc(c.nome)}">
-        <select class="rub-edit-tipo"><option value="commerciale" ${c.tipo === 'commerciale' ? 'selected' : ''}>Commerciale</option><option value="cliente" ${c.tipo === 'cliente' ? 'selected' : ''}>Cliente</option></select>
+        <select class="rub-edit-tipo">${rubTipoOptions(c.tipo)}</select>
         <div class="rub-actions"><button class="rub-act" onclick="rubSave('${c.id}')">Salva</button><button class="rub-act" onclick="rubEditingId=null;renderRubrica()">Annulla</button></div>
       </div>`;
     }
@@ -1294,7 +1337,7 @@ function renderRubrica() {
     return `<div class="rub-row ${c.attivo ? '' : 'off'}">
       ${chk}
       <div class="rub-info">
-        <div><b>${esc(c.nome)}</b><span class="rub-tipo">${esc(c.tipo)}</span>${c.attivo ? '' : ' <span class="rub-tipo" style="color:var(--red)">disattivo</span>'}</div>
+        <div><b>${esc(c.nome)}</b><span class="rub-tipo">${esc(rubTipoLabel(c.tipo))}</span>${c.attivo ? '' : ' <span class="rub-tipo" style="color:var(--red)">disattivo</span>'}</div>
         <div class="rub-count">Vede ${n} ordin${n === 1 ? 'e' : 'i'}</div>
       </div>
       <div class="rub-actions">

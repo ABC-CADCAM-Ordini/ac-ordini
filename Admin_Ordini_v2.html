@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Ordini — AbutmentCompatibili.com</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --blue: #0077CC;
@@ -544,6 +545,129 @@
     background: rgba(0,0,0,.08); padding: 1px 6px; border-radius: 4px;
     font-size: 12px; font-family: monospace;
   }
+
+/* ═══════════════════════════════════════════════════════════════
+   DIREZIONE RACCOMANDATA · «Readout Clinico» — Admin Ordini
+   Editorial masthead (base) + IBM Plex readout + Signal-Edge di stato.
+   1) <head>: aggiungi il <link> Google Fonts (IBM Plex Sans + Mono).
+   2) Incolla QUESTO blocco IN FONDO al <style> esistente (vince per source-order).
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --font:'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+  --mono:'IBM Plex Mono','SFMono-Regular',ui-monospace,Menlo,monospace;
+  --blue:#0077CC; --blue-dark:#005FA3; --blue-deep:#004E8C; --blue-light:#E7F1FB;
+  --red:#DC2626; --red-light:#FEE2E2;
+  --ink:#131A24; --dark:#131A24; --mid:#414A57; --gray:#5F6B7A;
+  --border:#D6DCE4; --hairline:#E6EBF2; --pearl:#F1F4F8; --light:#F5F7FA; --paper:#E7ECF2;
+  --green:#16A34A; --green-light:#DCFCE7; --amber:#D97706; --amber-light:#FEF3C7;
+  --sh:21,38,62;
+  --e1:0 1px 2px rgba(var(--sh),.06);
+  --e2:0 1px 2px rgba(var(--sh),.05), 0 4px 12px rgba(var(--sh),.07);
+}
+body{
+  background:var(--paper); font-family:var(--font); color:var(--ink);
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+/* cifre tabellari ovunque ci sono dati */
+.stat-num,.order-id,.order-price,.order-date,.detail-id,.detail-price-big,
+.filter-btn .count{ font-variant-numeric:tabular-nums lining-nums; }
+
+/* ── HEADER: masthead a doppio-filo (ink 2px + blu 1px), NIENTE vetro ── */
+.app-top{
+  height:58px; background:#fff; border-bottom:2px solid var(--ink);
+  box-shadow:0 3px 0 -1px var(--blue), 0 6px 16px -10px rgba(var(--sh),.22);
+}
+.top-logo{ height:38px; width:auto; }   /* logo aziendale ufficiale: dimensione invariata */
+.top-badge{
+  background:none; color:var(--ink);
+  border:1px solid var(--ink); border-radius:2px;
+  font-family:var(--font); font-weight:700; font-size:9.5px;
+  letter-spacing:.16em; padding:3px 8px;
+}
+.app-rev{ color:var(--gray) !important; }
+
+/* ── SIDEBAR: overline con filo di sezione ── */
+.sidebar-title{
+  font-size:9.5px; font-weight:700; letter-spacing:.14em; color:var(--gray);
+  display:flex; align-items:center; gap:10px;
+}
+.sidebar-title::after{ content:""; flex:1; height:1px; background:var(--border); }
+
+/* ── STAT-CARDS: numerali-readout con RIGA-BASE semantica (FIRMA 1) ── */
+.stat-cards{
+  gap:1px; padding:0; margin:0 16px 16px;
+  background:var(--border); border:1px solid var(--border);
+  border-radius:11px; overflow:hidden;
+}
+.stat-card{
+  background:#fff; border:none; border-radius:0;
+  padding:13px 14px 12px; text-align:left; transition:background .12s;
+}
+.stat-card:hover{ box-shadow:none; background:var(--light); }
+.stat-card:active{ transform:none; }
+.stat-card.active{ background:var(--blue-light); box-shadow:inset 3px 0 0 var(--blue); }
+.stat-num{
+  font-family:var(--mono); font-weight:600; font-size:30px; line-height:.95;
+  letter-spacing:-.02em; display:inline-block; padding-bottom:3px;
+  border-bottom:2px solid currentColor;   /* eredita il colore di stato inline, zero HTML */
+}
+.stat-label{
+  font-family:var(--font); font-size:9.5px; font-weight:700;
+  letter-spacing:.11em; text-transform:uppercase; color:var(--gray); margin-top:8px;
+}
+
+/* ── FILTRI: Signal-Edge di stato (FIRMA 2 · parte A) ── */
+.filter-btn{ border-radius:0 8px 8px 0; }
+.filter-btn[data-filter="all"]{            box-shadow:inset 3px 0 0 var(--ink); }
+.filter-btn[data-filter="ricevuto"]{       box-shadow:inset 3px 0 0 var(--amber); }
+.filter-btn[data-filter="in_lavorazione"]{ box-shadow:inset 3px 0 0 var(--blue); }
+.filter-btn[data-filter="concluso"]{       box-shadow:inset 3px 0 0 var(--green); }
+.filter-btn[data-filter="mine"],
+.filter-btn[data-filter="unassigned"]{     box-shadow:inset 3px 0 0 var(--gray); }
+.filter-btn:hover{ background:var(--light); color:var(--dark); }
+.filter-btn.active{ background:var(--blue-light); color:var(--blue-deep); font-weight:700; }
+.filter-btn.active .count{ background:var(--blue); color:#fff; }
+
+/* ── MAIN / TABELLA (densita e griglia INTATTE) ── */
+.main-title{ font-family:var(--font); font-weight:700; font-size:21px; letter-spacing:-.01em; color:var(--ink); }
+.orders-table{ border:1px solid var(--border); border-radius:10px; box-shadow:var(--e2); }
+.table-head{
+  background:#fff; border-bottom:2px solid var(--ink);
+  font-family:var(--font); font-size:9.5px; font-weight:700;
+  letter-spacing:.10em; color:var(--ink);
+}
+/* Signal-Edge di stato sulle RIGHE (FIRMA 2 · parte B) — :has(), zero shift di layout */
+.order-row{
+  border-bottom:1px solid var(--hairline);
+  box-shadow:inset 3px 0 0 transparent;
+  transition:background .12s, box-shadow .12s;
+}
+.order-row:has(.status-ricevuto){       box-shadow:inset 3px 0 0 var(--amber); }
+.order-row:has(.status-in_lavorazione){ box-shadow:inset 3px 0 0 var(--blue); }
+.order-row:has(.status-concluso){       box-shadow:inset 3px 0 0 var(--green); }
+.order-row:hover{ background:var(--light); }
+.order-row:has(.status-ricevuto):hover{       box-shadow:inset 4px 0 0 var(--amber); }
+.order-row:has(.status-in_lavorazione):hover{ box-shadow:inset 4px 0 0 var(--blue); }
+.order-row:has(.status-concluso):hover{       box-shadow:inset 4px 0 0 var(--green); }
+.order-row.selected{ background:var(--blue-light); }
+.order-client{ font-weight:700; color:var(--dark); }
+.order-id{ font-family:var(--mono); font-weight:600; color:var(--blue-deep); }
+
+/* ── STATUS BADGE: semantica INVARIATA, testi portati ad AA ── */
+.status-badge{ font-family:var(--font); border:1px solid rgba(var(--sh),.06); }
+.status-ricevuto{ color:#B45309; }        /* dot resta amber */
+.status-concluso{ color:#15803D; }        /* dot resta verde */
+
+/* ── DETTAGLIO ── */
+.detail-id{ font-family:var(--mono); color:var(--blue-deep); }
+.detail-name{ font-family:var(--font); font-weight:700; letter-spacing:-.01em; }
+.detail-price-big{ font-family:var(--mono); font-weight:600; letter-spacing:-.02em; }
+.detail-section-title{ color:var(--blue-deep); border-bottom:1px solid var(--border); letter-spacing:.10em; }
+
+/* ── LOGIN ── */
+.login-title{ font-family:var(--font); font-weight:700; letter-spacing:-.01em; }
+
+/* NB: .online-badge (pillola neon gia riuscita) volutamente NON toccata. */
 </style>
 </head>
 <body>
@@ -575,7 +699,7 @@
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-14.3</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-14.4</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>

@@ -335,7 +335,7 @@ async function mountViewer(buf, wrap){
   const controls = new OrbitControls(cam, renderer.domElement);
   controls.enableDamping = true; controls.dampingFactor = 0.08; controls.autoRotate = true; controls.autoRotateSpeed = 1.5;
   controls.enableZoom = false; // niente zoom da rotella/pinch prima che l'utente tocchi il modello
-  renderer.domElement.style.touchAction = "pan-y"; // dopo OrbitControls (che mette 'none'): lo swipe verticale scorre la pagina
+  renderer.domElement.style.touchAction = "none"; // il dito sul modello lo RUOTA (su/giù/lati) + pinch-zoom; per scorrere la pagina si usa il resto dello schermo
   // Render loop parsimonioso: rAF continuo solo con autoRotate o interazione, poi on-demand su 'change'.
   let raf = 0, quiet = 0;
   const tick = () => { raf = requestAnimationFrame(tick); controls.update(); renderer.render(scene, cam); };

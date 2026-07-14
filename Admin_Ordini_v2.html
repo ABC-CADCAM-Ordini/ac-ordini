@@ -77,6 +77,29 @@
   .top-operator strong { color: var(--dark); }
   .top-logout { font-size: 11px; color: var(--gray); cursor: pointer; border: 1.5px solid var(--border); padding: 4px 10px; border-radius: 6px; background: none; font-family: var(--font); }
   .top-logout:hover { color: var(--red); border-color: var(--red); }
+  .top-diag { font-size: 11px; color: var(--blue); cursor: pointer; border: 1.5px solid var(--border); padding: 4px 10px; border-radius: 6px; background: none; font-family: var(--font); margin-right: 8px; }
+  .top-diag:hover { border-color: var(--blue); background: var(--blue-light); }
+  /* ── Modale Diagnostica sync ── */
+  .diag-modal { position: fixed; inset: 0; background: rgba(15,25,35,.55); z-index: 200; display: none; align-items: center; justify-content: center; padding: 24px; }
+  .diag-modal.open { display: flex; }
+  .diag-inner { background: #fff; border-radius: 14px; width: 100%; max-width: 720px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+  .diag-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); font-weight: 800; font-size: 14px; }
+  .diag-head button { border: none; background: none; font-size: 18px; cursor: pointer; color: var(--gray); padding: 2px 8px; }
+  .diag-head button:hover { color: var(--dark); }
+  .diag-body { padding: 16px 18px; overflow-y: auto; }
+  .diag-loading, .diag-empty { text-align: center; color: var(--gray); padding: 30px; font-weight: 600; line-height: 1.6; }
+  .diag-row { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 8px; }
+  .diag-when { color: var(--gray); font-size: 12px; }
+  .diag-ok { background: #DCFCE7; color: #047857; font-weight: 800; font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+  .diag-err { background: #FEE2E2; color: #B91C1C; font-weight: 800; font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+  .diag-stats { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--mid); }
+  .diag-stats b { color: var(--dark); }
+  .diag-errmsg { margin-top: 8px; background: #FEF2F2; color: #B91C1C; padding: 8px 10px; border-radius: 8px; font-size: 12.5px; font-weight: 600; }
+  .diag-log-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--gray); margin: 16px 0 6px; }
+  .diag-log { background: #0F1923; color: #D2DCE6; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; line-height: 1.5; padding: 12px 14px; border-radius: 8px; white-space: pre-wrap; word-break: break-word; max-height: 240px; overflow-y: auto; margin: 0; }
+  .diag-history { display: flex; flex-direction: column; gap: 4px; }
+  .diag-hrow { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--mid); padding: 4px 0; border-bottom: 1px solid var(--light); }
+  .diag-hstats { color: var(--gray); margin-left: auto; font-variant-numeric: tabular-nums; }
 
   .app-body { display: flex; min-height: calc(100vh - 58px); }
 
@@ -509,6 +532,7 @@
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
+      <button class="top-diag" onclick="openDiag()">🩺 Diagnostica</button>
       Operatore: <strong id="operator-name-display"></strong>
       <button class="top-logout" onclick="doLogout()">Esci</button>
     </div>
@@ -1083,6 +1107,58 @@ function docIcon(t) {
   addEventListener('online', () => set(true));
   addEventListener('offline', () => set(false));
 })();
+
+// ── Diagnostica sync (legge diagnostica/runs.json scritto dal sync a ogni giro) ──
+function openDiag() {
+  let m = document.getElementById('diag-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'diag-modal'; m.className = 'diag-modal';
+    m.innerHTML = `<div class="diag-inner">
+      <div class="diag-head"><span>🩺 Diagnostica sync — New Ancorvis</span>
+        <div><button class="diag-refresh" title="Ricarica">↻</button><button class="diag-close" title="Chiudi">×</button></div></div>
+      <div class="diag-body"><div class="diag-loading">Caricamento…</div></div>
+    </div>`;
+    document.body.appendChild(m);
+    m.querySelector('.diag-close').onclick = () => m.classList.remove('open');
+    m.querySelector('.diag-refresh').onclick = () => loadDiag();
+    m.onclick = e => { if (e.target === m) m.classList.remove('open'); };
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') m.classList.remove('open'); });
+  }
+  m.classList.add('open');
+  loadDiag();
+}
+async function loadDiag() {
+  const body = document.querySelector('#diag-modal .diag-body');
+  body.innerHTML = '<div class="diag-loading">Caricamento…</div>';
+  let runs;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/storage/v1/object/public/diagnostica/runs.json?t=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    runs = await r.json();
+  } catch (e) {
+    body.innerHTML = `<div class="diag-empty">Nessuna diagnostica disponibile.<br><small>Il file compare dopo la prima esecuzione del sync.</small></div>`;
+    return;
+  }
+  if (!Array.isArray(runs) || !runs.length) { body.innerHTML = '<div class="diag-empty">Nessuna esecuzione registrata.</div>'; return; }
+  const whenFmt = s => { const d = new Date(s); return isNaN(d) ? s : d.toLocaleString('it-IT'); };
+  const badge = r => r.ok ? '<span class="diag-ok">OK</span>' : '<span class="diag-err">ERRORE</span>';
+  const last = runs[0];
+  body.innerHTML = `
+    <div class="diag-row"><b>Ultima esecuzione</b> ${badge(last)} <span class="diag-when">${esc(whenFmt(last.ts))}</span></div>
+    <div class="diag-stats">
+      <span>Letti <b>${last.letti | 0}</b></span><span>Aggiornati <b>${last.aggiornati | 0}</b></span>
+      <span>Creati <b>${last.creati | 0}</b></span><span>Saltati <b>${last.saltati | 0}</b></span>
+      <span>Durata <b>${((last.durata_ms || 0) / 1000).toFixed(1)}s</b></span>
+      <span>Login NA <b>${last.loggedIn ? 'SI' : 'NO'}</b></span>
+    </div>
+    ${last.errore ? `<div class="diag-errmsg">⚠️ ${esc(last.errore)}</div>` : ''}
+    <div class="diag-log-title">Log dell'ultima esecuzione</div>
+    <pre class="diag-log">${esc((last.log || []).join('\n')) || '(nessun log)'}</pre>
+    <div class="diag-log-title">Storico (${runs.length})</div>
+    <div class="diag-history">${runs.map(r => `<div class="diag-hrow">${badge(r)} <span>${esc(whenFmt(r.ts))}</span><span class="diag-hstats">letti ${r.letti | 0} · agg ${r.aggiornati | 0} · creati ${r.creati | 0} · saltati ${r.saltati | 0}</span></div>`).join('')}</div>
+  `;
+}
 
 function copyOrderId(id) {
   navigator.clipboard.writeText(id)

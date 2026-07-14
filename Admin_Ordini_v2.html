@@ -177,25 +177,27 @@
   .refresh-btn:hover { border-color: var(--blue); color: var(--blue); }
 
   /* ── ORDER TABLE ── */
-  .orders-table { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+  .orders-scroll { overflow-x: auto; }
+  .orders-table { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.06); min-width: 820px; }
   .table-head {
-    display: grid; grid-template-columns: 102px 1.25fr 1.1fr 84px 100px 88px 88px;
+    display: grid; grid-template-columns: 116px 1.3fr 1.15fr 84px 104px 92px 92px;
     padding: 10px 16px; background: var(--pearl);
     border-bottom: 1.5px solid var(--border);
     font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--gray);
   }
   .order-row {
-    display: grid; grid-template-columns: 102px 1.25fr 1.1fr 84px 100px 88px 88px;
+    display: grid; grid-template-columns: 116px 1.3fr 1.15fr 84px 104px 92px 92px;
     padding: 14px 16px; border-bottom: 1px solid var(--border);
     align-items: center; cursor: pointer; transition: background .12s;
   }
   .order-row:last-child { border-bottom: none; }
   .order-row:hover { background: var(--light); }
   .order-row.selected { background: var(--blue-light); }
-  .order-id { font-size: 10px; font-weight: 800; color: var(--blue); font-family: monospace; cursor: pointer; letter-spacing: -.2px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .order-id { font-size: 10px; font-weight: 800; color: var(--blue); font-family: monospace; cursor: pointer; letter-spacing: -.2px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .order-id-row { max-width: 100%; }
   .order-id:hover { text-decoration: underline; }
   .order-idcol { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; overflow: hidden; }
-  body.no-prezzo .table-head, body.no-prezzo .order-row { grid-template-columns: 102px 1.35fr 1.25fr 104px 90px 88px; }
+  body.no-prezzo .table-head, body.no-prezzo .order-row { grid-template-columns: 116px 1.4fr 1.3fr 108px 96px 96px; }
   body.no-prezzo .th-prezzo, body.no-prezzo .order-price, body.no-prezzo .detail-prezzo { display: none !important; }
   .sync-na { display: inline-flex; align-items: center; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: #047857; background: #D1FAE5; border: 1px solid #A7F3D0; border-radius: 20px; padding: 1px 7px; white-space: nowrap; }
   .order-client { font-size: 13px; font-weight: 700; color: var(--dark); }
@@ -559,7 +561,7 @@
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-13.4</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-14.1</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
@@ -641,6 +643,7 @@
         <code>SUPABASE_URL</code> e <code>SUPABASE_KEY</code>. Vedi le istruzioni nel file README.
       </div>
 
+      <div class="orders-scroll">
       <div class="orders-table" id="orders-table">
         <div class="table-head">
           <div>ID</div>
@@ -654,6 +657,7 @@
         <div id="orders-body">
           <div class="loading-row">Caricamento ordini…</div>
         </div>
+      </div>
       </div>
     </div>
 

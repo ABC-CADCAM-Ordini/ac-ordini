@@ -105,6 +105,22 @@
   .diag-history { display: flex; flex-direction: column; gap: 4px; }
   .diag-hrow { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--mid); padding: 4px 0; border-bottom: 1px solid var(--light); }
   .diag-hstats { color: var(--gray); margin-left: auto; font-variant-numeric: tabular-nums; }
+  /* ── Condividi ordine + Rubrica ── */
+  .btn-condividi { margin-top: 12px; display: inline-flex; align-items: center; gap: 6px; background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-family: var(--font); font-size: 12.5px; font-weight: 800; cursor: pointer; }
+  .btn-condividi:hover { filter: brightness(.92); }
+  .rub-add { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 14px; margin-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .rub-add input, .rub-add select { font-family: var(--font); font-size: 13px; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; background: #fff; }
+  .rub-add input { flex: 1; min-width: 160px; }
+  .rub-add button { background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 800; font-size: 12.5px; cursor: pointer; font-family: var(--font); white-space: nowrap; }
+  .rub-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--light); }
+  .rub-row.off { opacity: .55; }
+  .rub-check { width: 18px; height: 18px; flex-shrink: 0; cursor: pointer; accent-color: var(--blue); }
+  .rub-info { flex: 1; min-width: 0; }
+  .rub-info b { font-size: 13.5px; }
+  .rub-tipo { font-size: 10.5px; color: var(--gray); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin-left: 6px; }
+  .rub-act { background: none; border: 1.5px solid var(--border); border-radius: 7px; padding: 5px 10px; font-size: 11.5px; font-weight: 700; cursor: pointer; font-family: var(--font); color: var(--mid); white-space: nowrap; }
+  .rub-act:hover { border-color: var(--blue); color: var(--blue); }
+  .rub-empty { text-align: center; color: var(--gray); padding: 24px; font-weight: 600; }
 
   .app-body { display: flex; min-height: calc(100vh - 58px); }
 
@@ -537,6 +553,7 @@
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
+      <button class="top-diag" onclick="openRubrica(null)">👥 Rubrica</button>
       <button class="top-diag" onclick="openDiag()">🩺 Diagnostica</button>
       Operatore: <strong id="operator-name-display"></strong>
       <button class="top-logout" onclick="doLogout()">Esci</button>
@@ -641,6 +658,7 @@
         <div class="detail-id" id="d-id"></div>
         <div class="detail-name" id="d-name"></div>
         <div class="detail-studio" id="d-studio"></div>
+        <button class="btn-condividi" onclick="openRubrica(selectedOrderId)">🔗 Condividi ordine</button>
       </div>
       <div class="detail-body" id="d-body"></div>
     </div>
@@ -1191,6 +1209,81 @@ async function forzaSync(btn) {
     btn.disabled = false; btn.textContent = old;
     showToast('Errore: ' + e.message, 'red');
   }
+}
+
+// ── RUBRICA + CONDIVISIONE ORDINI ─────────────────────────────
+// openRubrica(orderId) → modalità "condividi quest'ordine" (con spunte);
+// openRubrica(null)    → modalità "gestione rubrica" (link, attiva/disattiva).
+let rubOrderId = null;
+const portaleLink = token => `https://abc-cadcam-ordini.github.io/ac-ordini/portale.html?c=${token}`;
+function openRubrica(orderId) {
+  rubOrderId = orderId || null;
+  let m = document.getElementById('rub-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'rub-modal'; m.className = 'diag-modal';
+    m.innerHTML = `<div class="diag-inner">
+      <div class="diag-head"><span id="rub-title">Rubrica</span><button class="diag-close" title="Chiudi">×</button></div>
+      <div class="diag-body">
+        <div class="rub-add">
+          <input id="rub-nome" placeholder="Nome commerciale o cliente" onkeydown="if(event.key==='Enter')rubAdd()">
+          <select id="rub-tipo"><option value="commerciale">Commerciale</option><option value="cliente">Cliente</option></select>
+          <button onclick="rubAdd()">+ Aggiungi</button>
+        </div>
+        <div id="rub-list"><div class="rub-empty">Caricamento…</div></div>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+    m.querySelector('.diag-close').onclick = () => m.classList.remove('open');
+    m.onclick = e => { if (e.target === m) m.classList.remove('open'); };
+  }
+  document.getElementById('rub-title').textContent = rubOrderId ? '🔗 Condividi ordine con…' : '👥 Rubrica collaboratori';
+  m.classList.add('open');
+  loadRubrica();
+}
+async function loadRubrica() {
+  const list = document.getElementById('rub-list');
+  list.innerHTML = '<div class="rub-empty">Caricamento…</div>';
+  try {
+    const cols = (await sb('GET', 'collaboratori?select=*&order=nome')) || [];
+    let shared = new Set();
+    if (rubOrderId) {
+      const sh = (await sb('GET', `ordini_condivisi?order_id=eq.${rubOrderId}&select=collaboratore_id`)) || [];
+      shared = new Set(sh.map(x => x.collaboratore_id));
+    }
+    if (!cols.length) { list.innerHTML = '<div class="rub-empty">Nessun collaboratore ancora. Aggiungine uno qui sopra.</div>'; return; }
+    list.innerHTML = cols.map(c => {
+      const chk = rubOrderId ? `<input type="checkbox" class="rub-check" ${shared.has(c.id) ? 'checked' : ''} onchange="rubToggle('${c.id}', this.checked)">` : '';
+      return `<div class="rub-row ${c.attivo ? '' : 'off'}">
+        ${chk}
+        <div class="rub-info"><b>${esc(c.nome)}</b><span class="rub-tipo">${esc(c.tipo)}</span>${c.attivo ? '' : ' <span class="rub-tipo" style="color:var(--red)">disattivo</span>'}</div>
+        <button class="rub-act" onclick="rubCopyLink('${esc(c.token)}')">🔗 Copia link</button>
+        <button class="rub-act" onclick="rubToggleActive('${c.id}', ${c.attivo})">${c.attivo ? 'Disattiva' : 'Riattiva'}</button>
+      </div>`;
+    }).join('');
+  } catch (e) { list.innerHTML = `<div class="rub-empty">Errore: ${esc(e.message)}</div>`; }
+}
+async function rubAdd() {
+  const nome = document.getElementById('rub-nome').value.trim();
+  const tipo = document.getElementById('rub-tipo').value;
+  if (!nome) { showToast('Inserisci un nome', 'red'); return; }
+  try { await sb('POST', 'collaboratori', { nome, tipo }); document.getElementById('rub-nome').value = ''; showToast('Collaboratore aggiunto', 'green'); loadRubrica(); }
+  catch (e) { showToast('Errore: ' + e.message, 'red'); }
+}
+async function rubToggle(collabId, checked) {
+  try {
+    if (checked) await sb('POST', 'ordini_condivisi', { order_id: rubOrderId, collaboratore_id: collabId });
+    else await sb('DELETE', `ordini_condivisi?order_id=eq.${rubOrderId}&collaboratore_id=eq.${collabId}`);
+    showToast(checked ? 'Ordine condiviso ✓' : 'Condivisione rimossa', 'green');
+  } catch (e) { showToast('Errore: ' + e.message, 'red'); loadRubrica(); }
+}
+function rubCopyLink(token) {
+  navigator.clipboard.writeText(portaleLink(token))
+    .then(() => showToast('Link portale copiato', 'green')).catch(() => showToast('Copia non riuscita', 'red'));
+}
+async function rubToggleActive(collabId, currentlyActive) {
+  try { await sb('PATCH', `collaboratori?id=eq.${collabId}`, { attivo: !currentlyActive }); loadRubrica(); }
+  catch (e) { showToast('Errore: ' + e.message, 'red'); }
 }
 
 function copyOrderId(id) {

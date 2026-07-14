@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portale ordini — AbutmentCompatibili.com</title>
+<link rel="icon" href="favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#0065B3; --blue-mid:#0077CC; --blue-dark:#005FA3; --blue-light:#E8F4FF;
+    --dark:#0F1923; --mid:#3D5166; --gray:#7A90A4; --light:#F7F9FC;
+    --border:#D6E4F0; --white:#fff; --radius:14px;
+    --amber:#B45309; --green:#0D9E6E;
+    --font:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font); color:var(--dark); background:#E2EBF5;
+    background-image:radial-gradient(ellipse at 15% 0%, rgba(0,101,179,.08) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 100%, rgba(0,101,179,.05) 0%, transparent 50%);
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:28px 16px 48px; -webkit-font-smoothing:antialiased;}
+  .wrap{width:100%; max-width:720px}
+
+  @property --siri-angle{ syntax:'<angle>'; initial-value:0deg; inherits:false; }
+  .siri-wrapper{ position:relative; width:100%; border-radius:var(--radius); padding:3.5px; }
+  .siri-wrapper.online{ background:conic-gradient(from var(--siri-angle,0deg),
+      #FF8C42,#FF4D8D,#FFD166,#C84BFF,#FF6B35,#FF9FC8,#FF8C42);
+    animation:siriSpin 4s linear infinite;
+    box-shadow:0 0 22px rgba(255,140,66,.42),0 0 52px rgba(200,75,255,.20),0 0 90px rgba(255,180,50,.10);}
+  @keyframes siriSpin{ to{ --siri-angle:360deg; } }
+  .siri-inner{ position:relative; background:var(--white);
+    border-radius:calc(var(--radius) - 2px); overflow:hidden; z-index:1; }
+  .status-badge{ position:absolute; top:-11px; right:18px; font-size:9px; font-weight:800;
+    text-transform:uppercase; letter-spacing:.1em; padding:3px 10px; border-radius:20px; z-index:10;
+    background:#051A0A; color:#4ADE80; border:1px solid rgba(74,222,128,.4);
+    box-shadow:0 0 10px rgba(74,222,128,.32); pointer-events:none;}
+
+  .logo-header{display:flex; align-items:center; justify-content:space-between; gap:14px;
+    padding:16px 24px 14px; border-bottom:3px solid var(--blue)}
+  .logo-img{height:64px; width:auto; max-width:70%; display:block; filter:drop-shadow(0 1px 3px rgba(0,0,0,.08))}
+  .logo-fallback{font-weight:900; font-size:16px; letter-spacing:.5px; color:var(--blue)}
+  .logo-fallback b{color:#c0392b}
+  .htag{font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.11em; color:var(--gray); text-align:right; line-height:1.5}
+
+  .band{padding:18px 24px; color:#fff; background:linear-gradient(135deg,var(--blue-mid) 0%,var(--blue-dark) 100%)}
+  .band .t{font-size:20px; font-weight:900; letter-spacing:-.01em}
+  .band .s{font-size:12.5px; font-weight:600; opacity:.85; margin-top:2px}
+
+  .body{padding:14px 18px 20px}
+  .skeleton,.state{padding:44px 24px; text-align:center; color:var(--gray); font-weight:600; line-height:1.6}
+  .state .emo{font-size:36px}
+  .state h2{margin:10px 0 6px; font-size:18px; color:var(--dark)}
+  .state p{margin:0 auto; max-width:420px; font-size:14px}
+
+  .ord-card{display:flex; align-items:center; gap:14px; text-decoration:none; color:inherit;
+    background:var(--white); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:10px;
+    transition:border-color .15s, box-shadow .15s, transform .05s;}
+  .ord-card:hover{border-color:var(--blue); box-shadow:0 4px 14px rgba(0,101,179,.10)}
+  .ord-card:active{transform:scale(.995)}
+  .ord-ic{flex-shrink:0; width:44px; height:44px; border-radius:10px; background:var(--blue-light);
+    display:flex; align-items:center; justify-content:center; color:var(--blue)}
+  .ord-ic svg{width:24px; height:24px}
+  .ord-main{flex:1; min-width:0}
+  .ord-code{font-size:12px; font-weight:800; color:var(--blue); letter-spacing:.02em}
+  .ord-lav{font-size:14.5px; font-weight:800; color:var(--dark); margin:1px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ord-client{font-size:12.5px; font-weight:600; color:var(--gray); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ord-meta{flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:6px}
+  .ord-status{font-size:11px; font-weight:800; padding:4px 10px; border-radius:999px; white-space:nowrap}
+  .st-ricevuto{background:#FEF3C7; color:var(--amber)}
+  .st-in_lavorazione{background:var(--blue-light); color:var(--blue)}
+  .st-concluso{background:#DCFCE7; color:var(--green)}
+  .ord-date{font-size:11px; color:var(--gray); font-weight:600}
+  .ord-arrow{flex-shrink:0; color:var(--gray)}
+  @media(max-width:520px){ .ord-client{display:none} .ord-arrow{display:none} }
+
+  .foot{padding:16px 24px 20px; border-top:1px solid var(--border); background:var(--light);
+    font-size:11px; color:var(--gray); line-height:1.6}
+  .foot b{color:var(--mid)}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="siri-wrapper online">
+   <div class="status-badge">⬤ Online</div>
+   <div class="siri-inner">
+    <header class="logo-header">
+      <img class="logo-img" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png"
+        alt="AbutmentCompatibili.com"
+        onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'logo-fallback',innerHTML:'ABUTMENT<b>COMPATIBILI</b>.COM'}))">
+      <div class="htag">Portale<br>ordini</div>
+    </header>
+
+    <div class="band">
+      <div class="t">Ordini condivisi con te</div>
+      <div class="s" id="sub">Caricamento…</div>
+    </div>
+
+    <div class="body">
+      <div id="loading" class="skeleton">Caricamento ordini…</div>
+      <div id="empty" class="state hidden">
+        <div class="emo">📭</div>
+        <h2>Nessun ordine da mostrare</h2>
+        <p>Non ci sono ordini condivisi con questo link, oppure il link non è più valido. Scrivi a <b>ordini@abutmentcompatibili.com</b> se pensi sia un errore.</p>
+      </div>
+      <div id="list" class="hidden"></div>
+    </div>
+
+    <div class="foot">
+      <b>Biaggini Medical Devices S.r.l.</b> · AbutmentCompatibili.com<br>
+      ISO 13485 · CE 0425 · MDR 745/2017 · EUDAMED
+    </div>
+   </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://gnqnebjuhnxvndrpcdtt.supabase.co";
+const SUPABASE_KEY = "sb_publishable_HXVNXs1d0mjbVg7gp_D-Cw_IrakErzk";
+const esc = v => (v==null?"":String(v)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+const STATUS = { ricevuto:"Ordine ricevuto", in_lavorazione:"In lavorazione", concluso:"Concluso" };
+const CUBE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8l8 4.6v9.2L12 21.2l-8-4.6V7.4z"/><path d="M4 7.4l8 4.6 8-4.6"/><path d="M12 12v9.2"/></svg>';
+const show = id => document.getElementById(id).classList.remove("hidden");
+const hide = id => document.getElementById(id).classList.add("hidden");
+
+function codeOf(o){
+  const s = o.scheda || {};
+  return (s.origine === "NA" && s.id_na) ? ("NA" + s.id_na) : (o.codice || "—");
+}
+function dmy(s){ const d = new Date(s); return isNaN(d) ? "" : d.toLocaleDateString("it-IT"); }
+
+function render(rows){
+  hide("loading");
+  document.getElementById("sub").textContent = rows.length + (rows.length === 1 ? " ordine" : " ordini");
+  if(!rows.length){ show("empty"); return; }
+  const list = document.getElementById("list");
+  list.innerHTML = rows.map(o => {
+    const st = esc(o.stato);
+    return `<a class="ord-card" href="traccia-ordine.html?t=${esc(o.share_token)}" target="_blank" rel="noopener">
+      <div class="ord-ic">${CUBE}</div>
+      <div class="ord-main">
+        <div class="ord-code">${esc(codeOf(o))}</div>
+        <div class="ord-lav">${esc(o.lavorazione || "Ordine")}</div>
+        <div class="ord-client">${esc(o.cliente || "")}</div>
+      </div>
+      <div class="ord-meta">
+        <span class="ord-status st-${st}">${esc(STATUS[o.stato] || o.stato || "—")}</span>
+        <span class="ord-date">${esc(dmy(o.ricevuto_il))}</span>
+      </div>
+      <div class="ord-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+    </a>`;
+  }).join("");
+  show("list");
+}
+
+async function load(){
+  const token = new URLSearchParams(location.search).get("c");
+  if(!token){ hide("loading"); show("empty"); return; }
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/ordini_collaboratore`, {
+      method:"POST",
+      headers:{ "apikey":SUPABASE_KEY, "Content-Type":"application/json" },
+      body: JSON.stringify({ p_token: token })
+    });
+    const rows = await res.json();
+    render(Array.isArray(rows) ? rows : []);
+  }catch(e){ hide("loading"); show("empty"); }
+}
+load();
+</script>
+</body>
+</html>

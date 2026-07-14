@@ -108,7 +108,10 @@
   /* ── Condividi ordine + Rubrica ── */
   .btn-condividi { margin-top: 12px; display: inline-flex; align-items: center; gap: 6px; background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-family: var(--font); font-size: 12.5px; font-weight: 800; cursor: pointer; }
   .btn-condividi:hover { filter: brightness(.92); }
-  .rub-add { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 14px; margin-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .rub-add-block { background: var(--light); border: 1.5px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 16px; }
+  .rub-block-label { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--gray); margin-bottom: 8px; }
+  .rub-search-label { margin-top: 4px; }
+  .rub-add { display: flex; gap: 8px; flex-wrap: wrap; }
   .rub-add input, .rub-add select { font-family: var(--font); font-size: 13px; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; background: #fff; }
   .rub-add input { flex: 1; min-width: 160px; }
   .rub-add button { background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 800; font-size: 12.5px; cursor: pointer; font-family: var(--font); white-space: nowrap; }
@@ -129,6 +132,8 @@
   .rub-actions { display: flex; gap: 6px; flex-wrap: wrap; }
   .rub-act { background: none; border: 1.5px solid var(--border); border-radius: 7px; padding: 5px 10px; font-size: 11.5px; font-weight: 700; cursor: pointer; font-family: var(--font); color: var(--mid); white-space: nowrap; }
   .rub-act:hover { border-color: var(--blue); color: var(--blue); }
+  .rub-act.rub-save { background: var(--green); border-color: var(--green); color: #fff; padding: 5px 16px; }
+  .rub-act.rub-save:hover { filter: brightness(.93); border-color: var(--green); color: #fff; }
   .rub-del:hover { border-color: var(--red); color: var(--red); }
   .rub-edit-nome { flex: 1; min-width: 140px; font-family: var(--font); font-size: 13px; padding: 7px 10px; border: 1.5px solid var(--blue); border-radius: 8px; }
   .rub-edit-tipo { font-family: var(--font); font-size: 13px; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; }
@@ -570,7 +575,7 @@
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-14.2</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-14.3</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
@@ -1265,12 +1270,16 @@ function openRubrica(orderId) {
     m.innerHTML = `<div class="diag-inner">
       <div class="diag-head"><span id="rub-title">Rubrica</span><button class="diag-close" title="Chiudi">×</button></div>
       <div class="diag-body">
-        <div class="rub-add">
-          <input id="rub-nome" placeholder="Nome commerciale o cliente" onkeydown="if(event.key==='Enter')rubAdd()">
-          <select id="rub-tipo">${rubTipoOptions('commerciale')}</select>
-          <button onclick="rubAdd()">+ Aggiungi</button>
+        <div class="rub-add-block">
+          <div class="rub-block-label">➕ Aggiungi un collaboratore</div>
+          <div class="rub-add">
+            <input id="rub-nome" placeholder="Nome del commerciale o cliente…" onkeydown="if(event.key==='Enter')rubAdd()">
+            <select id="rub-tipo">${rubTipoOptions('commerciale')}</select>
+            <button onclick="rubAdd()">+ Aggiungi</button>
+          </div>
         </div>
-        <input id="rub-filter" class="rub-filter" placeholder="🔍 Cerca in rubrica…" oninput="rubFilter=this.value;renderRubrica()">
+        <div class="rub-block-label rub-search-label">🔍 Cerca nella rubrica</div>
+        <input id="rub-filter" class="rub-filter" placeholder="Scrivi un nome per filtrare l'elenco qui sotto…" oninput="rubFilter=this.value;renderRubrica()">
         <div id="rub-chips" class="rub-chips"></div>
         <div id="rub-list"><div class="rub-empty">Caricamento…</div></div>
       </div>
@@ -1329,7 +1338,7 @@ function renderRubrica() {
       return `<div class="rub-row" data-id="${c.id}">
         <input class="rub-edit-nome" value="${esc(c.nome)}">
         <select class="rub-edit-tipo">${rubTipoOptions(c.tipo)}</select>
-        <div class="rub-actions"><button class="rub-act" onclick="rubSave('${c.id}')">Salva</button><button class="rub-act" onclick="rubEditingId=null;renderRubrica()">Annulla</button></div>
+        <div class="rub-actions"><button class="rub-act rub-save" onclick="rubSave('${c.id}')">✓ Salva</button><button class="rub-act" onclick="rubEditingId=null;renderRubrica()">Annulla</button></div>
       </div>`;
     }
     const chk = rubOrderId ? `<input type="checkbox" class="rub-check" ${sharedIds.has(c.id) ? 'checked' : ''} onchange="rubToggle('${c.id}', this.checked)">` : '';

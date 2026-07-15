@@ -787,7 +787,7 @@ body{
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-15.7</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-15.8</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
@@ -1665,7 +1665,7 @@ function renderRubViewer(c, aperti, chiusi, collegato, clients) {
       ${infoBits.length ? `<div class="rubv-info">${infoBits.join(' · ')}</div>` : ''}
       ${collegato ? `<div class="rubv-collegato">${collegato}</div>` : ''}
       <div class="rubv-actions">
-        <button class="dash-btn primary" onclick="rubCopyLink('${esc(c.token)}')">${icon('link')} Copia link dashboard</button>
+        <button class="dash-btn primary" onclick="rubCopyLink('${esc(c.token)}')">${icon('link')} Copia link</button>
         <a class="dash-btn" href="${esc(portaleLink(c.token))}" target="_blank" rel="noopener">Apri dashboard</a>
         <button class="dash-btn" onclick="rubEditingId='${c.id}';rubBack()">Modifica</button>
       </div>
@@ -1890,7 +1890,7 @@ async function renderDashboardBlock(o) {
     body = `<div class="dash-linked">
       <div class="dash-linked-head">${icon('check')} <b>${esc(linkedCliente.nome)}</b>${linkedCliente.studio ? `<span class="dash-studio">${esc(linkedCliente.studio)}</span>` : ''}</div>
       <div class="dash-actions">
-        <button class="dash-btn primary" onclick="dashCopy('${esc(linkedCliente.token)}')">${icon('link')} Copia link dashboard</button>
+        <button class="dash-btn primary" onclick="dashCopy('${esc(linkedCliente.token)}')">${icon('link')} Copia link</button>
         <a class="dash-btn" href="${esc(portaleLink(linkedCliente.token))}" target="_blank" rel="noopener">Apri</a>
         <button class="dash-btn ghost" onclick="dashUnlink('${o.id}','${linkedCliente.id}')">Scollega</button>
         <button class="dash-btn" onclick="openRubrica('${o.id}','commerciale')" title="Collega anche un commerciale a questo ordine">${icon('share')} Collega</button>

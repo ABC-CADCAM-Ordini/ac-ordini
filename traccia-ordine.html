@@ -429,6 +429,19 @@ async function load(){
     else { hide("loading"); show("missing"); }
   }catch(e){ hide("loading"); show("missing"); }
 }
+// Banner ScanLogiQ: alterna le due immagini a ogni caricamento
+(function(){
+  const SL_IMGS = [
+    "https://abutmentcompatibili.com/media/wysiwyg/ImmaginiArticoliTecnici/642712299_25485947854417913_3570236078314306187_n.jpg",
+    "https://abutmentcompatibili.com/media/wysiwyg/ImmaginiArticoliTecnici/Firefly-3.jpg"
+  ];
+  const img = document.querySelector('.scanlogiq-promo img');
+  if (!img) return;
+  let i;
+  try { i = (parseInt(localStorage.getItem('sl_banner_i') || '-1', 10) + 1) % SL_IMGS.length; localStorage.setItem('sl_banner_i', String(i)); }
+  catch (e) { i = Math.floor(Math.random() * SL_IMGS.length); }
+  if (i > 0) img.src = SL_IMGS[i];
+})();
 load();
 
 // ── Indicatore stato connessione online/offline (cornice + pillola) ──

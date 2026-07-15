@@ -787,7 +787,7 @@ body{
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-15.6</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-15.7</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
@@ -1475,7 +1475,7 @@ const rubTipoOptions = sel => RUB_TIPI.map(t => `<option value="${t.v}" ${t.v ==
 function rubSetTipo(v) { rubTipoFilter = v; renderRubrica(); }
 let rubOrderId = null, rubData = null, rubFilter = '', rubEditingId = null, rubTipoFilter = '', rubViewId = null;
 const portaleLink = token => `https://abc-cadcam-ordini.github.io/ac-ordini/portale.html?c=${token}`;
-function openRubrica(orderId) {
+function openRubrica(orderId, tipoFilter) {
   rubOrderId = orderId || null;
   let m = document.getElementById('rub-modal');
   if (!m) {
@@ -1504,7 +1504,7 @@ function openRubrica(orderId) {
     m.onclick = e => { if (e.target === m) m.classList.remove('open'); };
   }
   document.getElementById('rub-title').innerHTML = rubOrderId ? icon('share') + ' Condividi ordine con…' : icon('users') + ' Rubrica collaboratori';
-  rubTipoFilter = ''; rubFilter = ''; rubEditingId = null; rubViewId = null;
+  rubTipoFilter = tipoFilter || ''; rubFilter = ''; rubEditingId = null; rubViewId = null;
   m.classList.remove('rub-viewing');
   const fInput = document.getElementById('rub-filter'); if (fInput) fInput.value = '';
   m.classList.add('open');
@@ -1893,6 +1893,7 @@ async function renderDashboardBlock(o) {
         <button class="dash-btn primary" onclick="dashCopy('${esc(linkedCliente.token)}')">${icon('link')} Copia link dashboard</button>
         <a class="dash-btn" href="${esc(portaleLink(linkedCliente.token))}" target="_blank" rel="noopener">Apri</a>
         <button class="dash-btn ghost" onclick="dashUnlink('${o.id}','${linkedCliente.id}')">Scollega</button>
+        <button class="dash-btn" onclick="openRubrica('${o.id}','commerciale')" title="Collega anche un commerciale a questo ordine">${icon('share')} Collega</button>
       </div>
       <div class="dash-comm">Commerciale: ${commName ? `<b>${esc(commName)}</b>` : '<span class="dash-muted">— non assegnato (impostalo in Rubrica)</span>'}</div>
     </div>`;

@@ -197,13 +197,13 @@
   .orders-scroll { overflow-x: auto; }
   .orders-table { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.06); min-width: 820px; }
   .table-head {
-    display: grid; grid-template-columns: 124px 1.3fr 1.15fr 84px 104px 92px 92px;
+    display: grid; grid-template-columns: 148px 1.3fr 1.15fr 84px 104px 92px 92px;
     padding: 10px 16px; background: var(--pearl);
     border-bottom: 1.5px solid var(--border);
     font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--gray);
   }
   .order-row {
-    display: grid; grid-template-columns: 124px 1.3fr 1.15fr 84px 104px 92px 92px;
+    display: grid; grid-template-columns: 148px 1.3fr 1.15fr 84px 104px 92px 92px;
     padding: 14px 16px; border-bottom: 1px solid var(--border);
     align-items: center; cursor: pointer; transition: background .12s;
   }
@@ -214,7 +214,7 @@
   .order-id-row { max-width: 100%; }
   .order-id:hover { text-decoration: underline; }
   .order-idcol { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; overflow: hidden; }
-  body.no-prezzo .table-head, body.no-prezzo .order-row { grid-template-columns: 124px 1.4fr 1.3fr 108px 96px 96px; }
+  body.no-prezzo .table-head, body.no-prezzo .order-row { grid-template-columns: 148px 1.4fr 1.3fr 108px 96px 96px; }
   body.no-prezzo .th-prezzo, body.no-prezzo .order-price, body.no-prezzo .detail-prezzo { display: none !important; }
   .sync-na { display: inline-flex; align-items: center; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: #047857; background: #D1FAE5; border: 1px solid #A7F3D0; border-radius: 20px; padding: 1px 7px; white-space: nowrap; }
   .order-client { font-size: 13px; font-weight: 700; color: var(--dark); }
@@ -296,14 +296,22 @@
   /* ── ANTEPRIMA / VIEWER STL 3D ── */
   .stl-chip { display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; color:#3730A3; background:#E0E7FF; border:1px solid #C7D2FE; border-radius:20px; padding:1px 7px; white-space:nowrap; cursor:pointer; }
   .stl-chip:hover { background:#C7D2FE; }
-  .thumb-wrap { position:relative; width:112px; }
-  .order-thumb-row { display:flex; width:112px; height:74px; margin-bottom:7px; border-radius:9px; border:1px solid var(--border); overflow:hidden; align-items:center; justify-content:center; flex:none; cursor:pointer; background:radial-gradient(ellipse at 50% 32%, #F7FAFF 0%, #E7EEF6 100%); transition:border-color .12s, box-shadow .12s; }
+  .thumb-wrap { position:relative; width:132px; }
+  .order-thumb-row { display:flex; width:132px; height:88px; border-radius:10px; border:1px solid var(--border); overflow:hidden; align-items:center; justify-content:center; flex:none; cursor:pointer; background:radial-gradient(ellipse at 50% 32%, #F7FAFF 0%, #E7EEF6 100%); transition:border-color .12s, box-shadow .12s; }
   .order-thumb-row:hover { border-color:var(--blue); box-shadow:0 0 0 2px var(--blue-light); }
   .order-thumb-row img { width:100%; height:100%; object-fit:contain; display:block; padding:6px; }
   .order-thumb-row.is-icon { color:#5E82AD; }
   .order-thumb-row.is-icon svg { width:78%; height:78%; display:block; }
   /* Pallino sync in posizione FISSA sull'angolo della miniatura: uguale su ogni riga, a prescindere dalla lunghezza del codice */
   .thumb-wrap .sync-dot { position:absolute; top:6px; right:6px; z-index:2; box-shadow:0 0 0 2px #fff, 0 1px 2px rgba(0,0,0,.25); }
+  /* Col CLIENTE: ID sotto il nome */
+  .order-cliente { min-width:0; }
+  .order-cliente .order-id-row { margin-top:7px; }
+  /* Col LAVORAZIONE: icona del tipo sopra il testo */
+  .order-lavcol { display:flex; flex-direction:column; align-items:flex-start; gap:7px; min-width:0; }
+  .order-lavcol .order-lav { max-width:100%; }
+  .lav-ic { display:block; color:#5E82AD; flex:none; }
+  .lav-ic svg { width:34px; height:34px; display:block; }
   .order-id-row { display:flex; align-items:center; gap:6px; }
   .sync-dot { width:9px; height:9px; border-radius:50%; flex:none; }
   .sync-dot.ok { background:#16A34A; box-shadow:0 0 0 2px #D1FAE5; }
@@ -706,7 +714,7 @@ body{
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-14.7</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-14.8</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
@@ -791,7 +799,7 @@ body{
       <div class="orders-scroll">
       <div class="orders-table" id="orders-table">
         <div class="table-head">
-          <div>ID</div>
+          <div>Anteprima</div>
           <div>Cliente</div>
           <div>Lavorazione</div>
           <div class="th-prezzo">Prezzo</div>
@@ -1581,18 +1589,21 @@ function renderOrders() {
     <div class="order-row ${selectedOrderId === o.id ? 'selected' : ''}" onclick="openDetail('${o.id}')">
       <div class="order-idcol">
         <div class="thumb-wrap">
-          <div class="order-thumb-row is-icon" id="rthumb-${o.id}" title="Tipo lavorazione · anteprima 3D quando disponibile">${lavIcon(o)}</div>
+          <div class="order-thumb-row is-icon" id="rthumb-${o.id}" title="Anteprima 3D quando disponibile">${lavIcon(o)}</div>
           <span class="sync-dot ${isSyncedNA(o) ? 'ok' : 'no'}" title="${isSyncedNA(o) ? 'Sync NA avvenuta — scheda produzione ricevuta da New Ancorvis' : 'In attesa della scheda produzione (sync NA)'}"></span>
         </div>
+      </div>
+      <div class="order-cliente">
+        <div class="order-client">${esc(o.nome)} ${esc(o.cognome)}</div>
+        <div class="order-studio">${esc(o.azienda)}</div>
         <div class="order-id-row">
           <span class="order-id" title="Clicca per copiare l'ID" onclick="event.stopPropagation();copyOrderId(this.textContent)">${esc(orderCode(o))}</span>
         </div>
       </div>
-      <div>
-        <div class="order-client">${esc(o.nome)} ${esc(o.cognome)}</div>
-        <div class="order-studio">${esc(o.azienda)}</div>
+      <div class="order-lavcol">
+        <span class="lav-ic">${lavIcon(o)}</span>
+        <div class="order-lav">${esc((o.lavorazione || "—").replace(/\n/g," "))}</div>
       </div>
-      <div class="order-lav">${esc((o.lavorazione || "—").replace(/\n/g," "))}</div>
       <div class="order-price">${fmt(o.prezzo_base)}</div>
       <div><span class="status-badge status-${esc(o.status)}">${esc(statusLabel(o.status))}</span></div>
       <div class="order-op">${esc(o.operator || "—")}</div>

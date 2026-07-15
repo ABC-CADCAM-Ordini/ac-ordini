@@ -129,6 +129,13 @@
   .dash-advanced summary { cursor: pointer; list-style: none; display: block; }
   .dash-advanced summary::-webkit-details-marker { display: none; }
   .dash-adv-tag { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--gray); background: var(--pearl); border-radius: 10px; padding: 1px 7px; margin-left: 6px; }
+  /* ── Box "Sync NA non trovata → link manuale" ── */
+  .na-manual { background: #FFF8EC; border: 1px solid #FCE3B8; border-radius: 10px; padding: 12px 14px; }
+  .na-manual .detail-section-title { color: #B45309; }
+  .na-manual-msg { font-size: 12px; color: var(--mid); line-height: 1.5; margin: 6px 0 10px; }
+  .na-manual-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .na-manual-row input { flex: 1; min-width: 150px; font-family: var(--font); font-size: 13px; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; }
+  .na-manual-pending { font-size: 12px; color: #92400E; margin-top: 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .rub-add-block { background: var(--light); border: 1.5px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 16px; }
   .rub-block-label { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--gray); margin-bottom: 8px; }
   .rub-search-label { margin-top: 4px; }
@@ -753,7 +760,7 @@ body{
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-15.2</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-15.3</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
@@ -1402,8 +1409,8 @@ async function loadDiag() {
 // Forza una sincronizzazione: chiama la Edge Function "forza-sync" (che tiene il token GitHub
 // al sicuro e fa partire l'Action). Richiede un utente loggato.
 async function forzaSync(btn) {
-  const old = btn.textContent;
-  btn.disabled = true; btn.textContent = '⏳ Avvio…';
+  const old = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Avvio…'; }
   try {
     const { data: { session } } = await sbAuth.auth.getSession();
     if (!session) throw new Error('Sessione scaduta — rifai il login');
@@ -1413,12 +1420,12 @@ async function forzaSync(btn) {
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
-    btn.textContent = '✓ Avviata!';
-    showToast('Sincronizzazione avviata — tra poco compare il nuovo giro qui sotto', 'green');
-    setTimeout(() => loadDiag(), 20000); // ricarico la diagnostica quando il run avrà scritto
-    setTimeout(() => { btn.disabled = false; btn.textContent = old; }, 10000);
+    if (btn) btn.textContent = '✓ Avviata!';
+    showToast('Sincronizzazione avviata — tra ~1 min la scheda si aggancia', 'green');
+    setTimeout(() => { if (document.getElementById('diag-modal')) loadDiag(); }, 20000);
+    if (btn) setTimeout(() => { btn.disabled = false; btn.textContent = old; }, 10000);
   } catch (e) {
-    btn.disabled = false; btn.textContent = old;
+    if (btn) { btn.disabled = false; btn.textContent = old; }
     showToast('Errore: ' + e.message, 'red');
   }
 }
@@ -1619,7 +1626,10 @@ function copyOrderId(id) {
 
 // Sync NA avvenuta = è arrivata la scheda produzione da New Ancorvis (scheda_dati valorizzato)
 function isSyncedNA(o) {
-  return !!(o.scheda_dati && typeof o.scheda_dati === 'object' && Object.keys(o.scheda_dati).length);
+  const s = o.scheda_dati;
+  if (!s || typeof s !== 'object') return false;
+  // Il solo link manuale (na_manual_id) NON conta come "sincronizzato": la scheda vera non è ancora arrivata.
+  return Object.keys(s).some(k => k !== 'na_manual_id');
 }
 
 // ── Icone tipo-lavorazione (famiglia Configuratore) per la miniatura riga ──
@@ -1859,6 +1869,34 @@ function bulkClear() {
   renderOrders();
 }
 
+// ── Sync NA non trovata: link manuale AC↔NA (imposta scheda_dati.na_manual_id + forza sync) ──
+function naManualBlock(o) {
+  const cur = (o.scheda_dati && o.scheda_dati.na_manual_id) || '';
+  return `<div class="detail-section na-manual">
+    <div class="detail-section-title">${icon('activity')} Sincronizzazione NA non trovata</div>
+    <div class="na-manual-msg">Questo ordine non è ancora agganciato a una scheda di New Ancorvis. Se lo trovi su NA Loading, inserisci il suo <b>ID</b> (il numero nella prima colonna di ordini.php) per collegarli.</div>
+    <div class="na-manual-row">
+      <input id="na-manual-input" type="text" inputmode="numeric" placeholder="ID NA Loading (es. 40183)" value="${esc(cur)}" onkeydown="if(event.key==='Enter')naManualLink('${o.id}')">
+      <button class="dash-btn primary" onclick="naManualLink('${o.id}')">${icon('link')} Collega e sincronizza</button>
+    </div>
+    ${cur ? `<div class="na-manual-pending">${icon('activity')} Collegato a <b>NA #${esc(cur)}</b> — in attesa che la sync porti la scheda. <button class="dash-btn ghost" onclick="forzaSync(this)">Riavvia sync</button></div>` : ''}
+  </div>`;
+}
+async function naManualLink(orderId) {
+  const inp = document.getElementById('na-manual-input');
+  const val = ((inp && inp.value) || '').trim();
+  if (!/^\d{1,12}$/.test(val)) { showToast('Inserisci l\'ID numerico di NA Loading (es. 40183)', 'red'); return; }
+  const o = allOrders.find(x => x.id === orderId); if (!o) return;
+  const merged = { ...(o.scheda_dati || {}), na_manual_id: val };
+  try {
+    await sb('PATCH', `orders?id=eq.${orderId}`, { scheda_dati: merged });
+    o.scheda_dati = merged;
+    showToast('Collegato a NA #' + val + ' — avvio sincronizzazione…', 'green');
+    openDetail(orderId);
+    forzaSync();
+  } catch (e) { showToast('Errore: ' + e.message, 'red'); }
+}
+
 function openDetail(id) {
   const o = allOrders.find(x => x.id === id);
   if (!o) return;
@@ -1895,6 +1933,9 @@ function openDetail(id) {
         ${icon('trash')} Cancella ordine
       </button>
     </div>
+
+    <!-- SYNC NA NON TROVATA → LINK MANUALE (solo se non sincronizzato) -->
+    ${!isSyncedNA(o) ? naManualBlock(o) : ''}
 
     <!-- OPERATOR -->
     <div class="detail-section">

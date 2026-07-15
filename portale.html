@@ -117,7 +117,7 @@
       <div id="list" class="hidden"></div>
 
       <a class="scanlogiq-promo" href="https://abutmentcompatibili.com/scanlogiq" target="_blank" rel="noopener">
-        <div class="sl-img"><img src="https://abutmentcompatibili.com/media/wysiwyg/ImmaginiArticoliTecnici/642712299_25485947854417913_3570236078314306187_n.jpg" alt="ScanLogiQ — La passività non si spera, si misura" loading="lazy"></div>
+        <div class="sl-img"><img src="https://abutmentcompatibili.com/media/wysiwyg/ImmaginiArticoliTecnici/Firefly-3.jpg" alt="ScanLogiQ — La passività non si spera, si misura" loading="lazy"></div>
         <div class="sl-cta">Scopri come raggiungere la perfezione nelle <b>scansioni intraorali</b> con ScanLogiQ <span class="sl-arrow">→</span></div>
       </a>
     </div>
@@ -185,19 +185,6 @@ async function load(){
     render(Array.isArray(rows) ? rows : [], Array.isArray(info) ? info[0] : null);
   }catch(e){ hide("loading"); show("empty"); }
 }
-// Banner ScanLogiQ: alterna le due immagini a ogni caricamento
-(function(){
-  const SL_IMGS = [
-    "https://abutmentcompatibili.com/media/wysiwyg/ImmaginiArticoliTecnici/642712299_25485947854417913_3570236078314306187_n.jpg",
-    "https://abutmentcompatibili.com/media/wysiwyg/ImmaginiArticoliTecnici/Firefly-3.jpg"
-  ];
-  const img = document.querySelector('.scanlogiq-promo img');
-  if (!img) return;
-  let i;
-  try { i = (parseInt(localStorage.getItem('sl_banner_i') || '-1', 10) + 1) % SL_IMGS.length; localStorage.setItem('sl_banner_i', String(i)); }
-  catch (e) { i = Math.floor(Math.random() * SL_IMGS.length); }
-  if (i > 0) img.src = SL_IMGS[i]; // i=0 è già l'src di default (niente doppio download)
-})();
 load();
 </script>
 </body>

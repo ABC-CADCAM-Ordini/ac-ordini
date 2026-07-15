@@ -111,6 +111,24 @@
   /* ── Condividi ordine + Rubrica ── */
   .btn-condividi { margin-top: 12px; display: inline-flex; align-items: center; gap: 6px; background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-family: var(--font); font-size: 12.5px; font-weight: 800; cursor: pointer; }
   .btn-condividi:hover { filter: brightness(.92); }
+  /* ── Blocco "Dashboard cliente" nel dettaglio ── */
+  .dash-block { background: #F0F7FF; border: 1px solid #CFE3F7; border-radius: 10px; padding: 12px 14px; }
+  .dash-linked-head { display: flex; align-items: center; gap: 7px; font-size: 14px; flex-wrap: wrap; }
+  .dash-linked-head b { color: var(--dark); }
+  .dash-studio { font-size: 11.5px; color: var(--gray); font-weight: 600; }
+  .dash-actions { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 10px; }
+  .dash-btn { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font); font-size: 12px; font-weight: 700; padding: 7px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: #fff; color: var(--mid); cursor: pointer; text-decoration: none; white-space: nowrap; }
+  .dash-btn:hover { border-color: var(--blue); color: var(--blue); }
+  .dash-btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .dash-btn.primary:hover { filter: brightness(.93); color: #fff; }
+  .dash-btn.ghost { border-color: transparent; color: var(--gray); }
+  .dash-btn.ghost:hover { color: var(--red); }
+  .dash-comm { font-size: 12px; color: var(--mid); margin-top: 9px; }
+  .dash-suggest, .dash-empty { font-size: 13px; color: var(--dark); }
+  .dash-muted { font-size: 12px; color: var(--gray); }
+  .dash-advanced summary { cursor: pointer; list-style: none; display: block; }
+  .dash-advanced summary::-webkit-details-marker { display: none; }
+  .dash-adv-tag { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--gray); background: var(--pearl); border-radius: 10px; padding: 1px 7px; margin-left: 6px; }
   .rub-add-block { background: var(--light); border: 1.5px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 16px; }
   .rub-block-label { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--gray); margin-bottom: 8px; }
   .rub-search-label { margin-top: 4px; }
@@ -138,7 +156,11 @@
   .rub-act.rub-save { background: var(--green); border-color: var(--green); color: #fff; padding: 5px 16px; }
   .rub-act.rub-save:hover { filter: brightness(.93); border-color: var(--green); color: #fff; }
   .rub-del:hover { border-color: var(--red); color: var(--red); }
+  .rub-edit { flex-wrap: wrap; }
   .rub-edit-nome { flex: 1; min-width: 140px; font-family: var(--font); font-size: 13px; padding: 7px 10px; border: 1.5px solid var(--blue); border-radius: 8px; }
+  .rub-edit-studio, .rub-edit-email { flex: 1; min-width: 130px; font-family: var(--font); font-size: 13px; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; }
+  .rub-edit-comm { font-family: var(--font); font-size: 13px; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; max-width: 190px; }
+  .rub-sub { font-size: 11px; color: var(--gray); margin-top: 2px; }
   .rub-edit-tipo { font-family: var(--font); font-size: 13px; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; }
   .rub-empty { text-align: center; color: var(--gray); padding: 24px; font-weight: 600; }
 
@@ -719,7 +741,7 @@ body{
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-14.9</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-15.1</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
@@ -1419,6 +1441,7 @@ function openRubrica(orderId) {
           <div class="rub-block-label">${icon('plus')} Aggiungi un collaboratore</div>
           <div class="rub-add">
             <input id="rub-nome" placeholder="Nome del commerciale o cliente…" onkeydown="if(event.key==='Enter')rubAdd()">
+            <input id="rub-studio" placeholder="Studio / Azienda (per abbinare i casi)" onkeydown="if(event.key==='Enter')rubAdd()">
             <select id="rub-tipo">${rubTipoOptions('commerciale')}</select>
             <button onclick="rubAdd()">+ Aggiungi</button>
           </div>
@@ -1444,6 +1467,7 @@ async function loadRubrica() {
   list.innerHTML = '<div class="rub-empty">Caricamento…</div>';
   try {
     const cols = (await sb('GET', 'collaboratori?select=*&order=nome')) || [];
+    _collab = cols; // tieni fresca la cache usata dal blocco Dashboard cliente
     const shares = (await sb('GET', 'ordini_condivisi?select=collaboratore_id')) || [];
     const counts = {};
     shares.forEach(s => { counts[s.collaboratore_id] = (counts[s.collaboratore_id] || 0) + 1; });
@@ -1480,18 +1504,27 @@ function renderRubrica() {
   }
   list.innerHTML = shown.map(c => {
     if (c.id === rubEditingId) {
-      return `<div class="rub-row" data-id="${c.id}">
-        <input class="rub-edit-nome" value="${esc(c.nome)}">
+      return `<div class="rub-row rub-edit" data-id="${c.id}">
+        <input class="rub-edit-nome" placeholder="Nome" value="${esc(c.nome)}">
         <select class="rub-edit-tipo">${rubTipoOptions(c.tipo)}</select>
+        <input class="rub-edit-studio" placeholder="Studio / Azienda" value="${esc(c.studio || '')}">
+        <input class="rub-edit-email" placeholder="Email (opzionale)" value="${esc(c.email || '')}">
+        <select class="rub-edit-comm" title="Commerciale di riferimento (per i clienti)">${rubCommOptions(c.commerciale_id)}</select>
         <div class="rub-actions"><button class="rub-act rub-save" onclick="rubSave('${c.id}')">✓ Salva</button><button class="rub-act" onclick="rubEditingId=null;renderRubrica()">Annulla</button></div>
       </div>`;
     }
     const chk = rubOrderId ? `<input type="checkbox" class="rub-check" ${sharedIds.has(c.id) ? 'checked' : ''} onchange="rubToggle('${c.id}', this.checked)">` : '';
     const n = counts[c.id] || 0;
+    const commName = c.commerciale_id ? ((cols.find(x => x.id === c.commerciale_id) || {}).nome || '') : '';
+    const subBits = [];
+    if (c.studio) subBits.push(esc(c.studio));
+    if (commName) subBits.push('commerciale: ' + esc(commName));
+    const sub = subBits.length ? `<div class="rub-sub">${subBits.join(' · ')}</div>` : '';
     return `<div class="rub-row ${c.attivo ? '' : 'off'}">
       ${chk}
       <div class="rub-info">
         <div><b>${esc(c.nome)}</b><span class="rub-tipo">${esc(rubTipoLabel(c.tipo))}</span>${c.attivo ? '' : ' <span class="rub-tipo" style="color:var(--red)">disattivo</span>'}</div>
+        ${sub}
         <div class="rub-count">Vede ${n} ordin${n === 1 ? 'e' : 'i'}</div>
       </div>
       <div class="rub-actions">
@@ -1503,11 +1536,23 @@ function renderRubrica() {
     </div>`;
   }).join('');
 }
+// Opzioni <select> per assegnare un cliente al suo commerciale di riferimento.
+function rubCommOptions(selectedId) {
+  const comm = ((rubData && rubData.cols) || []).filter(c => c.tipo === 'commerciale');
+  return `<option value="">— nessun commerciale —</option>` +
+    comm.map(c => `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${esc(c.nome)}</option>`).join('');
+}
 async function rubAdd() {
   const nome = document.getElementById('rub-nome').value.trim();
   const tipo = document.getElementById('rub-tipo').value;
+  const studio = (document.getElementById('rub-studio').value || '').trim();
   if (!nome) { showToast('Inserisci un nome', 'red'); return; }
-  try { await sb('POST', 'collaboratori', { nome, tipo }); document.getElementById('rub-nome').value = ''; showToast('Collaboratore aggiunto', 'green'); loadRubrica(); }
+  try {
+    await sb('POST', 'collaboratori', { nome, tipo, studio: studio || null });
+    document.getElementById('rub-nome').value = '';
+    document.getElementById('rub-studio').value = '';
+    showToast('Collaboratore aggiunto', 'green'); loadRubrica();
+  }
   catch (e) { showToast('Errore: ' + e.message, 'red'); }
 }
 async function rubToggle(collabId, checked) {
@@ -1535,8 +1580,15 @@ async function rubSave(id) {
   if (!row) return;
   const nome = row.querySelector('.rub-edit-nome').value.trim();
   const tipo = row.querySelector('.rub-edit-tipo').value;
+  const studio = (row.querySelector('.rub-edit-studio') ? row.querySelector('.rub-edit-studio').value : '').trim();
+  const email = (row.querySelector('.rub-edit-email') ? row.querySelector('.rub-edit-email').value : '').trim();
+  const commSel = row.querySelector('.rub-edit-comm');
+  const commerciale_id = (commSel && commSel.value) ? commSel.value : null;
   if (!nome) { showToast('Il nome non può essere vuoto', 'red'); return; }
-  try { await sb('PATCH', `collaboratori?id=eq.${id}`, { nome, tipo }); rubEditingId = null; showToast('Modificato', 'green'); loadRubrica(); }
+  try {
+    await sb('PATCH', `collaboratori?id=eq.${id}`, { nome, tipo, studio: studio || null, email: email || null, commerciale_id });
+    rubEditingId = null; showToast('Modificato', 'green'); loadRubrica();
+  }
   catch (e) { showToast('Errore: ' + e.message, 'red'); }
 }
 async function rubDelete(id) {
@@ -1651,6 +1703,101 @@ function renderOrders() {
 // ══════════════════════════════════════════════════════════════
 // DETAIL PANEL
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// DASHBOARD CLIENTE — abbina il caso al cliente e dà il link dashboard (nuovo flusso)
+// ══════════════════════════════════════════════════════════════
+let _collab = null;
+async function loadCollab(force) {
+  if (_collab && !force) return _collab;
+  _collab = (await sb('GET', 'collaboratori?select=*&order=nome')) || [];
+  return _collab;
+}
+const normStudio = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+async function renderDashboardBlock(o) {
+  const box = document.getElementById('d-dashboard');
+  if (!box) return;
+  const head = `<div class="detail-section-title">${icon('users')} Dashboard cliente</div>`;
+  box.innerHTML = head + `<div class="dash-muted">Caricamento…</div>`;
+  let collab, shares;
+  try {
+    [collab, shares] = await Promise.all([
+      loadCollab(),
+      sb('GET', `ordini_condivisi?order_id=eq.${o.id}&select=collaboratore_id`)
+    ]);
+  } catch (e) { box.innerHTML = head + `<div class="dash-muted">Errore: ${esc(e.message)}</div>`; return; }
+
+  const linkedIds = new Set((shares || []).map(s => s.collaboratore_id));
+  const clienti = collab.filter(c => c.tipo === 'cliente');
+  const linkedCliente = clienti.find(c => linkedIds.has(c.id));
+  const az = normStudio(o.azienda);
+  const match = (!linkedCliente && az)
+    ? clienti.find(c => (normStudio(c.studio) && normStudio(c.studio) === az) || normStudio(c.nome) === az)
+    : null;
+
+  let body;
+  if (linkedCliente) {
+    const commName = linkedCliente.commerciale_id ? ((collab.find(x => x.id === linkedCliente.commerciale_id) || {}).nome || '') : '';
+    body = `<div class="dash-linked">
+      <div class="dash-linked-head">${icon('check')} <b>${esc(linkedCliente.nome)}</b>${linkedCliente.studio ? `<span class="dash-studio">${esc(linkedCliente.studio)}</span>` : ''}</div>
+      <div class="dash-actions">
+        <button class="dash-btn primary" onclick="dashCopy('${esc(linkedCliente.token)}')">${icon('link')} Copia link dashboard</button>
+        <a class="dash-btn" href="${esc(portaleLink(linkedCliente.token))}" target="_blank" rel="noopener">Apri</a>
+        <button class="dash-btn ghost" onclick="dashUnlink('${o.id}','${linkedCliente.id}')">Scollega</button>
+      </div>
+      <div class="dash-comm">Commerciale: ${commName ? `<b>${esc(commName)}</b>` : '<span class="dash-muted">— non assegnato (impostalo in Rubrica)</span>'}</div>
+    </div>`;
+  } else if (match) {
+    body = `<div class="dash-suggest">
+      <div>Sembra il cliente <b>${esc(match.nome)}</b>${match.studio ? ` <span class="dash-studio">${esc(match.studio)}</span>` : ''}</div>
+      <div class="dash-actions">
+        <button class="dash-btn primary" onclick="dashLink('${o.id}','${match.id}')">${icon('link')} Collega alla dashboard</button>
+        <button class="dash-btn" onclick="openRubrica('${o.id}')">Scegli dalla rubrica</button>
+      </div>
+    </div>`;
+  } else {
+    body = `<div class="dash-empty">
+      <div class="dash-muted">Nessun cliente collegato a questo caso.</div>
+      <div class="dash-actions">
+        <button class="dash-btn primary" onclick="dashCreateClient('${o.id}')">${icon('plus')} Crea cliente${o.azienda ? ` «${esc(o.azienda)}»` : ''}</button>
+        <button class="dash-btn" onclick="openRubrica('${o.id}')">Scegli dalla rubrica</button>
+      </div>
+    </div>`;
+  }
+  box.innerHTML = head + body;
+}
+
+async function dashLink(orderId, collabId) {
+  try {
+    await sb('POST', 'ordini_condivisi', { order_id: orderId, collaboratore_id: collabId });
+    showToast('Caso collegato alla dashboard ✓', 'green');
+    const o = allOrders.find(x => x.id === orderId); if (o) renderDashboardBlock(o);
+  } catch (e) { showToast('Errore: ' + e.message, 'red'); }
+}
+async function dashUnlink(orderId, collabId) {
+  try {
+    await sb('DELETE', `ordini_condivisi?order_id=eq.${orderId}&collaboratore_id=eq.${collabId}`);
+    showToast('Caso scollegato', 'green');
+    const o = allOrders.find(x => x.id === orderId); if (o) renderDashboardBlock(o);
+  } catch (e) { showToast('Errore: ' + e.message, 'red'); }
+}
+function dashCopy(token) {
+  navigator.clipboard.writeText(portaleLink(token))
+    .then(() => showToast('Link dashboard copiato', 'green')).catch(() => showToast('Copia non riuscita', 'red'));
+}
+async function dashCreateClient(orderId) {
+  const o = allOrders.find(x => x.id === orderId); if (!o) return;
+  const nome = (o.azienda || `${o.nome || ''} ${o.cognome || ''}`).trim() || 'Nuovo cliente';
+  try {
+    const created = await sb('POST', 'collaboratori', { nome, tipo: 'cliente', studio: o.azienda || null, email: o.email || null });
+    const newId = Array.isArray(created) ? (created[0] && created[0].id) : (created && created.id);
+    await loadCollab(true);
+    if (newId) await sb('POST', 'ordini_condivisi', { order_id: orderId, collaboratore_id: newId });
+    showToast('Cliente creato e collegato ✓', 'green');
+    renderDashboardBlock(o);
+  } catch (e) { showToast('Errore: ' + e.message, 'red'); }
+}
+
 function openDetail(id) {
   const o = allOrders.find(x => x.id === id);
   if (!o) return;
@@ -1669,6 +1816,9 @@ function openDetail(id) {
   const addrSped = o.same_spedizione ? "Uguale a fatturazione" : [o.ind_spedizione, o.citta_spedizione, o.cap_spedizione, o.prov_spedizione].filter(Boolean).join(", ") || "—";
 
   document.getElementById("d-body").innerHTML = `
+    <!-- DASHBOARD CLIENTE (riempito async da renderDashboardBlock) -->
+    <div id="d-dashboard" class="detail-section dash-block"></div>
+
     <!-- STATUS -->
     <div class="detail-section">
       <div class="detail-section-title">Stato ordine</div>
@@ -1806,16 +1956,16 @@ function openDetail(id) {
     <!-- LINK CLIENTE -->
     ${o.share_token ? (() => {
       const url = `https://abc-cadcam-ordini.github.io/ac-ordini/traccia-ordine.html?t=${o.share_token}`;
-      return `<div class="detail-section">
-        <div class="detail-section-title">${icon('link')} Link cliente</div>
+      return `<details class="detail-section dash-advanced">
+        <summary class="detail-section-title">${icon('link')} Solo questo caso <span class="dash-adv-tag">avanzato</span></summary>
+        <div style="font-size:10.5px;color:var(--gray);margin:8px 0 8px">Link del <b>singolo caso</b> — per situazioni speciali in cui non vuoi mostrare l'intera dashboard del cliente. Normalmente si manda il <b>link dashboard</b> qui sopra.</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input readonly value="${esc(url)}" onclick="this.select()"
             style="flex:1;min-width:180px;font-size:11px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:monospace;color:var(--mid)">
           <button onclick="navigator.clipboard.writeText('${esc(url)}').then(()=>{this.textContent='Copiato ✓'})"
-            style="padding:8px 14px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;font-family:var(--font);cursor:pointer;white-space:nowrap">Copia</button>
+            style="padding:8px 14px;background:var(--mid);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;font-family:var(--font);cursor:pointer;white-space:nowrap">Copia</button>
         </div>
-        <div style="font-size:10.5px;color:var(--gray);margin-top:6px">Da inviare al cliente per seguire stato, scheda e tracking.</div>
-      </div>`;
+      </details>`;
     })() : ""}
 
     <!-- FILE + ANTEPRIMA STL 3D -->
@@ -1856,6 +2006,7 @@ function openDetail(id) {
   `;
 
   document.getElementById("detail-panel").classList.add("open");
+  renderDashboardBlock(o);
   if (o.file_link) initStlPreview(o);
 }
 

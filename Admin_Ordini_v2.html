@@ -168,6 +168,30 @@
   .rub-edit-studio, .rub-edit-email { flex: 1; min-width: 130px; font-family: var(--font); font-size: 13px; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; }
   .rub-edit-comm { font-family: var(--font); font-size: 13px; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; max-width: 190px; }
   .rub-sub { font-size: 11px; color: var(--gray); margin-top: 2px; }
+  /* Nome cliccabile + visualizzatore scheda collaboratore */
+  .rub-clickable { cursor: pointer; border-radius: 8px; padding: 3px 6px; margin: -3px -6px; transition: background .12s; }
+  .rub-clickable:hover { background: var(--blue-light); }
+  .rub-count { display: flex; align-items: center; gap: 5px; }
+  .rub-count .ui-ic { color: var(--gray); }
+  .rub-count .ui-ic svg { width: 13px; height: 13px; }
+  #rub-modal.rub-viewing .rub-add-block,
+  #rub-modal.rub-viewing .rub-search-label,
+  #rub-modal.rub-viewing #rub-filter,
+  #rub-modal.rub-viewing #rub-chips { display: none; }
+  .rubv-head { background: var(--light); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin: 10px 0 4px; }
+  .rubv-name { font-size: 17px; }
+  .rubv-info, .rubv-collegato { font-size: 12.5px; color: var(--mid); margin-top: 5px; }
+  .rubv-actions { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 12px; }
+  .rubv-sec-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--gray); margin: 16px 0 6px; display: flex; align-items: center; gap: 7px; }
+  .rubv-count { font-size: 11px; font-weight: 800; background: var(--pearl); color: var(--mid); border-radius: 10px; padding: 0 8px; }
+  .rubv-order { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 9px; margin-bottom: 6px; cursor: pointer; transition: border-color .12s, background .12s; }
+  .rubv-order:hover { border-color: var(--blue); background: var(--light); }
+  .rubv-o-main { min-width: 0; }
+  .rubv-o-code { font-family: var(--mono, monospace); font-size: 11px; font-weight: 700; color: var(--blue-deep, var(--blue)); }
+  .rubv-o-lav { font-size: 13px; font-weight: 600; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rubv-o-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
+  .rubv-o-date { font-size: 10.5px; color: var(--gray); }
+  .rubv-empty { font-size: 12px; color: var(--gray); padding: 6px 2px; }
   .rub-edit-tipo { font-family: var(--font); font-size: 13px; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; }
   .rub-empty { text-align: center; color: var(--gray); padding: 24px; font-weight: 600; }
 
@@ -760,7 +784,7 @@ body{
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-15.4</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-15.5</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
@@ -1446,7 +1470,7 @@ const RUB_TIPI = [
 const rubTipoLabel = v => (RUB_TIPI.find(t => t.v === v) || {}).l || v;
 const rubTipoOptions = sel => RUB_TIPI.map(t => `<option value="${t.v}" ${t.v === sel ? 'selected' : ''}>${t.l}</option>`).join('');
 function rubSetTipo(v) { rubTipoFilter = v; renderRubrica(); }
-let rubOrderId = null, rubData = null, rubFilter = '', rubEditingId = null, rubTipoFilter = '';
+let rubOrderId = null, rubData = null, rubFilter = '', rubEditingId = null, rubTipoFilter = '', rubViewId = null;
 const portaleLink = token => `https://abc-cadcam-ordini.github.io/ac-ordini/portale.html?c=${token}`;
 function openRubrica(orderId) {
   rubOrderId = orderId || null;
@@ -1477,7 +1501,8 @@ function openRubrica(orderId) {
     m.onclick = e => { if (e.target === m) m.classList.remove('open'); };
   }
   document.getElementById('rub-title').innerHTML = rubOrderId ? icon('share') + ' Condividi ordine con…' : icon('users') + ' Rubrica collaboratori';
-  rubTipoFilter = ''; rubFilter = ''; rubEditingId = null;
+  rubTipoFilter = ''; rubFilter = ''; rubEditingId = null; rubViewId = null;
+  m.classList.remove('rub-viewing');
   const fInput = document.getElementById('rub-filter'); if (fInput) fInput.value = '';
   m.classList.add('open');
   loadRubrica();
@@ -1542,10 +1567,10 @@ function renderRubrica() {
     const sub = subBits.length ? `<div class="rub-sub">${subBits.join(' · ')}</div>` : '';
     return `<div class="rub-row ${c.attivo ? '' : 'off'}">
       ${chk}
-      <div class="rub-info">
+      <div class="rub-info rub-clickable" onclick="rubView('${c.id}')" title="Apri la scheda: lavori, collegamenti e info">
         <div><b>${esc(c.nome)}</b><span class="rub-tipo">${esc(rubTipoLabel(c.tipo))}</span>${c.attivo ? '' : ' <span class="rub-tipo" style="color:var(--red)">disattivo</span>'}</div>
         ${sub}
-        <div class="rub-count">Vede ${n} ordin${n === 1 ? 'e' : 'i'}</div>
+        <div class="rub-count">Vede ${n} ordin${n === 1 ? 'e' : 'i'} ${icon('chevron')}</div>
       </div>
       <div class="rub-actions">
         <button class="rub-act" onclick="rubCopyLink('${esc(c.token)}')">${icon('link')} Link</button>
@@ -1555,6 +1580,79 @@ function renderRubrica() {
       </div>
     </div>`;
   }).join('');
+}
+
+// ── Visualizzatore scheda collaboratore (clic sul nome): lavori aperti/chiusi + collegamenti + info ──
+async function rubView(id) {
+  rubViewId = id;
+  const m = document.getElementById('rub-modal'); if (m) m.classList.add('rub-viewing');
+  const list = document.getElementById('rub-list');
+  list.innerHTML = '<div class="rub-empty">Caricamento…</div>';
+  const cols = (rubData && rubData.cols) || [];
+  const c = cols.find(x => x.id === id);
+  if (!c) { rubBack(); return; }
+  try {
+    let ids = [id], collegato = '';
+    if (c.tipo === 'commerciale') {
+      const clients = cols.filter(x => x.tipo === 'cliente' && x.commerciale_id === id);
+      ids = [id, ...clients.map(x => x.id)];
+      collegato = clients.length
+        ? `Clienti collegati: ${clients.map(x => `<b>${esc(x.nome)}</b>`).join(', ')}`
+        : 'Nessun cliente collegato a questo commerciale.';
+    } else if (c.tipo === 'cliente') {
+      const comm = c.commerciale_id ? (cols.find(x => x.id === c.commerciale_id) || {}).nome : '';
+      collegato = comm ? `Commerciale di riferimento: <b>${esc(comm)}</b>` : 'Nessun commerciale assegnato.';
+    }
+    const sh = (await sb('GET', `ordini_condivisi?collaboratore_id=in.(${ids.join(',')})&select=order_id`)) || [];
+    const orderIds = new Set(sh.map(s => s.order_id));
+    const orders = allOrders.filter(o => orderIds.has(o.id));
+    const aperti = orders.filter(o => o.status !== 'concluso');
+    const chiusi = orders.filter(o => o.status === 'concluso');
+    renderRubViewer(c, aperti, chiusi, collegato);
+  } catch (e) { list.innerHTML = `<div class="rub-empty">Errore: ${esc(e.message)}</div>`; }
+}
+function rubBack() {
+  rubViewId = null;
+  const m = document.getElementById('rub-modal'); if (m) m.classList.remove('rub-viewing');
+  renderRubrica();
+}
+function rubOpenOrder(orderId) {
+  const m = document.getElementById('rub-modal'); if (m) m.classList.remove('open');
+  openDetail(orderId);
+}
+function rubvOrderRow(o) {
+  return `<div class="rubv-order" onclick="rubOpenOrder('${o.id}')">
+    <div class="rubv-o-main">
+      <div class="rubv-o-code">${esc(orderCode(o))}</div>
+      <div class="rubv-o-lav">${esc((o.lavorazione || '—').replace(/\n/g, ' '))}</div>
+    </div>
+    <div class="rubv-o-meta">
+      <span class="status-badge status-${esc(o.status)}">${esc(statusLabel(o.status))}</span>
+      <span class="rubv-o-date">${fmtDate(o.created_at)}</span>
+    </div>
+  </div>`;
+}
+function renderRubViewer(c, aperti, chiusi, collegato) {
+  const list = document.getElementById('rub-list');
+  const infoBits = [];
+  if (c.studio) infoBits.push(`Studio: <b>${esc(c.studio)}</b>`);
+  if (c.email) infoBits.push(`Email: <b>${esc(c.email)}</b>`);
+  const sec = (titolo, arr) => `<div class="rubv-sec-title">${titolo} <span class="rubv-count">${arr.length}</span></div>` +
+    (arr.length ? arr.map(rubvOrderRow).join('') : `<div class="rubv-empty">Nessun lavoro.</div>`);
+  list.innerHTML = `
+    <button class="rub-act" onclick="rubBack()">${icon('back')} Rubrica</button>
+    <div class="rubv-head">
+      <div class="rubv-name"><b>${esc(c.nome)}</b><span class="rub-tipo">${esc(rubTipoLabel(c.tipo))}</span>${c.attivo ? '' : ' <span class="rub-tipo" style="color:var(--red)">disattivo</span>'}</div>
+      ${infoBits.length ? `<div class="rubv-info">${infoBits.join(' · ')}</div>` : ''}
+      <div class="rubv-collegato">${collegato}</div>
+      <div class="rubv-actions">
+        <button class="dash-btn primary" onclick="rubCopyLink('${esc(c.token)}')">${icon('link')} Copia link dashboard</button>
+        <a class="dash-btn" href="${esc(portaleLink(c.token))}" target="_blank" rel="noopener">Apri dashboard</a>
+        <button class="dash-btn" onclick="rubEditingId='${c.id}';rubBack()">Modifica</button>
+      </div>
+    </div>
+    ${sec('Lavori aperti', aperti)}
+    ${sec('Lavori chiusi', chiusi)}`;
 }
 // Opzioni <select> per assegnare un cliente al suo commerciale di riferimento.
 function rubCommOptions(selectedId) {
@@ -1676,6 +1774,8 @@ const UI_IC = {
   mailoff:  `<svg ${_S}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 12l8.5-5.5"/><path d="M4.5 19.5 19.5 4.5"/></svg>`,
   plus:     `<svg ${_S} stroke-width="1.9"><path d="M12 5v14M5 12h14"/></svg>`,
   search:   `<svg ${_S}><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.2-4.2"/></svg>`,
+  chevron:  `<svg ${_S}><path d="M9 6l6 6-6 6"/></svg>`,
+  back:     `<svg ${_S}><path d="M15 6l-6 6 6 6"/></svg>`,
 };
 function icon(name, cls) { return `<span class="ui-ic ${cls || ''}">${UI_IC[name] || ''}</span>`; }
 function hydrateUiIcons(root) {

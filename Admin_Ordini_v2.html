@@ -189,6 +189,9 @@
   .rubv-o-main { min-width: 0; }
   .rubv-o-code { font-family: var(--mono, monospace); font-size: 11px; font-weight: 700; color: var(--blue-deep, var(--blue)); }
   .rubv-o-lav { font-size: 13px; font-weight: 600; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rubv-o-sub { font-size: 11px; color: var(--gray); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rubv-o-meta .ui-ic { color: var(--gray); }
+  .rubv-o-meta .ui-ic svg { width: 14px; height: 14px; }
   .rubv-o-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
   .rubv-o-date { font-size: 10.5px; color: var(--gray); }
   .rubv-empty { font-size: 12px; color: var(--gray); padding: 6px 2px; }
@@ -784,7 +787,7 @@ body{
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-15.5</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-15.6</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
@@ -1592,13 +1595,11 @@ async function rubView(id) {
   const c = cols.find(x => x.id === id);
   if (!c) { rubBack(); return; }
   try {
-    let ids = [id], collegato = '';
+    let ids = [id], collegato = '', clients = null;
     if (c.tipo === 'commerciale') {
-      const clients = cols.filter(x => x.tipo === 'cliente' && x.commerciale_id === id);
+      clients = cols.filter(x => x.tipo === 'cliente' && x.commerciale_id === id);
       ids = [id, ...clients.map(x => x.id)];
-      collegato = clients.length
-        ? `Clienti collegati: ${clients.map(x => `<b>${esc(x.nome)}</b>`).join(', ')}`
-        : 'Nessun cliente collegato a questo commerciale.';
+      collegato = ''; // la sezione "Clienti attribuiti" fa da collegamento navigabile
     } else if (c.tipo === 'cliente') {
       const comm = c.commerciale_id ? (cols.find(x => x.id === c.commerciale_id) || {}).nome : '';
       collegato = comm ? `Commerciale di riferimento: <b>${esc(comm)}</b>` : 'Nessun commerciale assegnato.';
@@ -1608,7 +1609,7 @@ async function rubView(id) {
     const orders = allOrders.filter(o => orderIds.has(o.id));
     const aperti = orders.filter(o => o.status !== 'concluso');
     const chiusi = orders.filter(o => o.status === 'concluso');
-    renderRubViewer(c, aperti, chiusi, collegato);
+    renderRubViewer(c, aperti, chiusi, collegato, clients);
   } catch (e) { list.innerHTML = `<div class="rub-empty">Errore: ${esc(e.message)}</div>`; }
 }
 function rubBack() {
@@ -1632,27 +1633,46 @@ function rubvOrderRow(o) {
     </div>
   </div>`;
 }
-function renderRubViewer(c, aperti, chiusi, collegato) {
+function rubvClientRow(cl, n) {
+  return `<div class="rubv-order" onclick="rubView('${cl.id}')" title="Apri la scheda del cliente">
+    <div class="rubv-o-main">
+      <div class="rubv-o-lav">${esc(cl.nome)}${cl.attivo ? '' : ' <span class="rub-tipo" style="color:var(--red)">disattivo</span>'}</div>
+      ${cl.studio ? `<div class="rubv-o-sub">${esc(cl.studio)}</div>` : ''}
+    </div>
+    <div class="rubv-o-meta">
+      <span class="rubv-o-date">vede ${n} ordin${n === 1 ? 'e' : 'i'}</span>
+      ${icon('chevron')}
+    </div>
+  </div>`;
+}
+function renderRubViewer(c, aperti, chiusi, collegato, clients) {
   const list = document.getElementById('rub-list');
+  const counts = (rubData && rubData.counts) || {};
   const infoBits = [];
   if (c.studio) infoBits.push(`Studio: <b>${esc(c.studio)}</b>`);
   if (c.email) infoBits.push(`Email: <b>${esc(c.email)}</b>`);
   const sec = (titolo, arr) => `<div class="rubv-sec-title">${titolo} <span class="rubv-count">${arr.length}</span></div>` +
     (arr.length ? arr.map(rubvOrderRow).join('') : `<div class="rubv-empty">Nessun lavoro.</div>`);
+  // Per un commerciale: prima i clienti attribuiti (navigabili), poi i lavori aggregati.
+  const clientiSec = clients
+    ? `<div class="rubv-sec-title">Clienti attribuiti <span class="rubv-count">${clients.length}</span></div>` +
+      (clients.length ? clients.map(cl => rubvClientRow(cl, counts[cl.id] || 0)).join('') : `<div class="rubv-empty">Nessun cliente attribuito. Assegnalo dal cliente, in Modifica → Commerciale.</div>`)
+    : '';
   list.innerHTML = `
     <button class="rub-act" onclick="rubBack()">${icon('back')} Rubrica</button>
     <div class="rubv-head">
       <div class="rubv-name"><b>${esc(c.nome)}</b><span class="rub-tipo">${esc(rubTipoLabel(c.tipo))}</span>${c.attivo ? '' : ' <span class="rub-tipo" style="color:var(--red)">disattivo</span>'}</div>
       ${infoBits.length ? `<div class="rubv-info">${infoBits.join(' · ')}</div>` : ''}
-      <div class="rubv-collegato">${collegato}</div>
+      ${collegato ? `<div class="rubv-collegato">${collegato}</div>` : ''}
       <div class="rubv-actions">
         <button class="dash-btn primary" onclick="rubCopyLink('${esc(c.token)}')">${icon('link')} Copia link dashboard</button>
         <a class="dash-btn" href="${esc(portaleLink(c.token))}" target="_blank" rel="noopener">Apri dashboard</a>
         <button class="dash-btn" onclick="rubEditingId='${c.id}';rubBack()">Modifica</button>
       </div>
     </div>
-    ${sec('Lavori aperti', aperti)}
-    ${sec('Lavori chiusi', chiusi)}`;
+    ${clientiSec}
+    ${sec(clients ? 'Tutti i lavori aperti' : 'Lavori aperti', aperti)}
+    ${sec(clients ? 'Tutti i lavori chiusi' : 'Lavori chiusi', chiusi)}`;
 }
 // Opzioni <select> per assegnare un cliente al suo commerciale di riferimento.
 function rubCommOptions(selectedId) {

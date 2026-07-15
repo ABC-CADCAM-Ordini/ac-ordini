@@ -760,7 +760,7 @@ body{
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-15.3</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-15.4</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
@@ -833,6 +833,7 @@ body{
         <div class="main-title" id="main-title">Tutti gli ordini</div>
         <div class="main-actions">
           <input class="search-input" type="text" placeholder="Cerca cliente, studio…" oninput="setSearch(this.value)">
+          <button class="refresh-btn" onclick="openCreateFromNa()" title="Crea un ordine partendo da un ID di NA Loading"><span data-ic="plus"></span> Crea da ID NA</button>
           <button class="refresh-btn" onclick="loadOrders()">⟳ Aggiorna</button>
         </div>
       </div>
@@ -1628,8 +1629,8 @@ function copyOrderId(id) {
 function isSyncedNA(o) {
   const s = o.scheda_dati;
   if (!s || typeof s !== 'object') return false;
-  // Il solo link manuale (na_manual_id) NON conta come "sincronizzato": la scheda vera non è ancora arrivata.
-  return Object.keys(s).some(k => k !== 'na_manual_id');
+  // Il solo link/stub manuale (na_manual_id / na_create) NON conta come "sincronizzato": la scheda vera non è ancora arrivata.
+  return Object.keys(s).some(k => k !== 'na_manual_id' && k !== 'na_create');
 }
 
 // ── Icone tipo-lavorazione (famiglia Configuratore) per la miniatura riga ──
@@ -1894,6 +1895,53 @@ async function naManualLink(orderId) {
     showToast('Collegato a NA #' + val + ' — avvio sincronizzazione…', 'green');
     openDetail(orderId);
     forzaSync();
+  } catch (e) { showToast('Errore: ' + e.message, 'red'); }
+}
+
+// ── Crea ordine da ID NA: crea uno stub AC (na_manual_id + na_create) e lascia che la sync lo riempia ──
+function openCreateFromNa() {
+  let m = document.getElementById('crea-na-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'crea-na-modal'; m.className = 'diag-modal';
+    m.innerHTML = `<div class="diag-inner" style="max-width:460px">
+      <div class="diag-head"><span>${icon('plus')} Crea ordine da ID NA</span><button class="diag-close" title="Chiudi">×</button></div>
+      <div class="diag-body">
+        <div style="font-size:12.5px;color:var(--mid);line-height:1.5;margin-bottom:12px">Inserisci l'<b>ID di NA Loading</b> (il numero nella prima colonna di ordini.php). Creo un ordine su AC e lo riempio con i dati di quell'ordine NA (scheda, STL, documenti e — se presenti nelle note — contatto).</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="crea-na-input" type="text" inputmode="numeric" placeholder="ID NA Loading (es. 40183)" onkeydown="if(event.key==='Enter')createFromNaId()" style="flex:1;min-width:160px;font-family:var(--font);font-size:14px;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px">
+          <button class="dash-btn primary" onclick="createFromNaId()">${icon('plus')} Crea e sincronizza</button>
+        </div>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+    m.querySelector('.diag-close').onclick = () => m.classList.remove('open');
+    m.onclick = e => { if (e.target === m) m.classList.remove('open'); };
+  }
+  m.classList.add('open');
+  setTimeout(() => { const i = document.getElementById('crea-na-input'); if (i) { i.value = ''; i.focus(); } }, 50);
+}
+async function createFromNaId() {
+  const inp = document.getElementById('crea-na-input');
+  const val = ((inp && inp.value) || '').trim();
+  if (!/^\d{1,12}$/.test(val)) { showToast('Inserisci l\'ID numerico di NA Loading (es. 40183)', 'red'); return; }
+  const share_token = crypto.randomUUID();
+  const payload = {
+    nome: '(in arrivo da New Ancorvis)', cognome: null, azienda: null,
+    telefono: null, email: null, lavorazione: null, materiale: null, workflow: 'New Ancorvis',
+    note: 'Creato da ID NA #' + val,
+    scheda_dati: { na_manual_id: val, na_create: true },
+    tracking: null, file_link: null, file_name: null,
+    share_token, status: 'ricevuto'
+  };
+  try {
+    const created = await sb('POST', 'orders', payload);
+    const newId = Array.isArray(created) ? (created[0] && created[0].id) : (created && created.id);
+    const m = document.getElementById('crea-na-modal'); if (m) m.classList.remove('open');
+    showToast('Ordine creato da NA #' + val + ' — sincronizzazione in corso…', 'green');
+    forzaSync();
+    await loadOrders();
+    if (newId) openDetail(newId);
   } catch (e) { showToast('Errore: ' + e.message, 'red'); }
 }
 

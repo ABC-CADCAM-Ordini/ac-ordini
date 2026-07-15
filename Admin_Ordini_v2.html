@@ -326,6 +326,18 @@
   .order-thumb-row.is-icon svg { width:78%; height:78%; display:block; }
   /* Pallino sync in posizione FISSA sull'angolo della miniatura: uguale su ogni riga, a prescindere dalla lunghezza del codice */
   .thumb-wrap .sync-dot { position:absolute; top:6px; right:6px; z-index:2; box-shadow:0 0 0 2px #fff, 0 1px 2px rgba(0,0,0,.25); }
+  /* Checkbox multi-selezione: angolo alto-sinistra della miniatura, discreta finché non selezioni */
+  .row-check { position:absolute; top:6px; left:6px; width:18px; height:18px; z-index:3; cursor:pointer; accent-color:var(--blue); opacity:.38; transition:opacity .12s; }
+  .order-row:hover .row-check, .row-check:checked { opacity:1; }
+  /* Barra azioni in blocco (galleggiante) */
+  .bulk-bar { position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(20px); display:none; align-items:center; gap:11px; flex-wrap:wrap; background:#14202E; color:#fff; padding:11px 16px; border-radius:12px; box-shadow:0 12px 34px rgba(0,0,0,.30); z-index:150; opacity:0; transition:opacity .15s, transform .15s; max-width:calc(100vw - 28px); }
+  .bulk-bar.open { display:flex; opacity:1; transform:translateX(-50%) translateY(0); }
+  .bulk-count { font-weight:800; font-size:13px; }
+  .bulk-sep { font-size:12px; opacity:.72; }
+  .bulk-sel { font-family:var(--font); font-size:13px; padding:7px 10px; border-radius:8px; border:1.5px solid rgba(255,255,255,.25); background:rgba(255,255,255,.10); color:#fff; max-width:260px; }
+  .bulk-sel option { color:#111; }
+  .bulk-bar .dash-btn.ghost { color:#cbd5e1; }
+  .bulk-bar .dash-btn.ghost:hover { color:#fff; }
   /* Col CLIENTE: ID sotto il nome */
   .order-cliente { min-width:0; }
   .order-cliente .order-id-row { margin-top:7px; }
@@ -741,7 +753,7 @@ body{
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-15.1</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-15.2</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
@@ -1677,6 +1689,7 @@ function renderOrders() {
     <div class="order-row ${selectedOrderId === o.id ? 'selected' : ''}" onclick="openDetail('${o.id}')">
       <div class="order-idcol">
         <div class="thumb-wrap">
+          <input type="checkbox" class="row-check" ${selectedOrders.has(o.id) ? 'checked' : ''} onclick="event.stopPropagation();toggleRowSelect('${o.id}',this.checked)" title="Seleziona per collegare più casi a un cliente">
           <div class="order-thumb-row is-icon" id="rthumb-${o.id}" title="Anteprima 3D quando disponibile">${lavIcon(o)}</div>
           <span class="sync-dot ${isSyncedNA(o) ? 'ok' : 'no'}" title="${isSyncedNA(o) ? 'Sync NA avvenuta — scheda produzione ricevuta da New Ancorvis' : 'In attesa della scheda produzione (sync NA)'}"></span>
         </div>
@@ -1707,6 +1720,10 @@ function renderOrders() {
 // DASHBOARD CLIENTE — abbina il caso al cliente e dà il link dashboard (nuovo flusso)
 // ══════════════════════════════════════════════════════════════
 let _collab = null;
+// Cache del cliente collegato per ordine (popolata da renderDashboardBlock) → usata dai messaggi cliente.
+const _dashLinkedByOrder = {};
+// Multi-selezione dal listato per collegare più casi a un cliente in blocco.
+const selectedOrders = new Set();
 async function loadCollab(force) {
   if (_collab && !force) return _collab;
   _collab = (await sb('GET', 'collaboratori?select=*&order=nome')) || [];
@@ -1730,6 +1747,7 @@ async function renderDashboardBlock(o) {
   const linkedIds = new Set((shares || []).map(s => s.collaboratore_id));
   const clienti = collab.filter(c => c.tipo === 'cliente');
   const linkedCliente = clienti.find(c => linkedIds.has(c.id));
+  _dashLinkedByOrder[o.id] = linkedCliente || null; // per i messaggi: usa il link dashboard se collegato
   const az = normStudio(o.azienda);
   const match = (!linkedCliente && az)
     ? clienti.find(c => (normStudio(c.studio) && normStudio(c.studio) === az) || normStudio(c.nome) === az)
@@ -1796,6 +1814,49 @@ async function dashCreateClient(orderId) {
     showToast('Cliente creato e collegato ✓', 'green');
     renderDashboardBlock(o);
   } catch (e) { showToast('Errore: ' + e.message, 'red'); }
+}
+
+// ── Multi-selezione dal listato → collega più casi a un cliente ──
+function toggleRowSelect(id, checked) {
+  if (checked) selectedOrders.add(id); else selectedOrders.delete(id);
+  renderBulkBar();
+}
+async function renderBulkBar() {
+  let bar = document.getElementById('bulk-bar');
+  const n = selectedOrders.size;
+  if (!n) { if (bar) bar.classList.remove('open'); return; }
+  if (!bar) { bar = document.createElement('div'); bar.id = 'bulk-bar'; bar.className = 'bulk-bar'; document.body.appendChild(bar); }
+  const clienti = (await loadCollab()).filter(c => c.tipo === 'cliente');
+  bar.innerHTML =
+    `<span class="bulk-count">${n} cas${n === 1 ? 'o' : 'i'} selezionat${n === 1 ? 'o' : 'i'}</span>` +
+    `<span class="bulk-sep">→ collega a</span>` +
+    (clienti.length
+      ? `<select id="bulk-cliente" class="bulk-sel">${clienti.map(c => `<option value="${c.id}">${esc(c.nome)}${c.studio ? ' — ' + esc(c.studio) : ''}</option>`).join('')}</select>` +
+        `<button class="dash-btn primary" onclick="bulkLink()">${icon('link')} Collega</button>`
+      : `<span class="dash-muted">nessun cliente in rubrica — creane uno prima</span>`) +
+    `<button class="dash-btn ghost" onclick="bulkClear()">Annulla</button>`;
+  bar.classList.add('open');
+}
+async function bulkLink() {
+  const sel = document.getElementById('bulk-cliente');
+  const cid = sel && sel.value;
+  if (!cid) { showToast('Scegli un cliente', 'red'); return; }
+  const ids = [...selectedOrders];
+  let ok = 0;
+  for (const oid of ids) {
+    try { await sb('POST', 'ordini_condivisi', { order_id: oid, collaboratore_id: cid }); ok++; }
+    catch (e) { /* già collegato (409) → ignora */ }
+  }
+  showToast(`${ok} cas${ok === 1 ? 'o' : 'i'} collegat${ok === 1 ? 'o' : 'i'} alla dashboard ✓`, 'green');
+  selectedOrders.clear();
+  renderBulkBar();
+  renderOrders();
+  const o = allOrders.find(x => x.id === selectedOrderId); if (o) renderDashboardBlock(o);
+}
+function bulkClear() {
+  selectedOrders.clear();
+  renderBulkBar();
+  renderOrders();
 }
 
 function openDetail(id) {
@@ -2374,9 +2435,16 @@ function parseNote(noteStr) {
 // ── Builder messaggi cliente ─────────────────────────────────
 // Blocco "link cliente" da appendere a ogni messaggio (email/WhatsApp) al cliente.
 const TRACCIA_URL = "https://abc-cadcam-ordini.github.io/ac-ordini/traccia-ordine.html?t=";
-const linkClienteBlocco = o => o.share_token
-  ? `\n\n🔗 Segua il suo ordine online (stato, scheda di produzione e tracking):\n${TRACCIA_URL}${o.share_token}`
-  : "";
+// Link cliente nei messaggi: DEFAULT = dashboard del cliente (tutti i suoi casi) se l'ordine è
+// collegato a un cliente; altrimenti ripiego sul link del singolo caso (traccia).
+const linkClienteBlocco = o => {
+  const cli = _dashLinkedByOrder[o.id];
+  if (cli && cli.token)
+    return `\n\n🔗 La sua dashboard ordini (stato, schede e tracking di tutti i suoi casi):\n${portaleLink(cli.token)}`;
+  return o.share_token
+    ? `\n\n🔗 Segua il suo ordine online (stato, scheda di produzione e tracking):\n${TRACCIA_URL}${o.share_token}`
+    : "";
+};
 
 function buildWAText(o) {
   const parsed = parseNote(o.note);

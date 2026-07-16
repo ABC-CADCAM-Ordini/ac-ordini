@@ -1427,8 +1427,16 @@ async function loadDiag() {
       <span>Letti <b>${last.letti | 0}</b></span><span>Aggiornati <b>${last.aggiornati | 0}</b></span>
       <span>Creati <b>${last.creati | 0}</b></span><span>Saltati <b>${last.saltati | 0}</b></span>
       <span>Durata <b>${((last.durata_ms || 0) / 1000).toFixed(1)}s</b></span>
-      <span>Login NA <b>${last.loggedIn ? 'SI' : 'NO'}</b></span>
+      <!-- loggedIn è null quando il giro è stato SALTATO: non ci si è nemmeno collegati.
+           Mostrarlo come "NO" lo rendeva identico a una sessione NA morta — cioè al guasto
+           che questo pannello esiste per far vedere. -->
+      <span>Login NA <b>${last.loggedIn == null ? '—' : (last.loggedIn ? 'SI' : 'NO')}</b></span>
+      ${last.agganci_auto ? `<span>Agganci auto <b>${last.agganci_auto}</b></span>` : ''}
+      ${last.recuperati ? `<span>Righe recuperate <b>${last.recuperati}</b></span>` : ''}
+      ${last.suggerimenti ? `<span>Suggerimenti <b>${last.suggerimenti}</b></span>` : ''}
     </div>
+    ${last.nota ? `<div class="diag-errmsg" style="background:var(--amber-bg,#fff8e1);color:var(--amber-fg,#8a6d00)">${esc(last.nota)}</div>` : ''}
+    ${last.anomalia ? `<div class="diag-errmsg">⚠️ ${esc(last.anomalia)}</div>` : ''}
     ${last.errore ? `<div class="diag-errmsg">⚠️ ${esc(last.errore)}</div>` : ''}
     <div class="diag-log-title">Log dell'ultima esecuzione</div>
     <pre class="diag-log">${esc((last.log || []).join('\n')) || '(nessun log)'}</pre>

@@ -787,7 +787,7 @@ body{
     <div class="top-left">
       <img class="top-logo" src="https://abutmentcompatibili.com/media/logo/stores/1/logo-abutment.png" alt="">
       <span class="top-badge">Admin Ordini</span>
-      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-15.8</span>
+      <span class="app-rev" title="Versione in uso" style="font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.02em;white-space:nowrap">Rev. 2026-07-16.1</span>
     </div>
     <div class="top-operator">
       <span class="online-badge" id="status-badge">⬤ Online</span>
@@ -1257,6 +1257,9 @@ async function loadOrders() {
     allOrders = data || [];
     renderOrders();
     updateStats();
+    // I suggerimenti sono un extra letto da un file che può non esistere: non devono MAI
+    // ritardare o bloccare la lista ordini. Arrivano dopo e, se serve, ridisegnano il dettaglio.
+    loadSuggerimenti().then(() => { if (selectedOrderId) openDetail(selectedOrderId); });
   } catch(e) {
     showToast("Errore caricamento: " + e.message, "red");
   } finally {
@@ -1743,12 +1746,15 @@ function copyOrderId(id) {
     .catch(() => showToast("Copia non riuscita", "red"));
 }
 
-// Sync NA avvenuta = è arrivata la scheda produzione da New Ancorvis (scheda_dati valorizzato)
+// Sync NA avvenuta = è arrivata la scheda vera da New Ancorvis.
+// WHITELIST sui campi che solo la scheda NA porta (id_na, codice_ordine): deve restare tale.
+// Con una blacklist ("qualsiasi chiave tranne queste due") ogni nuovo campo di servizio scritto
+// in scheda_dati — un link, un'impronta, un rifiuto — dichiarerebbe l'ordine sincronizzato per
+// sbaglio: pallino verde su un ordine mai agganciato, e blocco del rimedio manuale.
+// Gemello di `schedaArrivata` in na-abc-sync/sync.mjs: vanno tenuti allineati.
 function isSyncedNA(o) {
   const s = o.scheda_dati;
-  if (!s || typeof s !== 'object') return false;
-  // Il solo link/stub manuale (na_manual_id / na_create) NON conta come "sincronizzato": la scheda vera non è ancora arrivata.
-  return Object.keys(s).some(k => k !== 'na_manual_id' && k !== 'na_create');
+  return !!(s && typeof s === 'object' && (s.id_na || s.codice_ordine));
 }
 
 // ── Icone tipo-lavorazione (famiglia Configuratore) per la miniatura riga ──
@@ -1994,9 +2000,11 @@ function bulkClear() {
 // ── Sync NA non trovata: link manuale AC↔NA (imposta scheda_dati.na_manual_id + forza sync) ──
 function naManualBlock(o) {
   const cur = (o.scheda_dati && o.scheda_dati.na_manual_id) || '';
+  const sug = suggerimentoPer(o.id);
   return `<div class="detail-section na-manual">
     <div class="detail-section-title">${icon('activity')} Sincronizzazione NA non trovata</div>
     <div class="na-manual-msg">Questo ordine non è ancora agganciato a una scheda di New Ancorvis. Se lo trovi su NA Loading, inserisci il suo <b>ID</b> (il numero nella prima colonna di ordini.php) per collegarli.</div>
+    ${sug ? `<div class="na-manual-pending">${icon('search')} ${esc(motivoSuggerimento(sug))} <button class="dash-btn ghost" onclick="document.getElementById('na-manual-input').value='${esc(String(sug.na_id))}'">Usa NA #${esc(String(sug.na_id))}</button></div>` : ''}
     <div class="na-manual-row">
       <input id="na-manual-input" type="text" inputmode="numeric" placeholder="ID NA Loading (es. 40183)" value="${esc(cur)}" onkeydown="if(event.key==='Enter')naManualLink('${o.id}')">
       <button class="dash-btn primary" onclick="naManualLink('${o.id}')">${icon('link')} Collega e sincronizza</button>
@@ -2004,12 +2012,69 @@ function naManualBlock(o) {
     ${cur ? `<div class="na-manual-pending">${icon('activity')} Collegato a <b>NA #${esc(cur)}</b> — in attesa che la sync porti la scheda. <button class="dash-btn ghost" onclick="forzaSync(this)">Riavvia sync</button></div>` : ''}
   </div>`;
 }
+
+// ── Aggancio automatico per impronta STL: va sempre mostrato e sempre annullabile ──
+// Se l'abbinamento fosse sbagliato, il cliente vedrebbe sulla sua pagina la scheda, l'STL e i
+// documenti di un altro lavoro: serve un rimedio a portata di mano, non una segnalazione via mail.
+function naAutoBlock(o) {
+  const s = o.scheda_dati || {};
+  if (!s.na_link_id) return '';
+  return `<div class="detail-section na-manual">
+    <div class="detail-section-title">${icon('link')} Agganciato automaticamente</div>
+    <div class="na-manual-msg">Collegato da solo a <b>NA #${esc(String(s.na_link_id))}</b>: il file STL di questo ordine e quello caricato su New Ancorvis sono lo stesso file, byte per byte${s.elementi ? ` — dente <b>${esc(s.elementi)}</b>` : ''}. Se non è il lavoro giusto, scollegalo: la scheda sparisce anche dalla pagina del cliente e la sync non riproporrà più questo abbinamento.</div>
+    <div class="na-manual-row"><button class="dash-btn ghost" onclick="naScollega('${o.id}')">${icon('back')} Scollega da NA #${esc(String(s.na_link_id))}</button></div>
+  </div>`;
+}
+
+async function naScollega(orderId) {
+  const o = allOrders.find(x => x.id === orderId); if (!o) return;
+  const s = o.scheda_dati || {};
+  const naId = String(s.na_link_id || '');
+  if (!naId) return;
+  if (!confirm(`Scollegare l'ordine ${orderCode(o)} da NA #${naId}?\n\nLa scheda di produzione, i lotti e i documenti spariscono da questo ordine e dalla pagina del cliente. L'abbinamento non verrà più riproposto in automatico.`)) return;
+  // Si azzera TUTTA la scheda: tenerne dei pezzi lascerebbe in giro i dati del lavoro sbagliato.
+  // Resta solo la memoria del rifiuto, che è ciò che impedisce alla sync di rifarlo al prossimo giro.
+  const rifiutati = [...new Set([...(s.na_rifiutati || []), naId])];
+  try {
+    await sb('PATCH', `orders?id=eq.${orderId}`, { scheda_dati: { na_rifiutati: rifiutati }, tracking: null });
+    o.scheda_dati = { na_rifiutati: rifiutati }; o.tracking = null;
+    showToast('Scollegato da NA #' + naId, 'green');
+    openDetail(orderId); renderOrders();
+  } catch (e) { showToast('Errore: ' + e.message, 'red'); }
+}
+
+// ── Suggerimenti di aggancio: i casi che la sync NON ha ritenuto certi ──
+// Il file è volutamente povero (solo UUID ordine + id NA + motivo): sta in un bucket pubblico,
+// quindi non deve contenere nomi, contatti o share_token. I dati dell'ordine li ha già l'Admin.
+let SUGGERIMENTI = { ts: null, suggerimenti: [] };
+async function loadSuggerimenti() {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/storage/v1/object/public/diagnostica/suggerimenti.json?t=${Date.now()}`,
+      { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+    if (r.ok) SUGGERIMENTI = await r.json();
+  } catch { /* assente: nessun suggerimento, non è un errore */ }
+}
+function suggerimentoPer(orderId) {
+  return (SUGGERIMENTI.suggerimenti || []).find(s => (s.ac_ids || []).includes(orderId));
+}
+function motivoSuggerimento(s) {
+  const na = `NA #${s.na_id}`;
+  if (s.motivo === 'ambiguo') return `Forse è ${na}, ma lo stesso file STL risulta su più ordini: controlla prima di collegare.`;
+  if (s.motivo === 'veto_denti') return `${na} ha lo stesso file STL ma denti diversi (qui ${(s.denti_ac || []).join(',')}, su NA ${(s.denti_na || []).join(',')}): controlla.`;
+  if (s.motivo === 'na_precede_ac') return `${na} ha lo stesso file STL ma è più vecchio di questo ordine — forse è un lavoro precedente.`;
+  if (s.motivo === 'ac_gia_sincronizzato') return `${na} ha lo stesso file STL di un ordine già sincronizzato: forse è un rifacimento.`;
+  if (s.motivo === 'link_manuale_presente') return `${na} ha lo stesso file STL, ma qui c'è già un collegamento manuale.`;
+  return `Possibile corrispondenza con ${na} (${s.motivo}).`;
+}
 async function naManualLink(orderId) {
   const inp = document.getElementById('na-manual-input');
   const val = ((inp && inp.value) || '').trim();
   if (!/^\d{1,12}$/.test(val)) { showToast('Inserisci l\'ID numerico di NA Loading (es. 40183)', 'red'); return; }
   const o = allOrders.find(x => x.id === orderId); if (!o) return;
   const merged = { ...(o.scheda_dati || {}), na_manual_id: val };
+  // Il link manuale è una decisione umana e vince: togliere un eventuale aggancio automatico
+  // evita che l'ordine finisca collegato a due righe NA diverse, con due schede che si sovrascrivono.
+  delete merged.na_link_id;
   try {
     await sb('PATCH', `orders?id=eq.${orderId}`, { scheda_dati: merged });
     o.scheda_dati = merged;
@@ -2103,8 +2168,11 @@ function openDetail(id) {
       </button>
     </div>
 
-    <!-- SYNC NA NON TROVATA → LINK MANUALE (solo se non sincronizzato) -->
-    ${!isSyncedNA(o) ? naManualBlock(o) : ''}
+    <!-- SYNC NA NON TROVATA → LINK MANUALE. Non si mostra se c'è già un aggancio automatico:
+         sarebbero due blocchi contraddittori, e due collegamenti sullo stesso ordine. -->
+    ${!isSyncedNA(o) && !(o.scheda_dati || {}).na_link_id ? naManualBlock(o) : ''}
+    <!-- AGGANCIATO DA SOLO → traccia di come, e come disfarlo -->
+    ${naAutoBlock(o)}
 
     <!-- OPERATOR -->
     <div class="detail-section">

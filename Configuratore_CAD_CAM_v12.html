@@ -1745,9 +1745,6 @@ async function saveOrderToSupabase(fileLink, fileName) {
     return;
   }
 
-  // Anteprima 3D lato Admin: carica lo STL grezzo su Storage (non blocca l'ordine se fallisce).
-  await uploadStlToStorage(shareToken).catch(e => console.warn("⚠️ STL storage:", e.message));
-
   const mats = MATERIALI[state.lavId] || [];
   const mat = mats[state.matIdx] || null;
   const base = (lav && mat !== null)
@@ -1803,6 +1800,13 @@ async function saveOrderToSupabase(fileLink, fileName) {
     throw new Error(`Supabase ${res.status}: ${errText}`);
   }
   console.log("✅ Ordine salvato su Supabase");
+
+  // L'STL si carica DOPO che l'ordine è salvato, mai prima.
+  // Il file sta nel bucket pubblico sotto il nome <share_token>.stl: se l'ordine non nasce
+  // (INSERT fallito, o il cliente che ritenta e genera un altro token), quel modello del paziente
+  // resta lì senza nessuna riga che lo referenzi — invisibile a ogni pulizia e scaricabile per
+  // sempre da chi conosce l'URL. Non blocca l'ordine: se fallisce, l'Admin usa il caricamento manuale.
+  await uploadStlToStorage(shareToken).catch(e => console.warn("⚠️ STL storage:", e.message));
 }
 
 const EMAILJS_SERVICE_ID  = "service_dzymfnb";
@@ -4439,12 +4443,22 @@ async function doSendEmail() {
       const res = await uploadZipGetLink(blob);
       link = res.link; name = res.name;
     } catch(uploadErr) {
-      await saveOrderToSupabase(null, null).catch(e=>console.error('Supabase fallback error:',e));
+      // Se anche il salvataggio fallisce, l'ordine non esiste da nessuna parte: dirlo, non
+      // limitarsi a un console.error. Altrimenti il cliente legge "Ordine inviato!" e resta
+      // convinto di averlo mandato, mentre in Admin non arriva niente e nessuno lo sa.
+      let salvato = true;
+      await saveOrderToSupabase(null, null).catch(e=>{
+        salvato = false;
+        console.error('Supabase fallback error:', e);
+        alert('⚠️ Ordine NON salvato nel sistema: ' + e.message + '\n\nScarica lo ZIP e contatta ordini@abutmentcompatibili.com');
+      });
       hideSpinner();
-      if(confirm("Upload file non riuscito (" + uploadErr.message + ").\nL'ordine è stato comunque registrato nel sistema.\nScaricare lo ZIP localmente per allegarlo manualmente?")) {
+      if(confirm("Upload file non riuscito (" + uploadErr.message + ").\n" +
+                 (salvato ? "L'ordine è stato comunque registrato nel sistema." : "L'ordine NON è stato registrato: va inviato a mano.") +
+                 "\nScaricare lo ZIP localmente per allegarlo manualmente?")) {
         doDownloadZip();
       }
-      state.orderSent = true;
+      state.orderSent = salvato;
       render();
       return;
     }

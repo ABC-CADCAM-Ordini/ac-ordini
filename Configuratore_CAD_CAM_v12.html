@@ -1697,10 +1697,13 @@ async function uploadStlToStorage(shareToken) {
   console.log("✅ STL salvato su Storage: ordini-stl/" + shareToken + ".stl");
 }
 
-async function saveOrderToSupabase(fileLink, fileName) {
+// `token` arriva dal chiamante quando lo ZIP è già stato caricato: ZIP e STL stanno nel
+// bucket sotto il nome dello share_token, che quindi deve esistere PRIMA dell'upload.
+// Se non arriva (ramo BeFree, che non ha file), se ne genera uno qui come prima.
+async function saveOrderToSupabase(fileLink, fileName, token) {
   if (SUPABASE_URL.includes("YOUR_PROJECT")) return;
   const lav = LAVORAZIONI.find(x => x.id === state.lavId);
-  const shareToken = crypto.randomUUID();
+  const shareToken = token || crypto.randomUUID();
   lastOrderToken = shareToken;
 
   // Payload BeFree
@@ -1840,7 +1843,9 @@ async function sendEmailJSNotification(fileLink) {
       impianto:   clinico.marcaImpianto || "—",
       note:       [clinico.noteClinico, cliente.note].filter(Boolean).join(" | ") || "",
       data:       new Date().toLocaleString("it-IT"),
-      file:       fileLink || "Nessun file allegato"
+      // Lo ZIP sta in un bucket privato: l'URL non si apre da una mail, e va bene così —
+      // contiene i dati del cliente e l'STL del paziente. Si scarica dal gestionale, autenticati.
+      file:       fileLink ? "Nel gestionale: apri l'ordine → 📦 File ordine" : "Nessun file allegato"
     }, EMAILJS_PUBLIC_KEY);
   } catch(e) {
     console.warn("EmailJS error:", e);
@@ -4098,68 +4103,33 @@ async function buildZipBlob() {
   return await zip.generateAsync({type:"blob"});
 }
 
-async function uploadZipGetLink(blob) {
+// Carica lo ZIP dell'ordine nel bucket PRIVATO `ordini-zip`, sotto il nome <share_token>.zip.
+//
+// Prima finiva su gofile.io (e in subordine file.io e catbox.moe): host anonimi e pubblici,
+// senza account e senza contratto. Ma lo ZIP contiene `config_ordine.txt` — nominativo, studio,
+// telefono, email e P.IVA del cliente — insieme all'STL del paziente, e il nome del file portava
+// il nome dello studio: chiunque avesse l'URL scaricava tutto, per sempre e senza credenziali.
+// Ora resta nel nostro Storage, privato: solo l'Admin loggato lo scarica, con un URL firmato.
+//
+// La chiave anon può SOLO creare (policy in sql/zip-ordine-privato.sql): non legge e non sovrascrive.
+async function uploadZipGetLink(blob, shareToken) {
+  if(!shareToken) throw new Error("share_token mancante");
   const fname = `ordine_${new Date().toISOString().slice(0,10)}_${(cliente.azienda||cliente.cognome||"AC").replace(/[^a-zA-Z0-9]/g,"_")}.zip`;
-  const errors = [];
-
-  // ── Provider 1: GoFile ────────────────────────────────────────
-  try {
-    console.log("📤 Tentativo upload GoFile...");
-    const serverRes = await fetch("https://api.gofile.io/servers");
-    if(!serverRes.ok) throw new Error(`GoFile servers HTTP ${serverRes.status}`);
-    const serverJson = await serverRes.json();
-    if(serverJson.status !== "ok") throw new Error("GoFile nessun server");
-    const server = serverJson.data.servers[0].name;
-    const fd = new FormData();
-    fd.append("file", blob, fname);
-    const upRes = await fetch(`https://upload.gofile.io/uploadfile`, { method:"POST", body: fd });
-    if(!upRes.ok) throw new Error(`GoFile upload HTTP ${upRes.status}`);
-    const upJson = await upRes.json();
-    if(upJson.status !== "ok") throw new Error("GoFile upload: "+upJson.status);
-    console.log("✅ Upload GoFile OK:", upJson.data.downloadPage);
-    return { link: upJson.data.downloadPage, name: fname };
-  } catch(e) {
-    errors.push("GoFile: "+e.message);
-    console.warn("⚠️ GoFile fallito:", e.message);
-  }
-
-  // ── Provider 2: file.io ───────────────────────────────────────
-  try {
-    console.log("📤 Tentativo upload file.io...");
-    const fd2 = new FormData();
-    fd2.append("file", blob, fname);
-    fd2.append("expires", "14d");
-    fd2.append("maxDownloads", "100");
-    const upRes2 = await fetch("https://file.io", { method:"POST", body: fd2 });
-    if(!upRes2.ok) throw new Error(`file.io HTTP ${upRes2.status}`);
-    const upJson2 = await upRes2.json();
-    if(!upJson2.success || !upJson2.link) throw new Error("file.io risposta non valida");
-    console.log("✅ Upload file.io OK:", upJson2.link);
-    return { link: upJson2.link, name: fname };
-  } catch(e) {
-    errors.push("file.io: "+e.message);
-    console.warn("⚠️ file.io fallito:", e.message);
-  }
-
-  // ── Provider 3: catbox.moe ────────────────────────────────────
-  try {
-    console.log("📤 Tentativo upload catbox.moe...");
-    const fd3 = new FormData();
-    fd3.append("reqtype", "fileupload");
-    fd3.append("fileToUpload", blob, fname);
-    const upRes3 = await fetch("https://catbox.moe/user/api.php", { method:"POST", body: fd3 });
-    if(!upRes3.ok) throw new Error(`catbox HTTP ${upRes3.status}`);
-    const link3 = await upRes3.text();
-    if(!link3.startsWith("https://")) throw new Error("catbox risposta non valida: "+link3);
-    console.log("✅ Upload catbox OK:", link3);
-    return { link: link3.trim(), name: fname };
-  } catch(e) {
-    errors.push("catbox: "+e.message);
-    console.warn("⚠️ catbox fallito:", e.message);
-  }
-
-  // Tutti e tre i provider falliti
-  throw new Error("Tutti i provider falliti:\n" + errors.join("\n"));
+  const path = `${shareToken}.zip`;
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/ordini-zip/${path}`, {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/zip"
+    },
+    body: blob
+  });
+  if(!res.ok) throw new Error(`Storage ${res.status}: ${(await res.text()).slice(0,160)}`);
+  console.log("✅ ZIP ordine salvato (bucket privato)");
+  // `link` è il percorso dell'oggetto, non un URL scaricabile: il bucket è privato e
+  // l'Admin se lo fa firmare al momento. `name` resta il nome leggibile per l'operatore.
+  return { link: `${SUPABASE_URL}/storage/v1/object/ordini-zip/${path}`, name: fname };
 }
 
 // ── Anteprima STL in una nuova finestra ───────────────────────
@@ -4438,16 +4408,17 @@ async function doSendEmail() {
   try {
     showSpinner("Caricamento file...<br><small style='opacity:.7'>potrebbe richiedere qualche secondo</small>");
     const blob = await buildZipBlob();
+    const shareToken = crypto.randomUUID();   // serve PRIMA: è il nome dello ZIP nel bucket
     let link = null, name = null;
     try {
-      const res = await uploadZipGetLink(blob);
+      const res = await uploadZipGetLink(blob, shareToken);
       link = res.link; name = res.name;
     } catch(uploadErr) {
       // Se anche il salvataggio fallisce, l'ordine non esiste da nessuna parte: dirlo, non
       // limitarsi a un console.error. Altrimenti il cliente legge "Ordine inviato!" e resta
       // convinto di averlo mandato, mentre in Admin non arriva niente e nessuno lo sa.
       let salvato = true;
-      await saveOrderToSupabase(null, null).catch(e=>{
+      await saveOrderToSupabase(null, null, shareToken).catch(e=>{
         salvato = false;
         console.error('Supabase fallback error:', e);
         alert('⚠️ Ordine NON salvato nel sistema: ' + e.message + '\n\nScarica lo ZIP e contatta ordini@abutmentcompatibili.com');
@@ -4462,7 +4433,7 @@ async function doSendEmail() {
       render();
       return;
     }
-    await saveOrderToSupabase(link, name).catch(e=>{console.error('Supabase error:',e);alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com');});
+    await saveOrderToSupabase(link, name, shareToken).catch(e=>{console.error('Supabase error:',e);alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com');});
     await sendEmailJSNotification(link);
     hideSpinner();
 
@@ -4555,21 +4526,30 @@ async function doSendWhatsapp() {
   try {
     showSpinner("Caricamento file...<br><small style='opacity:.7'>potrebbe richiedere qualche secondo</small>");
     const blob = await buildZipBlob();
+    const shareToken = crypto.randomUUID();   // serve PRIMA: è il nome dello ZIP nel bucket
     let link = null, name = null;
     try {
-      const res = await uploadZipGetLink(blob);
+      const res = await uploadZipGetLink(blob, shareToken);
       link = res.link; name = res.name;
     } catch(uploadErr) {
-      await saveOrderToSupabase(null, null).catch(e=>console.error('Supabase fallback error:',e));
+      // Stesso trattamento dell'altro ramo d'invio: un ordine non salvato non si tace.
+      let salvato = true;
+      await saveOrderToSupabase(null, null, shareToken).catch(e=>{
+        salvato = false;
+        console.error('Supabase fallback error:', e);
+        alert('⚠️ Ordine NON salvato nel sistema: ' + e.message + '\n\nScarica lo ZIP e contatta ordini@abutmentcompatibili.com');
+      });
       hideSpinner();
-      if(confirm("Upload file non riuscito (" + uploadErr.message + ").\nL'ordine è stato comunque registrato nel sistema.\nScaricare lo ZIP localmente?")) {
+      if(confirm("Upload file non riuscito (" + uploadErr.message + ").\n" +
+                 (salvato ? "L'ordine è stato comunque registrato nel sistema." : "L'ordine NON è stato registrato: va inviato a mano.") +
+                 "\nScaricare lo ZIP localmente?")) {
         doDownloadZip();
       }
-      state.orderSent = true;
+      state.orderSent = salvato;
       render();
       return;
     }
-    await saveOrderToSupabase(link, name).catch(e=>{console.error('Supabase error:',e);alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com');});
+    await saveOrderToSupabase(link, name, shareToken).catch(e=>{console.error('Supabase error:',e);alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com');});
     await sendEmailJSNotification(link);
     hideSpinner();
 
@@ -4632,13 +4612,14 @@ async function doDownloadZipOrder() {
     if(!blob) { hideSpinner(); alert("JSZip non disponibile."); return; }
 
     // Try to upload to get a link for the DB record
+    const shareToken = crypto.randomUUID();   // serve PRIMA: è il nome dello ZIP nel bucket
     let link = null, name = null;
     try {
-      const res = await uploadZipGetLink(blob);
+      const res = await uploadZipGetLink(blob, shareToken);
       link = res.link; name = res.name;
     } catch(_) { /* upload fallback: save without link */ }
 
-    await saveOrderToSupabase(link, name).catch(e=>{console.error('Supabase error:',e);alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com');});
+    await saveOrderToSupabase(link, name, shareToken).catch(e=>{console.error('Supabase error:',e);alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com');});
     await sendEmailJSNotification(link);
     hideSpinner();
 

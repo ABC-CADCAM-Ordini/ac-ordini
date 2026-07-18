@@ -1704,7 +1704,9 @@ async function saveOrderToSupabase(fileLink, fileName, token) {
   if (SUPABASE_URL.includes("YOUR_PROJECT")) return;
   const lav = LAVORAZIONI.find(x => x.id === state.lavId);
   const shareToken = token || crypto.randomUUID();
-  lastOrderToken = shareToken;
+  // lastOrderToken si imposta SOLO dopo un INSERT riuscito (più in basso): altrimenti,
+  // se il salvataggio fallisce, il box "Segui il tuo ordine" mostrerebbe un link a un
+  // ordine mai creato. Fino ad allora resta al valore precedente (null a pagina appena aperta).
 
   // Payload BeFree
   if(lav && lav.befree) {
@@ -1745,6 +1747,7 @@ async function saveOrderToSupabase(fileLink, fileName, token) {
       body: JSON.stringify(payload)
     });
     if(!res.ok) { const e=await res.text(); throw new Error(`Supabase ${res.status}: ${e}`); }
+    lastOrderToken = shareToken;   // insert riuscito: ora il link di tracciamento è valido
     return;
   }
 
@@ -1802,6 +1805,7 @@ async function saveOrderToSupabase(fileLink, fileName, token) {
     console.error("❌ Supabase errore", res.status, errText);
     throw new Error(`Supabase ${res.status}: ${errText}`);
   }
+  lastOrderToken = shareToken;   // insert riuscito: ora il link di tracciamento è valido
   console.log("✅ Ordine salvato su Supabase");
 
   // L'STL si carica DOPO che l'ordine è salvato, mai prima.
@@ -4433,7 +4437,8 @@ async function doSendEmail() {
       render();
       return;
     }
-    await saveOrderToSupabase(link, name, shareToken).catch(e=>{console.error('Supabase error:',e);alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com');});
+    let salvato = true;
+    await saveOrderToSupabase(link, name, shareToken).catch(e=>{ salvato = false; console.error('Supabase error:',e); alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com'); });
     await sendEmailJSNotification(link);
     hideSpinner();
 
@@ -4472,7 +4477,7 @@ async function doSendEmail() {
     mailLink.click();
     setTimeout(() => document.body.removeChild(mailLink), 500);
 
-    state.orderSent = true;
+    state.orderSent = salvato;   // se il salvataggio è fallito l'ordine resta inviabile: niente falsa conferma
     render();
   } catch(err) {
     hideSpinner();
@@ -4549,7 +4554,8 @@ async function doSendWhatsapp() {
       render();
       return;
     }
-    await saveOrderToSupabase(link, name, shareToken).catch(e=>{console.error('Supabase error:',e);alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com');});
+    let salvato = true;
+    await saveOrderToSupabase(link, name, shareToken).catch(e=>{ salvato = false; console.error('Supabase error:',e); alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com'); });
     await sendEmailJSNotification(link);
     hideSpinner();
 
@@ -4583,7 +4589,7 @@ async function doSendWhatsapp() {
     waLink.click();
     setTimeout(() => document.body.removeChild(waLink), 500);
 
-    state.orderSent = true;
+    state.orderSent = salvato;   // se il salvataggio è fallito l'ordine resta inviabile: niente falsa conferma
     render();
   } catch(err) {
     hideSpinner();
@@ -4619,7 +4625,8 @@ async function doDownloadZipOrder() {
       link = res.link; name = res.name;
     } catch(_) { /* upload fallback: save without link */ }
 
-    await saveOrderToSupabase(link, name, shareToken).catch(e=>{console.error('Supabase error:',e);alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com');});
+    let salvato = true;
+    await saveOrderToSupabase(link, name, shareToken).catch(e=>{ salvato = false; console.error('Supabase error:',e); alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com'); });
     await sendEmailJSNotification(link);
     hideSpinner();
 
@@ -4632,7 +4639,7 @@ async function doDownloadZipOrder() {
     a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 500);
 
-    state.orderSent = true;
+    state.orderSent = salvato;   // se il salvataggio è fallito l'ordine resta inviabile: niente falsa conferma
     render();
   } catch(err) {
     hideSpinner();

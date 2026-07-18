@@ -168,6 +168,13 @@
       <p>Il link non è valido oppure è scaduto (le schede restano consultabili per 30 giorni dalla conclusione dell'ordine). Scrivi a <b>ordini@abutmentcompatibili.com</b> se ti serve ancora.</p>
     </div>
 
+    <div id="trkerror" class="state hidden">
+      <div class="emo">📡</div>
+      <h2>Connessione non disponibile</h2>
+      <p>Non riesco a raggiungere il server in questo momento. Controlla la connessione e riprova.<br>
+      <button type="button" onclick="location.reload()" style="margin-top:14px;padding:9px 20px;border:none;border-radius:9px;background:#0065B3;color:#fff;font-weight:800;font-size:13px;cursor:pointer">↻ Riprova</button></p>
+    </div>
+
     <div id="content" class="hidden">
       <div class="order-band">
         <div class="code">Ordine <span id="o-code"></span></div>
@@ -424,10 +431,11 @@ async function load(){
       headers:{ "apikey":SUPABASE_KEY, "Content-Type":"application/json" },
       body: JSON.stringify({ p_token: token })
     });
+    if(!res.ok) throw new Error("HTTP " + res.status);
     const rows = await res.json();
     if(Array.isArray(rows) && rows.length) render(rows[0], token);
-    else { hide("loading"); show("missing"); }
-  }catch(e){ hide("loading"); show("missing"); }
+    else { hide("loading"); show("missing"); }   // 200 con lista vuota = link davvero non valido/scaduto
+  }catch(e){ hide("loading"); show("trkerror"); }   // rete/server = temporaneo, non "link scaduto"
 }
 load();
 

@@ -787,6 +787,16 @@
   .tooth-btn:hover .tooth-svg path.root  { stroke: #93C5FD; }
   .tooth-btn.selected .tooth-svg path.root { fill: #EFF6FF; stroke: #93C5FD; }
 
+  /* Mobile: l'arcata a 16 denti non entra in ~360px → i molari finivano tagliati e non
+     selezionabili. Riduciamo la scala e, come rete di sicurezza, rendiamo l'arcata
+     scorrevole in orizzontale. Serve justify-content:flex-start: con l'overflow centrato
+     le estremità resterebbero irraggiungibili (bug noto del flexbox). */
+  @media (max-width: 480px) {
+    .dental-arch { justify-content: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+    .dental-arch .tooth-svg { width: 20px; height: 37px; }
+    .dental-arch .tooth-btn { padding: 0 1px; }
+  }
+
   .selected-teeth-display {
     min-height: 32px; background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
     border-radius: 10px; padding: 7px 14px; font-size: 12px; font-weight: 700;

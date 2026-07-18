@@ -554,7 +554,10 @@
   @media print {
     body * { visibility: hidden; }
     #print-sheet, #print-sheet * { visibility: visible; }
+    /* #print-sheet ha display:none inline (nascosto a schermo): il !important lo mostra
+       SOLO in stampa. Senza, visibility:visible non basta e il foglio esce bianco. */
     #print-sheet {
+      display: block !important;
       position: fixed; inset: 0;
       background: white; padding: 28px 32px;
       font-family: 'Segoe UI', Arial, sans-serif;

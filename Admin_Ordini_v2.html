@@ -1025,19 +1025,31 @@ async function sb(method, path, body = null) {
   // la RLS filtra la riga e la modifica tocca 0 righe restituendo 200 — senza questo controllo
   // andrebbe persa in silenzio, con l'operatore convinto di aver salvato.
   const wantsRows = (method === "PATCH");
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    method,
-    headers: {
-      "apikey": SUPABASE_KEY,
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json",
-      "Prefer": (method === "POST" || wantsRows) ? "return=representation" : "return=minimal"
-    },
-    body: body ? JSON.stringify(body) : null
-  });
+  let res;
+  try {
+    res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      method,
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "Prefer": (method === "POST" || wantsRows) ? "return=representation" : "return=minimal"
+      },
+      body: body ? JSON.stringify(body) : null
+    });
+  } catch (netErr) {
+    console.error("Rete:", netErr);
+    throw new Error("Connessione non riuscita: controlla la rete e riprova.");
+  }
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Supabase error ${res.status}: ${err}`);
+    const detail = await res.text();
+    console.error(`Supabase ${res.status} su ${method} ${path}:`, detail);
+    const msg = (res.status === 401 || res.status === 403) ? "Sessione scaduta o permesso negato: esci e rientra."
+      : res.status === 409 ? "Elemento già esistente o già collegato."
+      : res.status === 404 ? "Elemento non trovato."
+      : res.status >= 500 ? "Il server non risponde: riprova tra poco."
+      : `Errore del server (${res.status}).`;
+    throw new Error(msg);
   }
   const text = await res.text();
   const parsed = text ? JSON.parse(text) : null;
@@ -1088,8 +1100,10 @@ async function enterAppFromSession(user) {
     }
     enterApp(prof.nome, prof.ruolo);
   } catch (e) {
-    await sbAuth.auth.signOut();
-    err.textContent = "Errore nel caricamento del profilo: " + e.message;
+    // Errore transitorio (rete) nel caricamento del profilo: NON distruggere una sessione valida
+    // con signOut — quello resta riservato al ramo profilo assente/disattivato qui sopra.
+    console.error("Caricamento profilo fallito:", e);
+    err.textContent = "Errore di rete nel caricamento del profilo. Ricarica la pagina per riprovare.";
     err.style.display = "block";
     if (btn) { btn.textContent = "Accedi"; btn.disabled = false; }
   }
@@ -1270,9 +1284,17 @@ async function loadOrders() {
     updateStats();
     // I suggerimenti sono un extra letto da un file che può non esistere: non devono MAI
     // ritardare o bloccare la lista ordini. Arrivano dopo e, se serve, ridisegnano il dettaglio.
-    loadSuggerimenti().then(() => { if (selectedOrderId) openDetail(selectedOrderId); });
+    loadSuggerimenti().then(() => {
+      // Non ridisegnare il dettaglio se l'operatore sta scrivendo la nota: perderebbe il testo.
+      const a = document.activeElement;
+      if (selectedOrderId && !(a && a.id && a.id.startsWith('op-note-'))) openDetail(selectedOrderId);
+    });
   } catch(e) {
     showToast("Errore caricamento: " + e.message, "red");
+    const body = document.getElementById("orders-body");
+    if (body) body.innerHTML = `<div style="padding:40px 20px;text-align:center;color:var(--gray);line-height:1.6">
+      Impossibile caricare gli ordini.<br><span style="font-size:12px">${esc(e.message)}</span><br>
+      <button class="btn-print" style="margin-top:12px" onclick="loadOrders()">↻ Riprova</button></div>`;
   } finally {
     showSpinner(false);
   }
@@ -1780,7 +1802,13 @@ async function scaricaZip(orderId) {
     });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const { signedURL } = await r.json();
-    window.open(`${SUPABASE_URL}/storage/v1${signedURL}`, '_blank', 'noopener');
+    // window.open dopo un await viene bloccato dal popup-blocker: usiamo un <a download>,
+    // che non è soggetto al blocco e scarica il file senza lasciare l'Admin.
+    const a = document.createElement('a');
+    a.href = `${SUPABASE_URL}/storage/v1${signedURL}&download`;
+    a.download = (path.split('/').pop() || 'ordine.zip');
+    document.body.appendChild(a); a.click();
+    setTimeout(() => document.body.removeChild(a), 500);
   } catch (e) { showToast('Download non riuscito: ' + e.message, 'red'); }
 }
 
@@ -2024,12 +2052,20 @@ async function bulkLink() {
   const cid = sel && sel.value;
   if (!cid) { showToast('Scegli un cliente', 'red'); return; }
   const ids = [...selectedOrders];
-  let ok = 0;
+  let ok = 0, gia = 0, errori = 0;
   for (const oid of ids) {
     try { await sb('POST', 'ordini_condivisi', { order_id: oid, collaboratore_id: cid }); ok++; }
-    catch (e) { /* già collegato (409) → ignora */ }
+    catch (e) {
+      // Distingui «già collegato» (benigno) da un errore vero: non dichiarare successo se nessuno è passato.
+      if (/409|duplicate|23505|già|gia/i.test(String(e.message || ''))) gia++;
+      else errori++;
+    }
   }
-  showToast(`${ok} cas${ok === 1 ? 'o' : 'i'} collegat${ok === 1 ? 'o' : 'i'} alla dashboard ✓`, 'green');
+  if (errori > 0) {
+    showToast(`${ok} collegat${ok === 1 ? 'o' : 'i'}, ${errori} error${errori === 1 ? 'e' : 'i'}${gia ? ', ' + gia + ' già presenti' : ''}`, 'red');
+  } else {
+    showToast(`${ok} cas${ok === 1 ? 'o' : 'i'} collegat${ok === 1 ? 'o' : 'i'}${gia ? ', ' + gia + ' già presenti' : ''} alla dashboard ✓`, 'green');
+  }
   selectedOrders.clear();
   renderBulkBar();
   renderOrders();
@@ -3029,10 +3065,20 @@ function closeNotifyModal() {
   _notifyStatus  = null;
 }
 
+// Normalizza il numero per wa.me: un mobile IT salvato senza prefisso (es. "333 1234567")
+// diventerebbe un numero estero. Anteponiamo 39 ai mobili italiani; togliamo un eventuale "00".
+function waNumber(raw){
+  let n = String(raw || '').replace(/\D/g, '');
+  if(n.startsWith('00')) n = n.slice(2);
+  if(n.startsWith('39') && n.length >= 11) return n;
+  if(n.startsWith('3') && (n.length === 9 || n.length === 10)) return '39' + n;
+  return n;
+}
+
 function sendStatusWA() {
   const o = allOrders.find(x => x.id === _notifyOrderId);
   if(!o || !o.telefono) return;
-  const tel  = o.telefono.replace(/\D/g, '');
+  const tel  = waNumber(o.telefono);
   const text = (STATUS_MSG[_notifyStatus] ? STATUS_MSG[_notifyStatus](o) : '') + linkClienteBlocco(o);
   window.open(`https://wa.me/${tel}?text=${encodeURIComponent(text)}`, '_blank');
   closeNotifyModal();
@@ -3052,7 +3098,7 @@ function sendStatusEmail() {
 function openWA(id) {
   const o = allOrders.find(x => x.id === id);
   if(!o || !o.telefono) return;
-  const tel = o.telefono.replace(/\D/g,'');
+  const tel = waNumber(o.telefono);
   const text = buildWAText(o) + linkClienteBlocco(o);
   window.open(`https://wa.me/${tel}?text=${encodeURIComponent(text)}`, '_blank');
 }

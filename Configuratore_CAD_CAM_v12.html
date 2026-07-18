@@ -3782,9 +3782,10 @@ function renderStep() {
     </div>`;
 
     if (!state.orderSent) {
-      html += `<div class="nav-row no-print" style="margin-top:16px">
-        <button class="btn btn-secondary" onclick="resetApp()">+ Nuovo preventivo</button>
+      html += `<div class="nav-row no-print" style="margin-top:16px;gap:10px;flex-wrap:wrap;justify-content:center">
+        <button class="btn btn-secondary" onclick="editBeforeSend()">&larr; Modifica dati</button>
         <button class="btn btn-secondary" onclick="doPrint()">🖨️ Stampa / PDF</button>
+        <button class="btn btn-secondary" onclick="resetApp()">+ Nuovo preventivo</button>
       </div>`;
     }
   }
@@ -4777,10 +4778,20 @@ function goNext() {
 function goBack() {
   if(state.step>0) { state.step--; render(); }
 }
+// Dal riepilogo pre-invio si torna a modificare i dati SENZA perdere nulla:
+// basta uscire dallo stato "done" (state.step è già sull'ultimo passo, il form cliente).
+function editBeforeSend() {
+  state.done = false;
+  const phases = buildPhases();
+  state.step = phases.length - 1;   // torna sempre all'ultimo passo (il form cliente), dati intatti
+  render();
+  document.getElementById('step-container')?.scrollIntoView({ behavior:'smooth', block:'start' });
+}
 function resetApp() {
   state.step=0; state.lavId=null; state.nElIdx=null; state.matIdx=null;
   state.tiBase=null; state.workflow="stl"; state.done=false;
   state.sendMethod=null; state.orderSent=false;
+  lastOrderToken=null;   // nuovo preventivo: azzera il token del tracciamento precedente
   state.befreeProdIdx=null; state.befreeQty=1; state.befreeAnalogo=false;
   state.befreeLibreria=null; state.befreeAngolo=""; state.befreeHG="";
   uploadedFiles.stl=null; uploadedFiles.infoConstr=null; uploadedFiles.scan=null;

@@ -2375,10 +2375,14 @@ function importXMLFromModal() {
   xmlParsed = xmlModalData;
   applyXMLData();
   closeXMLReaderModal();
-  // XML già letto: buildPhases ora include xml_confirm, vai lì
+  // XML già letto: buildPhases ora include xml_confirm.
+  // Ma se lo STL non è ancora stato caricato NON si salta lo step di upload: è l'unico
+  // punto che impone il file obbligatorio. Senza, l'ordine partirebbe senza STL.
   const phases = buildPhases();
-  const idx = phases.indexOf('xml_confirm');
-  state.step = idx >= 0 ? idx : 2;
+  const uploadIdx  = phases.indexOf('upload');
+  const confirmIdx = phases.indexOf('xml_confirm');
+  const target = (!uploadedFiles.stl && uploadIdx >= 0) ? uploadIdx : confirmIdx;
+  state.step = target >= 0 ? target : 2;
   render();
   document.getElementById('step-container')?.scrollIntoView({ behavior:'smooth', block:'start' });
 }
@@ -4278,6 +4282,13 @@ async function doSubmitOrder() {
   if (state.orderSent) return; // absolute guard
   const method = state.sendMethod;
   if (!method) return;
+
+  // Ordini standard: lo STL è obbligatorio. Guardia di sicurezza se un percorso
+  // (es. import XML) avesse scavalcato lo step di upload.
+  if (!(lavObj() && lavObj().befree) && !uploadedFiles.stl) {
+    alert("Manca il file STL della lavorazione.\nTorna allo step di caricamento e allega il file prima di inviare l'ordine.");
+    return;
+  }
 
   if (method === "email")     await doSendEmail();
   else if (method === "whatsapp") await doSendWhatsapp();

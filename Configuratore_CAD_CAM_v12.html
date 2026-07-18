@@ -1649,13 +1649,17 @@ function getPrice(lavId,wf,matIdx,tb,nEl) {
     const mats = MATERIALI[lavId] || [];
     const mat  = mats[matIdx];
     const pi   = (mat && mat.pIdx !== undefined) ? mat.pIdx : matIdx; // usa pIdx se disponibile
-    if(lavId==="sing_cem")  return P.sing_cem[w][t][pi];
-    if(lavId==="sing_avv")  return P.sing_avv[w][pi];
-    if(lavId==="ponte_cem") return P.ponte_cem[w][t][n][pi];
-    if(lavId==="ponte_avv") return P.ponte_avv[w][n][pi];
-    if(lavId==="barre")     return P.barre[w][n][pi];
-    if(lavId==="innova")    return P.innova[w][t][n][pi];
-    if(lavId==="naturali")  return P.naturali[w][pi];
+    let v;
+    if(lavId==="sing_cem")  v = P.sing_cem[w][t][pi];
+    else if(lavId==="sing_avv")  v = P.sing_avv[w][pi];
+    else if(lavId==="ponte_cem") v = P.ponte_cem[w][t][n][pi];
+    else if(lavId==="ponte_avv") v = P.ponte_avv[w][n][pi];
+    else if(lavId==="barre")     v = P.barre[w][n][pi];
+    else if(lavId==="innova")    v = P.innova[w][t][n][pi];
+    else if(lavId==="naturali")  v = P.naturali[w][pi];
+    // Una combinazione fuori tabella (indice prezzo mancante) darebbe undefined e farebbe
+    // crashare .toFixed() nel riepilogo, bloccando l'ordine: normalizziamo sempre a numero.
+    return (typeof v === "number" && isFinite(v)) ? v : 0;
   } catch(e) { return 0; }
   return 0;
 }

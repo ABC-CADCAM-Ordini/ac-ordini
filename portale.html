@@ -74,7 +74,7 @@
   .st-concluso{background:#DCFCE7; color:var(--green)}
   .ord-date{font-size:11px; color:var(--gray); font-weight:600}
   .ord-arrow{flex-shrink:0; color:var(--gray)}
-  @media(max-width:520px){ .ord-client{display:none} .ord-arrow{display:none} }
+  @media(max-width:520px){ .ord-arrow{display:none} }
 
   .foot{padding:16px 24px 20px; border-top:1px solid var(--border); background:var(--light);
     font-size:11px; color:var(--gray); line-height:1.6}
@@ -113,6 +113,12 @@
         <div class="emo">📭</div>
         <h2>Nessun ordine da mostrare</h2>
         <p>Non ci sono ordini condivisi con questo link, oppure il link non è più valido. Scrivi a <b>ordini@abutmentcompatibili.com</b> se pensi sia un errore.</p>
+      </div>
+      <div id="err" class="state hidden">
+        <div class="emo">📡</div>
+        <h2>Connessione non disponibile</h2>
+        <p>Non riesco a raggiungere il server in questo momento. Controlla la connessione e riprova.<br>
+        <button type="button" onclick="location.reload()" style="margin-top:14px;padding:9px 20px;border:none;border-radius:9px;background:var(--blue);color:#fff;font-weight:800;font-size:13px;cursor:pointer">↻ Riprova</button></p>
       </div>
       <div id="list" class="hidden"></div>
 
@@ -176,14 +182,14 @@ async function load(){
   const call = (fn) => fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
     method:"POST", headers:{ "apikey":SUPABASE_KEY, "Content-Type":"application/json" },
     body: JSON.stringify({ p_token: token })
-  }).then(r => r.json());
+  }).then(r => { if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
   try{
     const [info, rows] = await Promise.all([
       call("collaboratore_info").catch(() => []),
       call("ordini_collaboratore")
     ]);
     render(Array.isArray(rows) ? rows : [], Array.isArray(info) ? info[0] : null);
-  }catch(e){ hide("loading"); show("empty"); }
+  }catch(e){ hide("loading"); document.getElementById("sub").textContent = "—"; show("err"); }
 }
 load();
 </script>

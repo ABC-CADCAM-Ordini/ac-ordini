@@ -3378,7 +3378,7 @@ function renderStep() {
             </label>
             <input type="number" min="1" max="20" step="0.5" placeholder="es. 2"
               value="${state.befreeHG}"
-              oninput="state.befreeHG=this.value"
+              oninput="state.befreeHG=this.value; refreshBefreeNav()"
               style="font-family:var(--font);font-size:13px;color:var(--dark);background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;outline:none;width:100%;transition:border-color .15s,box-shadow .15s"
               onfocus="this.style.borderColor='var(--blue)';this.style.boxShadow='0 0 0 3px rgba(0,119,204,.1)'"
               onblur="this.style.borderColor='';this.style.boxShadow=''">
@@ -3402,7 +3402,7 @@ function renderStep() {
             </label>
             <input type="number" min="0" max="45" step="1" placeholder="es. 17"
               value="${state.befreeAngolo}"
-              oninput="state.befreeAngolo=this.value"
+              oninput="state.befreeAngolo=this.value; refreshBefreeNav()"
               style="font-family:var(--font);font-size:13px;color:var(--dark);background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;outline:none;width:100%;transition:border-color .15s,box-shadow .15s"
               onfocus="this.style.borderColor='var(--blue)';this.style.boxShadow='0 0 0 3px rgba(0,119,204,.1)'"
               onblur="this.style.borderColor='';this.style.boxShadow=''">
@@ -3414,7 +3414,7 @@ function renderStep() {
             </label>
             <input type="number" min="0" max="20" step="0.5" placeholder="es. 3"
               value="${state.befreeHG}"
-              oninput="state.befreeHG=this.value"
+              oninput="state.befreeHG=this.value; refreshBefreeNav()"
               style="font-family:var(--font);font-size:13px;color:var(--dark);background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;outline:none;width:100%;transition:border-color .15s,box-shadow .15s"
               onfocus="this.style.borderColor='var(--blue)';this.style.boxShadow='0 0 0 3px rgba(0,119,204,.1)'"
               onblur="this.style.borderColor='';this.style.boxShadow=''">
@@ -3424,7 +3424,7 @@ function renderStep() {
       </div>`;
     }
 
-    html += navRow(true,"Avanti — Dati cliente &rarr;", false);
+    html += navRow(true,"Avanti — Dati cliente &rarr;", !befreeInfoValid());
   }
 
   else if(phase==="upload") {
@@ -3827,6 +3827,19 @@ function render() {
 function refreshNavBtn() {
   const btn = document.querySelector('.nav-row .btn-primary');
   if(btn) btn.disabled = !clienteValid();
+}
+// #11 BeFree: HG e grado di inclinazione sono obbligatori (marcati *) ma non erano validati.
+function befreeInfoValid() {
+  const prod = BEFREE_PRODOTTI[state.befreeProdIdx] || {};
+  const hg = parseFloat(state.befreeHG), ang = parseFloat(state.befreeAngolo);
+  if(prod.id === "tibase") return isFinite(hg) && hg >= 1 && hg <= 20;
+  if(prod.id === "mua_incl" || prod.id === "titanio_jt")
+    return isFinite(ang) && ang >= 0 && ang <= 45 && isFinite(hg) && hg >= 0 && hg <= 20;
+  return true;   // altri prodotti BeFree: nessuna specifica obbligatoria
+}
+function refreshBefreeNav() {
+  const btn = document.querySelector('.nav-row .btn-primary');
+  if(btn) btn.disabled = !befreeInfoValid();
 }
 
 function selectBefreeProd(i) { state.befreeProdIdx=i; render(); }

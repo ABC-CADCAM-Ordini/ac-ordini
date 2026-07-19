@@ -31,6 +31,7 @@
     animation:siriSpin 4s linear infinite;
     box-shadow:0 0 22px rgba(255,140,66,.42),0 0 52px rgba(200,75,255,.20),0 0 90px rgba(255,180,50,.10);}
   @keyframes siriSpin{ to{ --siri-angle:360deg; } }
+  @media (prefers-reduced-motion: reduce){ .siri-wrapper.online{ animation:none } }
   .siri-inner{ position:relative; background:var(--white);
     border-radius:calc(var(--radius) - 2px); overflow:hidden; z-index:1; }
   .status-badge{ position:absolute; top:-11px; right:18px; font-size:9px; font-weight:800;
@@ -149,17 +150,18 @@ function codeOf(o){
   const s = o.scheda || {};
   return (s.origine === "NA" && s.id_na) ? ("NA" + s.id_na) : (o.codice || "—");
 }
-function dmy(s){ const d = new Date(s); return isNaN(d) ? "" : d.toLocaleDateString("it-IT"); }
+function dmy(s){ if(!s) return ""; const d = new Date(s); return isNaN(d) ? "" : d.toLocaleDateString("it-IT"); }
 
 function render(rows, info){
   hide("loading");
   const cnt = rows.length + (rows.length === 1 ? " ordine" : " ordini");
-  document.getElementById("sub").textContent = info ? `${info.nome} · ${info.tipo} · ${cnt}` : cnt;
+  const tipoLabel = {commerciale:'Commerciale', cliente:'Cliente'}[info?.tipo] || '';
+  document.getElementById("sub").textContent = info ? [info.nome, tipoLabel, cnt].filter(Boolean).join(' · ') : cnt;
   if(!rows.length){ show("empty"); return; }
   const list = document.getElementById("list");
   list.innerHTML = rows.map(o => {
     const st = esc(o.stato);
-    return `<a class="ord-card" href="traccia-ordine.html?t=${esc(o.share_token)}" target="_blank" rel="noopener">
+    return `<a class="ord-card" href="traccia-ordine.html?t=${esc(o.share_token)}">
       <div class="ord-ic">${CUBE}</div>
       <div class="ord-main">
         <div class="ord-code">${esc(codeOf(o))}</div>

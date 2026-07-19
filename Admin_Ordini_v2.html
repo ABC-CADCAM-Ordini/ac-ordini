@@ -1939,19 +1939,20 @@ function hydrateUiIcons(root) {
   });
 }
 
-// ── Priorità di spedizione ──────────────────────────────────────
-// Livello 0 = normale (nessun triangolo), 1 = grigio, 2 = arancione, 3 = rosso.
-// Come i simboli di avanzamento di un'audiocassetta: più triangoli = più urgente.
-// Salvato in scheda_dati.priorita (nessuna colonna nuova in Supabase).
-const PRIO_LABEL = { 0: "Normale", 1: "Priorità bassa", 2: "Priorità media", 3: "Massima urgenza" };
+// ── Urgenza ordine (automatica, scelta dal cliente) ─────────────
+// L'urgenza la sceglie il CLIENTE nell'ordine (Configuratore: Standard / Express / Urgente)
+// e finisce nella nota come "Urgenza: …". Qui la mappiamo sui triangoli tipo audiocassetta:
+//   express → 2 (arancione),  urgente → 3 (rosso),  standard/assente → 0 (nessun triangolo).
+const URG_LEVEL = { express: 2, urgente: 3 };
+const URG_LABEL = { 2: "Express", 3: "Urgente" };
 function prioLevel(o) {
-  const n = (o && o.scheda_dati) ? parseInt(o.scheda_dati.priorita, 10) : 0;
-  return (n >= 1 && n <= 3) ? n : 0;
+  const u = ((parseNote(o && o.note).urgenza) || "").toLowerCase().trim();
+  return URG_LEVEL[u] || 0;
 }
 function prioTris(n) { return '<span class="prio-tri"></span>'.repeat(n); }
 function prioBadge(o) {
   const n = prioLevel(o);
-  return n ? `<span class="prio lvl${n}" title="Spedizione — ${PRIO_LABEL[n]}">${prioTris(n)}</span>` : '';
+  return n ? `<span class="prio lvl${n}" title="Urgenza: ${URG_LABEL[n]}">${prioTris(n)}</span>` : '';
 }
 
 function renderOrders() {
@@ -2363,19 +2364,6 @@ function openDetail(id) {
       <button class="delete-order-btn" onclick="deleteOrder('${o.id}')">
         ${icon('trash')} Cancella ordine
       </button>
-    </div>
-
-    <!-- PRIORITÀ SPEDIZIONE -->
-    <div class="detail-section">
-      <div class="detail-section-title">Priorità spedizione</div>
-      <div class="prio-actions">
-        ${[0,1,2,3].map(n => `
-          <button class="prio-btn p${n} ${prioLevel(o)===n?'current':''}"
-            onclick="setPriority('${o.id}',${n})" title="${PRIO_LABEL[n]}">
-            <span class="prio-face">${n===0 ? '—' : `<span class="prio lvl${n}">${prioTris(n)}</span>`}</span>
-            ${['Normale','Bassa','Media','Massima'][n]}
-          </button>`).join('')}
-      </div>
     </div>
 
     <!-- SYNC NA NON TROVATA → LINK MANUALE. Non si mostra se c'è già un aggancio automatico:
@@ -3399,21 +3387,6 @@ async function updateStatus(id, status) {
     // Modale notifica per tutti gli stati con contatto disponibile
     const hasContact = !!(o && (o.telefono || o.email));
     if(hasContact) showNotifyModal(id, status);
-  } catch(e) { showToast("Errore: " + e.message, "red"); }
-}
-
-// Imposta la priorità di spedizione (0–3) e la salva in scheda_dati (merge, non sovrascrive).
-async function setPriority(id, n) {
-  const o = allOrders.find(x => x.id === id); if (!o) return;
-  n = (n >= 1 && n <= 3) ? n : 0;
-  const merged = { ...(o.scheda_dati || {}), priorita: n };
-  if (!configured()) { o.scheda_dati = merged; renderOrders(); if (selectedOrderId === id) openDetail(id); return; }
-  try {
-    await sb("PATCH", `orders?id=eq.${id}`, { scheda_dati: merged, updated_at: new Date().toISOString() });
-    o.scheda_dati = merged; o.updated_at = new Date().toISOString();
-    renderOrders();
-    if (selectedOrderId === id) openDetail(id);
-    showToast("Priorità: " + PRIO_LABEL[n], n >= 3 ? "red" : "green");
   } catch(e) { showToast("Errore: " + e.message, "red"); }
 }
 

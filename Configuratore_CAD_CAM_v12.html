@@ -1651,6 +1651,10 @@ function fmt(n) {
   return n.toFixed(1).replace(".",",")+"\u00a0€";
 }
 
+// Escape per interpolazioni in attributi HTML (value="..."): senza, un apice o una virgoletta
+// nei dati utente rompe l'attributo al re-render, con perdita del campo (o iniezione).
+function escAttr(v){ return (v==null?"":String(v)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+
 function getPrice(lavId,wf,matIdx,tb,nEl) {
   const w = wf || "stl";
   const t = tb || "con";
@@ -3132,7 +3136,7 @@ function renderStep() {
       html += `<div class="form-section">
         <div class="form-section-title">Marca impianto e connessione <span style="font-size:9px;font-weight:400;color:#9CA3AF;text-transform:none">(facoltativo — meglio se nella Info Construction)</span></div>
         <div class="form-field">
-          <input type="text" placeholder="es. Nobel Active RP, Straumann BL RC, Zimmer TSV 4.1…" value="${clinico.marcaImpianto}"
+          <input type="text" placeholder="es. Nobel Active RP, Straumann BL RC, Zimmer TSV 4.1…" value="${escAttr(clinico.marcaImpianto)}"
             oninput="clinico.marcaImpianto=this.value">
         </div>
       </div>`;
@@ -3454,13 +3458,13 @@ function renderStep() {
       <div class="form-grid form-grid-2">
         <div class="form-field required-field">
           <label>Nome <span class="req">*</span></label>
-          <input type="text" placeholder="Mario" value="${cliente.nome}"
+          <input type="text" placeholder="Mario" value="${escAttr(cliente.nome)}"
             oninput="cliente.nome=this.value;refreshNavBtn()"
             class="${cliente.nome.trim()?'valid':''}">
         </div>
         <div class="form-field required-field">
           <label>Cognome <span class="req">*</span></label>
-          <input type="text" placeholder="Rossi" value="${cliente.cognome}"
+          <input type="text" placeholder="Rossi" value="${escAttr(cliente.cognome)}"
             oninput="cliente.cognome=this.value;refreshNavBtn()"
             class="${cliente.cognome.trim()?'valid':''}">
         </div>
@@ -3469,7 +3473,7 @@ function renderStep() {
       <div class="form-grid" style="margin-top:10px">
         <div class="form-field">
           <label>Nome paziente <span class="opt-tag">facoltativo</span></label>
-          <input type="text" placeholder="es. Bianchi Luigi" value="${cliente.nomePaziente}"
+          <input type="text" placeholder="es. Bianchi Luigi" value="${escAttr(cliente.nomePaziente)}"
             oninput="cliente.nomePaziente=this.value">
         </div>
       </div>` : ''}
@@ -3481,26 +3485,26 @@ function renderStep() {
       <div class="form-grid" style="gap:10px">
         <div class="form-field required-field">
           <label>Nome studio / laboratorio / azienda <span class="req">*</span></label>
-          <input type="text" placeholder="Lab Rossi S.r.l." value="${cliente.azienda}"
+          <input type="text" placeholder="Lab Rossi S.r.l." value="${escAttr(cliente.azienda)}"
             oninput="cliente.azienda=this.value;refreshNavBtn()"
             class="${cliente.azienda.trim()?'valid':''}">
         </div>
         <div class="form-grid form-grid-2">
           <div class="form-field required-field">
             <label>Telefono <span class="req">*</span></label>
-            <input type="tel" placeholder="+39 333 1234567" value="${cliente.telefono}"
+            <input type="tel" placeholder="+39 333 1234567" value="${escAttr(cliente.telefono)}"
               oninput="cliente.telefono=this.value;refreshNavBtn()"
               class="${cliente.telefono.trim()?'valid':''}">
           </div>
           <div class="form-field">
             <label>Email <span class="opt-tag">facoltativo</span></label>
-            <input type="email" placeholder="mario@lab.it" value="${cliente.email}"
+            <input type="email" placeholder="mario@lab.it" value="${escAttr(cliente.email)}"
               oninput="cliente.email=this.value">
           </div>
         </div>
         <div class="form-field">
           <label>Partita IVA / Codice Fiscale <span class="opt-tag">facoltativo</span></label>
-          <input type="text" placeholder="IT 12345678901" value="${cliente.piva}"
+          <input type="text" placeholder="IT 12345678901" value="${escAttr(cliente.piva)}"
             oninput="cliente.piva=this.value">
         </div>
       </div>
@@ -3512,23 +3516,23 @@ function renderStep() {
       <div class="form-grid" style="gap:10px">
         <div class="form-field">
           <label>Via / Indirizzo</label>
-          <input type="text" placeholder="Via Roma 1" value="${cliente.indFattura}"
+          <input type="text" placeholder="Via Roma 1" value="${escAttr(cliente.indFattura)}"
             oninput="cliente.indFattura=this.value">
         </div>
         <div class="form-grid form-grid-3">
           <div class="form-field">
             <label>Città</label>
-            <input type="text" placeholder="Milano" value="${cliente.cittaFattura}"
+            <input type="text" placeholder="Milano" value="${escAttr(cliente.cittaFattura)}"
               oninput="cliente.cittaFattura=this.value">
           </div>
           <div class="form-field">
             <label>CAP</label>
-            <input type="text" placeholder="20100" value="${cliente.capFattura}"
+            <input type="text" placeholder="20100" value="${escAttr(cliente.capFattura)}"
               oninput="cliente.capFattura=this.value">
           </div>
           <div class="form-field">
             <label>Prov.</label>
-            <input type="text" placeholder="MI" maxlength="2" value="${cliente.provFattura}"
+            <input type="text" placeholder="MI" maxlength="2" value="${escAttr(cliente.provFattura)}"
               oninput="cliente.provFattura=this.value.toUpperCase();this.value=cliente.provFattura">
           </div>
         </div>
@@ -3547,23 +3551,23 @@ function renderStep() {
       html += `<div class="form-grid" style="gap:10px">
         <div class="form-field">
           <label>Via / Indirizzo</label>
-          <input type="text" placeholder="Via Roma 1" value="${cliente.indSpedizione}"
+          <input type="text" placeholder="Via Roma 1" value="${escAttr(cliente.indSpedizione)}"
             oninput="cliente.indSpedizione=this.value">
         </div>
         <div class="form-grid form-grid-3">
           <div class="form-field">
             <label>Città</label>
-            <input type="text" placeholder="Milano" value="${cliente.cittaSpedizione}"
+            <input type="text" placeholder="Milano" value="${escAttr(cliente.cittaSpedizione)}"
               oninput="cliente.cittaSpedizione=this.value">
           </div>
           <div class="form-field">
             <label>CAP</label>
-            <input type="text" placeholder="20100" value="${cliente.capSpedizione}"
+            <input type="text" placeholder="20100" value="${escAttr(cliente.capSpedizione)}"
               oninput="cliente.capSpedizione=this.value">
           </div>
           <div class="form-field">
             <label>Prov.</label>
-            <input type="text" placeholder="MI" maxlength="2" value="${cliente.provSpedizione}"
+            <input type="text" placeholder="MI" maxlength="2" value="${escAttr(cliente.provSpedizione)}"
               oninput="cliente.provSpedizione=this.value.toUpperCase();this.value=cliente.provSpedizione">
           </div>
         </div>

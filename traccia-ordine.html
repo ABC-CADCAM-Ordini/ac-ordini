@@ -39,6 +39,7 @@
     box-shadow:0 0 22px rgba(255,140,66,.42), 0 0 52px rgba(200,75,255,.20), 0 0 90px rgba(255,180,50,.10);
   }
   @keyframes siriSpin{ to{ --siri-angle:360deg; } }
+  @media (prefers-reduced-motion: reduce){ .siri-wrapper.online{ animation:none } }
   .siri-inner{ position:relative; background:var(--white);
     border-radius:calc(var(--radius) - 2px); overflow:hidden; z-index:1; }
   .siri-wrapper.offline{ background:#C4CDD6; animation:none; box-shadow:none; }

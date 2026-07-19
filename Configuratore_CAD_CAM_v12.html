@@ -16,6 +16,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
 <!-- ═══════════ -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
@@ -1216,7 +1217,7 @@
   <div id="price-bar" class="price-bar no-print" style="display:none"></div>
 
   <div class="app-footer">
-    <div class="brand-sub-footer">Configuratore Ordini CAD CAM &middot; Biaggini Medical Devices S.r.l. <span class="app-rev" title="Versione in uso" style="font-weight:600;color:var(--gray)">&middot; Rev. 2026-07-13.4</span></div>
+    <div class="brand-sub-footer">Configuratore Ordini CAD CAM &middot; Biaggini Medical Devices S.r.l. <span class="app-rev" title="Versione in uso" style="font-weight:600;color:var(--gray)">&middot; Rev. 2026-07-19.3</span></div>
     <div class="footer-legal" style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;letter-spacing:.04em;">
       ISO 13485 &middot; CE 0425 &middot; MDR 745/2017 &middot; EUDAMED Registrato &nbsp;&mdash;&nbsp; www.abutmentcompatibili.com
     </div>
@@ -3449,7 +3450,7 @@ function renderStep() {
       </div>`;
     } else {
       html += `<div style="background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:8px;padding:10px 14px;font-size:11px;color:#78350F;margin-bottom:14px;line-height:1.6;">
-        <strong>Scansione intraorale?</strong> Se invii una scansione invece di uno STL finito, caricala nel campo STL e specificalo nelle note tecniche dello step precedente.
+        <strong>Scansione intraorale?</strong> Se invii una scansione invece di uno STL finito, caricala nel campo STL e specificalo nelle note tecniche di uno dei passi successivi (Dettagli clinici).
       </div>`;
     }
     const nextLabel = (xmlParsed && !xmlParsed.error) ? "Avanti — conferma dati XML &rarr;" : "Avanti &rarr;";
@@ -3793,7 +3794,7 @@ function renderStep() {
       <div>
         <div class="disclaimer-title">Preventivo indicativo</div>
         <div class="disclaimer-text">
-          Il prezzo visualizzato è calcolato sulla base delle selezioni effettuate e ha valore puramente orientativo.
+          Questo preventivo è calcolato sulla base delle selezioni effettuate e ha valore puramente orientativo.
           Il costo finale della lavorazione potrà variare in funzione di eventuali complessità geometriche del caso,
           caratteristiche specifiche del file ricevuto, necessità di adattamenti tecnici o modifiche richieste in corso d'opera.
           Il preventivo definitivo e vincolante sarà comunicato dal nostro team a seguito della valutazione del file allegato.
@@ -4161,7 +4162,7 @@ async function buildZipBlob() {
 // La chiave anon può SOLO creare (policy in sql/zip-ordine-privato.sql): non legge e non sovrascrive.
 async function uploadZipGetLink(blob, shareToken) {
   if(!shareToken) throw new Error("share_token mancante");
-  const fname = `ordine_${new Date().toISOString().slice(0,10)}_${(cliente.azienda||cliente.cognome||"AC").replace(/[^a-zA-Z0-9]/g,"_")}.zip`;
+  const fname = `ordine_${new Date().toLocaleDateString('sv-SE')}_${(cliente.azienda||cliente.cognome||"AC").replace(/[^a-zA-Z0-9]/g,"_")}.zip`;
   const path = `${shareToken}.zip`;
   const res = await fetch(`${SUPABASE_URL}/storage/v1/object/ordini-zip/${path}`, {
     method: "POST",
@@ -4463,6 +4464,7 @@ async function doSendEmail() {
   try {
     showSpinner("Caricamento file...<br><small style='opacity:.7'>potrebbe richiedere qualche secondo</small>");
     const blob = await buildZipBlob();
+    if(!blob){ hideSpinner(); alert("Pacchetto ZIP non pronto (libreria non ancora caricata). Riprova tra qualche secondo."); return; }
     const shareToken = crypto.randomUUID();   // serve PRIMA: è il nome dello ZIP nel bucket
     let link = null, name = null;
     try {
@@ -4583,6 +4585,7 @@ async function doSendWhatsapp() {
   try {
     showSpinner("Caricamento file...<br><small style='opacity:.7'>potrebbe richiedere qualche secondo</small>");
     const blob = await buildZipBlob();
+    if(!blob){ hideSpinner(); alert("Pacchetto ZIP non pronto (libreria non ancora caricata). Riprova tra qualche secondo."); return; }
     const shareToken = crypto.randomUUID();   // serve PRIMA: è il nome dello ZIP nel bucket
     let link = null, name = null;
     try {
@@ -4655,7 +4658,7 @@ async function doDownloadZip() {
   const blob = await buildZipBlob();
   if(!blob) { alert("JSZip non disponibile."); return; }
   const a = document.createElement("a");
-  const fname = `ordine_${new Date().toISOString().slice(0,10)}_AbutmentCompatibili.zip`;
+  const fname = `ordine_${new Date().toLocaleDateString('sv-SE')}_AbutmentCompatibili.zip`;
   a.href = URL.createObjectURL(blob);
   a.download = fname;
   a.click();
@@ -4683,7 +4686,7 @@ async function doDownloadZipOrder() {
     hideSpinner();
 
     // Download locally
-    const fname = `ordine_${new Date().toISOString().slice(0,10)}_AbutmentCompatibili.zip`;
+    const fname = `ordine_${new Date().toLocaleDateString('sv-SE')}_AbutmentCompatibili.zip`;
     const a = document.createElement("a");
     document.body.appendChild(a);
     a.href = URL.createObjectURL(blob);

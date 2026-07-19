@@ -1441,12 +1441,24 @@ function openDiag() {
   m.classList.add('open');
   loadDiag();
 }
+// Legge un file dal bucket privato "diagnostica" con il token dell'operatore loggato (come sb()):
+// il bucket non è più pubblico, quindi la lettura richiede l'Authorization.
+async function fetchDiagFile(file, opts = {}) {
+  const { data: { session } } = await sbAuth.auth.getSession();
+  const token = (session && session.access_token) || SUPABASE_KEY;
+  return fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/diagnostica/${file}?t=${Date.now()}`, {
+    cache: 'no-store',
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` },
+    ...opts
+  });
+}
+
 async function loadDiag() {
   const body = document.querySelector('#diag-modal .diag-body');
   body.innerHTML = '<div class="diag-loading">Caricamento…</div>';
   let runs;
   try {
-    const r = await fetch(`${SUPABASE_URL}/storage/v1/object/public/diagnostica/runs.json?t=${Date.now()}`, { cache: 'no-store' });
+    const r = await fetchDiagFile('runs.json');
     if (!r.ok) throw new Error('HTTP ' + r.status);
     runs = await r.json();
   } catch (e) {
@@ -2129,13 +2141,12 @@ async function naScollega(orderId) {
 }
 
 // ── Suggerimenti di aggancio: i casi che la sync NON ha ritenuto certi ──
-// Il file è volutamente povero (solo UUID ordine + id NA + motivo): sta in un bucket pubblico,
-// quindi non deve contenere nomi, contatti o share_token. I dati dell'ordine li ha già l'Admin.
+// Il file è volutamente povero (solo UUID ordine + id NA + motivo). Sta nel bucket "diagnostica",
+// ora PRIVATO: si legge con il login dell'operatore, come runs.json.
 let SUGGERIMENTI = { ts: null, suggerimenti: [] };
 async function loadSuggerimenti() {
   try {
-    const r = await fetch(`${SUPABASE_URL}/storage/v1/object/public/diagnostica/suggerimenti.json?t=${Date.now()}`,
-      { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+    const r = await fetchDiagFile('suggerimenti.json', { signal: AbortSignal.timeout(8000) });
     if (r.ok) SUGGERIMENTI = await r.json();
   } catch { /* assente: nessun suggerimento, non è un errore */ }
 }

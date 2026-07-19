@@ -1757,6 +1757,8 @@ async function saveOrderToSupabase(fileLink, fileName, token) {
       iva: prod.iva || 4,
       file_link: null, file_name: null,
       share_token: shareToken,
+      consenso_whatsapp: !!cliente.consensoWhatsapp,
+      consenso_whatsapp_ts: cliente.consensoWhatsapp ? new Date().toISOString() : null,
       status: "ricevuto"
     };
     const res = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
@@ -1806,6 +1808,8 @@ async function saveOrderToSupabase(fileLink, fileName, token) {
     file_link: fileLink || null,
     file_name: fileName || null,
     share_token: shareToken,
+    consenso_whatsapp: !!cliente.consensoWhatsapp,
+    consenso_whatsapp_ts: cliente.consensoWhatsapp ? new Date().toISOString() : null,
     status: "ricevuto"
   };
 
@@ -2448,6 +2452,7 @@ const clinico = {
 const cliente = {
   nome:"", cognome:"", azienda:"", telefono:"",
   email:"", piva:"",
+  consensoWhatsapp:false,
   nomePaziente:"",
   indFattura:"", capFattura:"", cittaFattura:"", provFattura:"",
   sameSpedizione: true,
@@ -3514,6 +3519,10 @@ function renderStep() {
           <input type="text" placeholder="IT 12345678901" value="${escAttr(cliente.piva)}"
             oninput="cliente.piva=this.value">
         </div>
+        <label class="form-checkbox-row" style="align-items:flex-start;margin-top:4px">
+          <input type="checkbox" ${cliente.consensoWhatsapp?"checked":""} onchange="cliente.consensoWhatsapp=this.checked">
+          <span>Acconsento a ricevere aggiornamenti sullo stato del mio ordine via <strong>WhatsApp</strong> al numero indicato. <span class="opt-tag">facoltativo</span></span>
+        </label>
       </div>
     </div>`;
 

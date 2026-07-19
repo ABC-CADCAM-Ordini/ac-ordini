@@ -5,44 +5,49 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Portale ordini — AbutmentCompatibili.com</title>
 <link rel="icon" href="favicon-32.png">
-<link rel="manifest" href="manifest-portale.json">
 <script>
-/* iOS PWA + token. Se apro il portale con ?c=TOKEN riscrivo il manifest così che,
-   aggiungendo l'app alla schermata Home, iOS la lanci con la start_url che PORTA il
-   token. Senza questo iOS usa la start_url statica (./portale.html, senza token) e
-   la web-app in Home — che su iPhone ha storage isolato da Safari — non ha modo di
-   recuperarlo: parte "nuda" e non carica nessun ordine. Va eseguito PRIMA che iOS
-   legga il manifest, quindi sta qui nel <head>, subito dopo il link. */
+/* PWA + salvataggio in Home: il token (?c=TOKEN) DEVE sopravvivere all'icona in Home.
+   Su iPhone/iPad la web-app in Home ha lo storage ISOLATO da Safari, quindi il token
+   può arrivarle solo dall'URL con cui iOS lancia l'app.
+   - iOS: se esiste un manifest con start_url, iOS lancia da QUELLA (senza token) → app
+     "nuda". Se invece NON c'è manifest, iOS usa l'URL della pagina corrente (col token)
+     e per la modalità app a schermo intero bastano i meta apple-mobile-web-app-*.
+     Perciò su iOS NON aggiungiamo il manifest.
+   - Android/Chrome: il manifest serve; se c'è il token lo iniettiamo nella start_url.
+   Il manifest NON è statico nell'HTML apposta: lo aggiunge (solo dove serve) questo
+   script, così iOS non lo vede mai e non ha modo di scippare il token. */
 (function(){
   try{
+    var ua = navigator.userAgent || "";
+    var isIOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && ("ontouchend" in document)); // iPadOS si finge Mac
+    if(isIOS) return;   // niente manifest su iOS: usa l'URL corrente (col token) + meta apple-*
+    var link = document.createElement("link");
+    link.rel = "manifest";
     var tok = new URLSearchParams(location.search).get("c");
-    if(!tok) return;
-    var dir = location.href.replace(/[?#].*$/,"").replace(/[^/]*$/,""); // cartella con slash finale
-    var abs = function(p){ return dir + p; };
-    var man = {
-      name:"Ordini — AbutmentCompatibili.com",
-      short_name:"Ordini",
-      description:"Segui i tuoi ordini e ricevi gli avvisi — Biaggini Medical Devices S.r.l.",
-      start_url: dir + "portale.html?c=" + encodeURIComponent(tok),
-      scope: dir,
-      display:"standalone",
-      orientation:"portrait-primary",
-      background_color:"#E2EBF5",
-      theme_color:"#0065B3",
-      lang:"it",
-      capture_links:"none",
-      categories:["medical","business","productivity"],
-      icons:[
-        { src:abs("favicon-16.png"),       sizes:"16x16",   type:"image/png" },
-        { src:abs("favicon-32.png"),       sizes:"32x32",   type:"image/png" },
-        { src:abs("apple-touch-icon.png"), sizes:"180x180", type:"image/png" },
-        { src:abs("icon-192.png"),         sizes:"192x192", type:"image/png", purpose:"any" },
-        { src:abs("icon-512.png"),         sizes:"512x512", type:"image/png", purpose:"any" }
-      ]
-    };
-    var href = "data:application/manifest+json;charset=utf-8," + encodeURIComponent(JSON.stringify(man));
-    var link = document.querySelector('link[rel="manifest"]');
-    if(link){ link.setAttribute("href", href); }
+    if(tok){
+      var dir = location.href.replace(/[?#].*$/,"").replace(/[^/]*$/,""); // cartella con slash finale
+      var abs = function(p){ return dir + p; };
+      var man = {
+        name:"Ordini — AbutmentCompatibili.com",
+        short_name:"Ordini",
+        description:"Segui i tuoi ordini e ricevi gli avvisi — Biaggini Medical Devices S.r.l.",
+        start_url: dir + "portale.html?c=" + encodeURIComponent(tok),
+        scope: dir,
+        display:"standalone",
+        orientation:"portrait-primary",
+        background_color:"#E2EBF5",
+        theme_color:"#0065B3",
+        lang:"it",
+        icons:[
+          { src:abs("icon-192.png"), sizes:"192x192", type:"image/png", purpose:"any" },
+          { src:abs("icon-512.png"), sizes:"512x512", type:"image/png", purpose:"any" }
+        ]
+      };
+      link.href = "data:application/manifest+json;charset=utf-8," + encodeURIComponent(JSON.stringify(man));
+    } else {
+      link.href = "manifest-portale.json";
+    }
+    document.head.appendChild(link);
   }catch(e){}
 })();
 </script>

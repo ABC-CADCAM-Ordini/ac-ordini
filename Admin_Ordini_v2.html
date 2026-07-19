@@ -299,6 +299,34 @@
   .status-concluso::before { background: var(--green); }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
+  /* ── PRIORITÀ SPEDIZIONE — triangoli "avanti veloce" come sulle audiocassette ──
+     0 = normale (nessun triangolo), 1 = grigio, 2 = arancione, 3 = rosso (massima urgenza).
+     Più triangoli + colore più caldo = più urgente. */
+  .order-statuscol { display:flex; flex-direction:column; align-items:flex-start; gap:5px; min-width:0; max-width:100%; }
+  .prio { display:inline-flex; align-items:center; gap:2px; line-height:0; }
+  .prio-tri { width:0; height:0; border-style:solid; border-width:4px 0 4px 6px;
+    border-color:transparent transparent transparent currentColor; }
+  .prio.lvl1 { color: var(--gray); }
+  .prio.lvl2 { color: #F59E0B; }
+  .prio.lvl3 { color: var(--red); animation: pulse 1.4s infinite; }
+
+  /* Stacca il nome dell'operatore dalla colonna Stato (era troppo attaccato) */
+  .order-op, .th-op { padding-left: 14px; }
+
+  /* Selettore priorità nel pannello dettaglio */
+  .prio-actions { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .prio-btn { border:1.5px solid var(--border); background:#fff; border-radius:8px;
+    padding:9px 4px; cursor:pointer; font-family:var(--font); font-size:10px; font-weight:800;
+    letter-spacing:.02em; color:var(--gray); display:flex; flex-direction:column; align-items:center;
+    gap:6px; transition:border-color .12s, background .12s, color .12s; }
+  .prio-btn:hover { border-color:var(--gray); }
+  .prio-btn .prio-face { display:flex; align-items:center; justify-content:center; height:9px; font-size:13px; }
+  .prio-btn.current { background:var(--light); }
+  .prio-btn.p0.current { color:var(--dark); border-color:var(--dark); }
+  .prio-btn.p1.current { color:var(--gray); border-color:var(--gray); }
+  .prio-btn.p2.current { color:#F59E0B; border-color:#F59E0B; background:#FFF7ED; }
+  .prio-btn.p3.current { color:var(--red); border-color:var(--red); background:var(--red-light); }
+
   /* ── DETAIL PANEL ── */
   .detail-panel {
     width: 420px; background: white; border-left: 1.5px solid var(--border);
@@ -1911,6 +1939,21 @@ function hydrateUiIcons(root) {
   });
 }
 
+// ── Priorità di spedizione ──────────────────────────────────────
+// Livello 0 = normale (nessun triangolo), 1 = grigio, 2 = arancione, 3 = rosso.
+// Come i simboli di avanzamento di un'audiocassetta: più triangoli = più urgente.
+// Salvato in scheda_dati.priorita (nessuna colonna nuova in Supabase).
+const PRIO_LABEL = { 0: "Normale", 1: "Priorità bassa", 2: "Priorità media", 3: "Massima urgenza" };
+function prioLevel(o) {
+  const n = (o && o.scheda_dati) ? parseInt(o.scheda_dati.priorita, 10) : 0;
+  return (n >= 1 && n <= 3) ? n : 0;
+}
+function prioTris(n) { return '<span class="prio-tri"></span>'.repeat(n); }
+function prioBadge(o) {
+  const n = prioLevel(o);
+  return n ? `<span class="prio lvl${n}" title="Spedizione — ${PRIO_LABEL[n]}">${prioTris(n)}</span>` : '';
+}
+
 function renderOrders() {
   const orders = filteredOrders();
   const body = document.getElementById("orders-body");
@@ -1953,7 +1996,7 @@ function renderOrders() {
         <div class="order-lav">${esc((o.lavorazione || "—").replace(/\n/g," "))}</div>
       </div>
       <div class="order-price">${fmt(o.prezzo_base)}</div>
-      <div><span class="status-badge status-${esc(o.status)}">${esc(statusLabel(o.status))}</span></div>
+      <div class="order-statuscol"><span class="status-badge status-${esc(o.status)}">${esc(statusLabel(o.status))}</span>${prioBadge(o)}</div>
       <div class="order-op">${esc(o.operator || "—")}</div>
       <div class="order-date">${fmtDate(o.created_at)}</div>
     </div>`).join("");
@@ -2320,6 +2363,19 @@ function openDetail(id) {
       <button class="delete-order-btn" onclick="deleteOrder('${o.id}')">
         ${icon('trash')} Cancella ordine
       </button>
+    </div>
+
+    <!-- PRIORITÀ SPEDIZIONE -->
+    <div class="detail-section">
+      <div class="detail-section-title">Priorità spedizione</div>
+      <div class="prio-actions">
+        ${[0,1,2,3].map(n => `
+          <button class="prio-btn p${n} ${prioLevel(o)===n?'current':''}"
+            onclick="setPriority('${o.id}',${n})" title="${PRIO_LABEL[n]}">
+            <span class="prio-face">${n===0 ? '—' : `<span class="prio lvl${n}">${prioTris(n)}</span>`}</span>
+            ${['Normale','Bassa','Media','Massima'][n]}
+          </button>`).join('')}
+      </div>
     </div>
 
     <!-- SYNC NA NON TROVATA → LINK MANUALE. Non si mostra se c'è già un aggancio automatico:
@@ -3343,6 +3399,21 @@ async function updateStatus(id, status) {
     // Modale notifica per tutti gli stati con contatto disponibile
     const hasContact = !!(o && (o.telefono || o.email));
     if(hasContact) showNotifyModal(id, status);
+  } catch(e) { showToast("Errore: " + e.message, "red"); }
+}
+
+// Imposta la priorità di spedizione (0–3) e la salva in scheda_dati (merge, non sovrascrive).
+async function setPriority(id, n) {
+  const o = allOrders.find(x => x.id === id); if (!o) return;
+  n = (n >= 1 && n <= 3) ? n : 0;
+  const merged = { ...(o.scheda_dati || {}), priorita: n };
+  if (!configured()) { o.scheda_dati = merged; renderOrders(); if (selectedOrderId === id) openDetail(id); return; }
+  try {
+    await sb("PATCH", `orders?id=eq.${id}`, { scheda_dati: merged, updated_at: new Date().toISOString() });
+    o.scheda_dati = merged; o.updated_at = new Date().toISOString();
+    renderOrders();
+    if (selectedOrderId === id) openDetail(id);
+    showToast("Priorità: " + PRIO_LABEL[n], n >= 3 ? "red" : "green");
   } catch(e) { showToast("Errore: " + e.message, "red"); }
 }
 

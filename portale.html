@@ -61,10 +61,11 @@
     transition:border-color .15s, box-shadow .15s, transform .05s;}
   .ord-card:hover{border-color:var(--blue); box-shadow:0 4px 14px rgba(0,101,179,.10)}
   .ord-card:active{transform:scale(.995)}
-  .ord-ic{flex-shrink:0; width:72px; height:72px; border-radius:12px;
+  .ord-ic{flex-shrink:0; width:104px; height:104px; border-radius:14px;
     background:radial-gradient(ellipse at 50% 32%, #F7FAFF 0%, #E2ECF6 100%);
     display:flex; align-items:center; justify-content:center; color:#5E82AD; overflow:hidden}
-  .ord-ic svg{width:30px; height:30px}
+  .ord-ic svg{width:40px; height:40px}
+  @media(max-width:520px){ .ord-ic{width:88px; height:88px} }
   .ord-ic img{width:100%; height:100%; object-fit:contain; display:block}
   .ord-main{flex:1; min-width:0}
   .ord-code{font-size:12px; font-weight:800; color:var(--blue); letter-spacing:.02em}
@@ -203,7 +204,7 @@ const _lsSet = (t,d) => { try { localStorage.setItem("stlthumb:" + t, d); }
   catch(e){ try { Object.keys(localStorage).filter(k=>k.startsWith("stlthumb:")).forEach(k=>localStorage.removeItem(k)); localStorage.setItem("stlthumb:" + t, d); } catch(_){} } };
 
 function stlThumbDataUrl(THREE, STLLoader, buf){
-  const W=132, H=132;
+  const W=208, H=208;
   const scene = new THREE.Scene();
   const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 100000);
   scene.add(new THREE.DirectionalLight(0xffffff,2.3), new THREE.AmbientLight(0xffffff,0.6), new THREE.HemisphereLight(0xffffff,0x394a5a,0.5));
@@ -211,7 +212,7 @@ function stlThumbDataUrl(THREE, STLLoader, buf){
   const mesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({ color:0xC9D6E4, metalness:0.14, roughness:0.55 }));
   mesh.rotation.x = -Math.PI/2; scene.add(mesh);
   const r = (geom.boundingSphere && geom.boundingSphere.radius) || 1;
-  const d = r / Math.sin((38*Math.PI/180)/2) * 1.25;
+  const d = r / Math.sin((38*Math.PI/180)/2) * 1.08;   // inquadratura più stretta: il modello riempie meglio
   cam.position.set(d*0.55, d*0.5, d*0.95); cam.near = Math.max(d/500,0.01); cam.far = d*500; cam.updateProjectionMatrix(); cam.lookAt(0,0,0);
   const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true, preserveDrawingBuffer:true });
   renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(W,H); renderer.render(scene, cam);

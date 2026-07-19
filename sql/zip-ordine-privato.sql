@@ -23,7 +23,12 @@
 drop policy if exists "configuratore carica lo zip dell'ordine" on storage.objects;
 create policy "configuratore carica lo zip dell'ordine"
   on storage.objects for insert to anon
-  with check (bucket_id = 'ordini-zip');
+  with check (
+    bucket_id = 'ordini-zip'
+    -- il nome DEVE essere <share_token>.zip: senza vincolo, con la chiave anon chiunque poteva
+    -- riempire il bucket privato di file arbitrari (fino a 50MB) invisibili ai flussi dell'Admin.
+    and name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.zip$'
+  );
 
 -- 2) L'operatore loggato in Admin può leggere: serve a farsi firmare l'URL di download.
 --    Il bucket resta privato, quindi senza questo nemmeno l'Admin lo vedrebbe.

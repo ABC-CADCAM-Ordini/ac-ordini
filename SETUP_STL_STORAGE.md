@@ -38,8 +38,11 @@ create policy "ordini-stl insert" on storage.objects
   with check (bucket_id = 'ordini-stl');
 
 drop policy if exists "ordini-stl update" on storage.objects;
+-- ⚠️  L'update NON va concesso ad anon: la chiave anon è pubblica nell'HTML, quindi chiunque
+--     abbia un link potrebbe SOVRASCRIVERE lo STL di un ordine. Il configuratore fa solo INSERT
+--     (ogni STL ha uno share_token univoco). L'update resta ai soli operatori loggati.
 create policy "ordini-stl update" on storage.objects
-  for update to anon, authenticated
+  for update to authenticated
   using (bucket_id = 'ordini-stl')
   with check (bucket_id = 'ordini-stl');
 ```

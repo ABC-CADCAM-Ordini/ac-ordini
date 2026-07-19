@@ -1492,7 +1492,7 @@ function setSearch(val) {
 }
 
 function filteredOrders() {
-  return allOrders.filter(o => {
+  const list = allOrders.filter(o => {
     const concluso = o.status === "concluso";
     // Le viste "di lavoro" (attivi / miei / non assegnati) NON mostrano i conclusi:
     // per vederli si clicca il riquadro "Conclusi" (filtro dedicato).
@@ -1505,6 +1505,13 @@ function filteredOrders() {
       if (!hay.includes(currentSearch)) return false;
     }
     return true;
+  });
+  // Ordinamento: i CONCLUSI per data di CHIUSURA (updated_at ≈ momento del passaggio a concluso),
+  // gli attivi per data di RICEZIONE (created_at). Entrambi decrescenti (più recente in alto).
+  return list.sort((a, b) => {
+    const ka = (a.status === "concluso" ? (a.updated_at || a.created_at) : a.created_at) || "";
+    const kb = (b.status === "concluso" ? (b.updated_at || b.created_at) : b.created_at) || "";
+    return kb < ka ? -1 : kb > ka ? 1 : 0;
   });
 }
 
@@ -2129,7 +2136,7 @@ function renderOrders() {
       <div class="order-price">${fmt(o.prezzo_base)}</div>
       <div class="order-statuscol"><span class="status-badge status-${esc(o.status)}">${esc(statusLabel(o.status))}</span>${prioBadge(o)}</div>
       <div class="order-op">${esc(o.operator || "—")}</div>
-      <div class="order-date">${fmtDate(o.created_at)}</div>
+      <div class="order-date">${fmtDate(o.created_at)}${o.status === 'concluso' && o.updated_at ? `<br><span style="color:var(--green);font-weight:700" title="Chiuso / spedito il">✓ ${fmtDate(o.updated_at)}</span>` : ''}</div>
     </div>`).join("");
   hydrateRowThumbs(orders);
 }

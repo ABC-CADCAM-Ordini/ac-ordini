@@ -64,5 +64,4 @@ vedere comparire un file `<...>.stl`. Nell'Admin, aprendo quell'ordine, comparir
 - Il bucket è pubblico: lo STL è raggiungibile solo da chi conosce l'indirizzo con l'UUID
   (`share_token`), esattamente come il link cliente `traccia-ordine`.
 - Il viewer 3D nell'Admin usa three.js + JSZip caricati al volo da `esm.sh` (serve internet).
-```
 

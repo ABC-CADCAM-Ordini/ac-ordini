@@ -5,6 +5,9 @@ const ASSETS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
+  './favicon-16.png',
+  './favicon-32.png',
+  './apple-touch-icon.png',
 ];
 
 self.addEventListener('install', event => {
@@ -26,7 +29,9 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  if (!url.hostname.includes('github.io')) return;
+  // Intercetta solo le risorse della PWA stessa: copre github.io oggi, un dominio custom domani
+  // e localhost in sviluppo, senza toccare richieste ad altre origini.
+  if (url.origin !== self.location.origin) return;
 
   event.respondWith(
     fetch(event.request)

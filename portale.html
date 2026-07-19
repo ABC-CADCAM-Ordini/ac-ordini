@@ -244,8 +244,14 @@ function hydrateThumbs(){
     if(_io) _io.disconnect();
     _io = new IntersectionObserver((entries, obs) => {
       entries.forEach(en => { if(en.isIntersecting){ obs.unobserve(en.target); kick(en.target); } });
-    }, { rootMargin: '250px' });
+    }, { rootMargin: '300px' });
     boxes.forEach(b => _io.observe(b));
+    // Avvio immediato per le card già in vista: non aspetta lo scatto dell'IntersectionObserver
+    // (che non parte se la scheda è in background) e garantisce le miniature della prima schermata.
+    boxes.forEach(b => {
+      const r = b.getBoundingClientRect();
+      if(r.top < innerHeight + 300 && r.bottom > -300){ _io.unobserve(b); kick(b); }
+    });
   } else {
     boxes.forEach(kick);
   }

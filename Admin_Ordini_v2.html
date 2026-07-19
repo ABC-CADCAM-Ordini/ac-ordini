@@ -395,9 +395,9 @@
   .thumb-badges .sync-dot { position:static; }
   .thumb-badge { width:15px; height:15px; border-radius:5px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 2px #fff, 0 1px 2px rgba(0,0,0,.25); }
   .thumb-badge .ui-ic svg { width:10px; height:10px; }
-  .thumb-badge.op   { background:var(--blue); color:#fff; }   /* operatore assegnato */
+  .thumb-badge.cli  { background:var(--blue); color:#fff; }   /* collegato a un cliente (dashboard) */
   .thumb-badge.comm { background:#5B47D6;      color:#fff; }   /* seguito da un commerciale */
-  .thumb-badge.off  { background:#EEF2F7;      color:#9FB0C3; } /* non assegnato / senza commerciale */
+  .thumb-badge.off  { background:#EEF2F7;      color:#9FB0C3; } /* nessun cliente / nessun commerciale */
   .stl-preview-box { position:relative; margin-top:8px; border:1.5px solid var(--border); border-radius:10px; background:var(--light); overflow:hidden; min-height:56px; }
   .stl-preview-box.clickable { cursor:pointer; }
   .stl-preview-box.clickable:hover { border-color:var(--blue); }
@@ -1928,14 +1928,15 @@ function renderOrders() {
           <div class="order-thumb-row is-icon" id="rthumb-${o.id}" title="Anteprima 3D quando disponibile">${lavIcon(o)}</div>
           ${(function(){
             const m = (_shareMeta && _shareMeta[o.id]) || null;
-            const c = !!(m && m.comm);
+            const cli = !!(m && m.cliente);
+            const comm = !!(m && m.comm);
             const syncTitle = isSyncedNA(o) ? 'Sync NA avvenuta — scheda produzione ricevuta da New Ancorvis' : 'In attesa della scheda produzione (sync NA)';
-            const opTitle = o.operator ? 'Assegnato a ' + esc(o.operator) : 'Non ancora assegnato';
-            const coTitle = c ? ('Seguito da un commerciale' + (m.commName ? ': ' + esc(m.commName) : '')) : 'Nessun commerciale collegato';
+            const cliTitle = cli ? ('Collegato al cliente' + (m.clienteName ? ': ' + esc(m.clienteName) : '')) : 'Non collegato a un cliente';
+            const coTitle = comm ? ('Seguito da un commerciale' + (m.commName ? ': ' + esc(m.commName) : '')) : 'Nessun commerciale collegato';
             return `<div class="thumb-badges">
               <span class="sync-dot ${isSyncedNA(o) ? 'ok' : 'no'}" title="${syncTitle}"></span>
-              <span class="thumb-badge ${o.operator ? 'op' : 'off'}" title="${opTitle}">${icon('person')}</span>
-              <span class="thumb-badge ${c ? 'comm' : 'off'}" title="${coTitle}">${icon('briefcase')}</span>
+              <span class="thumb-badge ${cli ? 'cli' : 'off'}" title="${cliTitle}">${icon('person')}</span>
+              <span class="thumb-badge ${comm ? 'comm' : 'off'}" title="${coTitle}">${icon('briefcase')}</span>
             </div>`;
           })()}
         </div>
@@ -1992,11 +1993,14 @@ async function loadShareMeta(force) {
     const byOrder = {};
     (shares || []).forEach(s => {
       const c = byId[s.collaboratore_id]; if (!c) return;
-      const m = byOrder[s.order_id] || (byOrder[s.order_id] = { comm: false, commName: '' });
+      const m = byOrder[s.order_id] || (byOrder[s.order_id] = { cliente: false, clienteName: '', comm: false, commName: '' });
       if (c.tipo === 'commerciale') { m.comm = true; if (!m.commName) m.commName = c.nome || ''; }
-      else if (c.tipo === 'cliente' && c.commerciale_id) {
-        m.comm = true;
-        const cm = byId[c.commerciale_id]; if (cm && !m.commName) m.commName = cm.nome || '';
+      else if (c.tipo === 'cliente') {
+        m.cliente = true; if (!m.clienteName) m.clienteName = c.nome || '';
+        if (c.commerciale_id) {
+          m.comm = true;
+          const cm = byId[c.commerciale_id]; if (cm && !m.commName) m.commName = cm.nome || '';
+        }
       }
     });
     _shareMeta = byOrder;

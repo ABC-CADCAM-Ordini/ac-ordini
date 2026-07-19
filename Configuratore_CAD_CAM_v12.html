@@ -3783,7 +3783,9 @@ function renderStep() {
       html += renderConfirmScreen();
     }
 
-    html+=`<div class="disclaimer-box" style="margin-top:16px">
+    // Disclaimer del preventivo: appartiene al calcolo prezzi, quindi si mostra solo quando
+    // i prezzi sono attivi. Con SHOW_PREZZO=false resta nascosto (niente residuo del configuratore).
+    if (SHOW_PREZZO) html+=`<div class="disclaimer-box" style="margin-top:16px">
       <div class="disclaimer-icon">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
           <circle cx="10" cy="10" r="8.5"/>

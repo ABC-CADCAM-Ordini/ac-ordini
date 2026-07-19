@@ -80,6 +80,19 @@
   .ord-ic svg{width:40px; height:40px}
   @media(max-width:520px){ .ord-ic{width:88px; height:88px} }
   .ord-ic img{width:100%; height:100%; object-fit:contain; display:block}
+  /* Indicatori sulla miniatura: pallino sync + omino cliente + valigetta commerciale */
+  .ord-thumb{position:relative; flex-shrink:0}
+  .ord-badges{position:absolute; top:5px; right:5px; z-index:2; display:flex; flex-direction:column; align-items:center; gap:4px}
+  .pbdot{width:10px; height:10px; border-radius:50%}
+  .pbdot.ok{background:#16A34A; box-shadow:0 0 0 2px #fff, 0 0 0 3px #D1FAE5}
+  .pbdot.no{background:#DC2626; box-shadow:0 0 0 2px #fff, 0 0 0 3px #FEE2E2}
+  .pbadge{width:16px; height:16px; border-radius:5px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 2px #fff, 0 1px 2px rgba(0,0,0,.25)}
+  .pbadge svg{width:11px; height:11px}
+  .pbadge.cli{background:var(--blue); color:#fff}
+  .pbadge.comm{background:#5B47D6; color:#fff}
+  .pbadge.off{background:#EEF2F7; color:#9FB0C3}
+  .ord-legend{display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin:2px 4px 12px; font-size:11.5px; font-weight:600; color:var(--gray)}
+  .ord-legend span{display:inline-flex; align-items:center; gap:6px}
   .ord-main{flex:1; min-width:0}
   .ord-code{font-size:12px; font-weight:800; color:var(--blue); letter-spacing:.02em}
   .ord-lav{font-size:14.5px; font-weight:800; color:var(--dark); margin:1px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -159,6 +172,8 @@ const SUPABASE_KEY = "sb_publishable_HXVNXs1d0mjbVg7gp_D-Cw_IrakErzk";
 const esc = v => (v==null?"":String(v)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 const STATUS = { ricevuto:"Ordine ricevuto", in_lavorazione:"In lavorazione", concluso:"Concluso" };
 const CUBE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8l8 4.6v9.2L12 21.2l-8-4.6V7.4z"/><path d="M4 7.4l8 4.6 8-4.6"/><path d="M12 12v9.2"/></svg>';
+const PERSON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/></svg>';
+const BRIEF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M9 7.5V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1.5"/><path d="M3.5 12.5h17"/></svg>';
 const show = id => document.getElementById(id).classList.remove("hidden");
 const hide = id => document.getElementById(id).classList.add("hidden");
 
@@ -175,10 +190,22 @@ function render(rows, info){
   document.getElementById("sub").textContent = info ? [info.nome, tipoLabel, cnt].filter(Boolean).join(' · ') : cnt;
   if(!rows.length){ show("empty"); return; }
   const list = document.getElementById("list");
-  list.innerHTML = rows.map(o => {
+  const legend = `<div class="ord-legend">
+    <span><span class="pbdot ok"></span> sincronizzato</span>
+    <span><span class="pbadge cli">${PERSON}</span> cliente</span>
+    <span><span class="pbadge comm">${BRIEF}</span> commerciale</span>
+  </div>`;
+  list.innerHTML = legend + rows.map(o => {
     const st = esc(o.stato);
     return `<a class="ord-card" href="traccia-ordine.html?t=${esc(o.share_token)}">
-      <div class="ord-ic" data-tok="${esc(o.share_token)}">${CUBE}</div>
+      <div class="ord-thumb">
+        <div class="ord-ic" data-tok="${esc(o.share_token)}">${CUBE}</div>
+        <div class="ord-badges">
+          <span class="pbdot ${o.sincronizzato ? 'ok' : 'no'}" title="${o.sincronizzato ? 'Scheda produzione arrivata (NA)' : 'In attesa della scheda produzione (NA)'}"></span>
+          <span class="pbadge ${o.collegato_cliente ? 'cli' : 'off'}" title="${o.collegato_cliente ? 'Collegato a un cliente' : 'Non collegato a un cliente'}">${PERSON}</span>
+          <span class="pbadge ${o.collegato_commerciale ? 'comm' : 'off'}" title="${o.collegato_commerciale ? 'Seguito da un commerciale' : 'Nessun commerciale'}">${BRIEF}</span>
+        </div>
+      </div>
       <div class="ord-main">
         <div class="ord-code">${esc(codeOf(o))}</div>
         <div class="ord-lav">${esc(o.lavorazione || "Ordine")}</div>

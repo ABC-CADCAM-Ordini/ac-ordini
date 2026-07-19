@@ -2404,8 +2404,10 @@ function importXMLFromModal() {
 
 function confirmXMLData() {
   const phases = buildPhases();
-  const idx = phases.indexOf('mat');
-  state.step = idx >= 0 ? idx : 2;
+  // Vai al primo step ancora da compilare: N. Impianti (se multi e non scelto), altrimenti il materiale.
+  const target = (lavObj()&&lavObj().multi && state.nElIdx===null && phases.indexOf('nel')>=0)
+    ? phases.indexOf('nel') : phases.indexOf('mat');
+  state.step = target >= 0 ? target : 2;
   render();
 }
 
@@ -2468,7 +2470,9 @@ function buildPhases() {
   p.push("upload");
   if(xmlParsed && !xmlParsed.error) {
     p.push("xml_confirm");
+    if(lavObj()&&lavObj().multi) p.push("nel");   // #9: senza, "modifica N.Impianti" andava a vuoto e nElIdx restava null
     p.push("mat");
+    if(lavObj()&&lavObj().tiBase) p.push("tb");
     p.push("clinico");
     p.push("cliente");
     return p;
@@ -4789,8 +4793,16 @@ function printModuloBeFree() {
 
 function goNext() {
   const phases=buildPhases();
-  if(state.step<phases.length-1) { state.step++; render(); }
-  else { state.done=true; render(); }
+  if(state.step<phases.length-1) { state.step++; render(); return; }
+  // Ultimo step → riepilogo: un ordine multi-impianto senza N. Impianti darebbe un prezzo errato.
+  if(lavObj()&&lavObj().multi && state.nElIdx===null){
+    const nelIdx = phases.indexOf('nel');
+    alert("Manca il numero di impianti: selezionalo prima di procedere all'invio.");
+    state.step = nelIdx>=0 ? nelIdx : 0;
+    render();
+    return;
+  }
+  state.done=true; render();
 }
 function goBack() {
   if(state.step>0) { state.step--; render(); }

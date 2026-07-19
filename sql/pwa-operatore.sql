@@ -65,6 +65,16 @@ as $$
 $$;
 grant execute on function ordini_collaboratore(uuid) to anon;
 
+-- 2b) collaboratore_info: aggiungo `vede_tutto` (il portale mostra "Attiva avvisi" solo agli operatori).
+--     Cambia la firma → serve drop+create (create-or-replace non aggiunge colonne al return).
+drop function if exists collaboratore_info(uuid);
+create function collaboratore_info(p_token uuid)
+returns table (nome text, tipo text, vede_tutto boolean)
+language sql security definer set search_path = public as $$
+  select c.nome, c.tipo, c.vede_tutto from collaboratori c where c.token = p_token and c.attivo = true;
+$$;
+grant execute on function collaboratore_info(uuid) to anon;
+
 -- 3) push_subscriptions: iscrizioni legate al TOKEN (collaboratore), non solo agli account profiles.
 alter table public.push_subscriptions add column if not exists collaboratore_id uuid references public.collaboratori(id) on delete cascade;
 alter table public.push_subscriptions alter column profile_id drop not null;

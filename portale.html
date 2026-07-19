@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Portale ordini — AbutmentCompatibili.com</title>
 <link rel="icon" href="favicon-32.png">
+<link rel="manifest" href="manifest-portale.json">
+<meta name="theme-color" content="#0065B3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ordini">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -49,6 +55,13 @@
   .band{padding:18px 24px; color:#fff; background:linear-gradient(135deg,var(--blue-mid) 0%,var(--blue-dark) 100%)}
   .band .t{font-size:20px; font-weight:900; letter-spacing:-.01em}
   .band .s{font-size:12.5px; font-weight:600; opacity:.85; margin-top:2px}
+  .avvisi-btn{margin-top:14px; display:inline-flex; align-items:center; gap:7px; padding:9px 16px;
+    border:none; border-radius:11px; background:rgba(255,255,255,.18); color:#fff;
+    font-family:var(--font); font-weight:800; font-size:13px; cursor:pointer;
+    -webkit-tap-highlight-color:transparent; transition:background .15s, color .15s}
+  .avvisi-btn:hover{background:rgba(255,255,255,.28)}
+  .avvisi-btn.on{background:#fff; color:var(--blue)}
+  .avvisi-btn svg{width:17px; height:17px}
 
   .body{padding:14px 18px 20px}
   .skeleton,.state{padding:44px 24px; text-align:center; color:var(--gray); font-weight:600; line-height:1.6}
@@ -259,7 +272,10 @@ function hydrateThumbs(){
 }
 
 async function load(){
-  const token = new URLSearchParams(location.search).get("c");
+  // Token da ?c=… oppure, per la PWA installata (aperta senza query), da localStorage.
+  let token = new URLSearchParams(location.search).get("c");
+  if(token){ try{ localStorage.setItem("portale_token", token); }catch(e){} }
+  else { try{ token = localStorage.getItem("portale_token") || ""; }catch(e){} }
   if(!token){ hide("loading"); show("empty"); return; }
   const call = (fn) => fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
     method:"POST", headers:{ "apikey":SUPABASE_KEY, "Content-Type":"application/json" },
@@ -270,9 +286,67 @@ async function load(){
       call("collaboratore_info").catch(() => []),
       call("ordini_collaboratore")
     ]);
-    render(Array.isArray(rows) ? rows : [], Array.isArray(info) ? info[0] : null);
+    const me = Array.isArray(info) ? info[0] : null;
+    render(Array.isArray(rows) ? rows : [], me);
+    if (me && me.vede_tutto) initAvvisi(token);   // operatore: mostra "Attiva avvisi" + push
   }catch(e){ hide("loading"); document.getElementById("sub").textContent = "—"; show("err"); }
 }
+
+// ══ AVVISI PUSH (solo token operatore "vede_tutto") ═══════════════════════════
+const VAPID_PUBLIC_KEY = "BDdN8VakLAIdckTQFns7htnr79pG16xPOxCPvvaPp4nqdMGKzoc3e5l_MgyJddD_MMQs7RoUQYl6orLTM7BBj30";
+const BELL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.5a6 6 0 0 0-12 0c0 6.5-2.5 8-2.5 8h17s-2.5-1.5-2.5-8z"/><path d="M10.3 20.5a2 2 0 0 0 3.4 0"/></svg>';
+function urlB64ToUint8Array(b){
+  const pad = "=".repeat((4 - b.length % 4) % 4);
+  const s = (b + pad).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(s); const out = new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+async function salvaSub(token, sub){
+  const j = sub.toJSON();
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/salva_push_collaboratore`, {
+    method:"POST", headers:{ "apikey":SUPABASE_KEY, "Content-Type":"application/json" },
+    body: JSON.stringify({ p_token: token, p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_ua: navigator.userAgent })
+  });
+  if(!res.ok) throw new Error("HTTP " + res.status);
+}
+async function refreshAvvisiBtn(){
+  const b = document.getElementById("btn-avvisi"); if(!b) return;
+  if(!("serviceWorker" in navigator) || !("PushManager" in window)){ b.style.display = "none"; return; }
+  if(Notification.permission === "denied"){ b.innerHTML = BELL + " Avvisi bloccati"; b.classList.remove("on"); return; }
+  let sub = null;
+  try{ const r = await navigator.serviceWorker.ready; sub = await r.pushManager.getSubscription(); }catch(e){}
+  b.innerHTML = BELL + (sub ? " Avvisi attivi" : " Attiva avvisi");
+  b.classList.toggle("on", !!sub);
+}
+async function attivaAvvisi(token){
+  try{
+    if(!("serviceWorker" in navigator) || !("PushManager" in window)){ alert("Questo dispositivo non supporta le notifiche."); return; }
+    const perm = await Notification.requestPermission();
+    if(perm !== "granted"){ refreshAvvisiBtn(); return; }
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY) });
+    await salvaSub(token, sub);
+    refreshAvvisiBtn();
+  }catch(e){ console.error(e); alert("Attivazione avvisi non riuscita."); }
+}
+async function initAvvisi(token){
+  const t = document.querySelector(".band .t"); if(t) t.textContent = "Ordini da seguire";
+  const band = document.querySelector(".band");
+  if(band && !document.getElementById("btn-avvisi")){
+    const b = document.createElement("button");
+    b.id = "btn-avvisi"; b.type = "button"; b.className = "avvisi-btn";
+    b.innerHTML = BELL + " Attiva avvisi";
+    b.onclick = () => attivaAvvisi(token);
+    band.appendChild(b);
+  }
+  if("serviceWorker" in navigator){ try{ await navigator.serviceWorker.register("sw.js"); }catch(e){} }
+  await refreshAvvisiBtn();
+  // Se il dispositivo è già iscritto, rinfresca la riga lato server (best-effort).
+  try{ const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if(sub) await salvaSub(token, sub); }catch(e){}
+}
+
 load();
 </script>
 </body>

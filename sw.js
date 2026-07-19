@@ -1,7 +1,8 @@
-const CACHE_NAME = 'cadcam-v4';
+const CACHE_NAME = 'cadcam-v5';
 // Percorsi relativi alla posizione di sw.js (es. /ac-ordini/): robusti a un eventuale rename del repo.
 const ASSETS = [
   './Configuratore_CAD_CAM_v12.html',
+  './portale.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
@@ -53,12 +54,13 @@ self.addEventListener('push', event => {
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || './Admin_Ordini_v2.html';
+  const url = (event.notification.data && event.notification.data.url) || './portale.html';
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      // Se l'Admin è già aperto, portalo in primo piano invece di aprire un doppione.
+      // Se l'app (portale operatori o Admin) è già aperta, portala in primo piano
+      // invece di aprire un doppione.
       for (const c of list) {
-        if (c.url.includes('Admin_Ordini_v2') && 'focus' in c) return c.focus();
+        if ((c.url.includes('portale') || c.url.includes('Admin_Ordini_v2')) && 'focus' in c) return c.focus();
       }
       return self.clients.openWindow(url);
     })

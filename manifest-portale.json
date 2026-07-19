@@ -1,0 +1,21 @@
+{
+  "name": "Ordini — AbutmentCompatibili.com",
+  "short_name": "Ordini",
+  "description": "Segui i tuoi ordini e ricevi gli avvisi — Biaggini Medical Devices S.r.l.",
+  "start_url": "./portale.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#E2EBF5",
+  "theme_color": "#0065B3",
+  "lang": "it",
+  "capture_links": "none",
+  "categories": ["medical", "business", "productivity"],
+  "icons": [
+    { "src": "favicon-16.png",        "sizes": "16x16",   "type": "image/png" },
+    { "src": "favicon-32.png",        "sizes": "32x32",   "type": "image/png" },
+    { "src": "apple-touch-icon.png",  "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-192.png",          "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png",          "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

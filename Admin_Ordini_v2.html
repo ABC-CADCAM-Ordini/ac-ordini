@@ -958,7 +958,10 @@ body{
         <div style="font-size:18px;font-weight:900;color:var(--dark)"><span data-ic="users"></span> Gestione Operatori</div>
         <div style="font-size:12px;color:var(--gray);margin-top:2px">Aggiungi, modifica o disattiva gli accessi · telefono e email per le notifiche automatiche</div>
       </div>
-      <button onclick="closeUsersModal()" style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--border);background:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--gray)">✕</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="openCreateUser()" style="padding:8px 14px;border-radius:8px;border:none;background:var(--blue);color:#fff;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font)">➕ Nuovo operatore</button>
+        <button onclick="closeUsersModal()" style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--border);background:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--gray)">✕</button>
+      </div>
     </div>
 
     <!-- User list -->
@@ -969,8 +972,8 @@ body{
     <!-- I nuovi account si creano in Supabase → Authentication -->
     <div style="padding:14px 24px;border-top:1.5px solid var(--border);background:var(--light);flex-shrink:0">
       <div style="font-size:12px;color:var(--mid);line-height:1.55">
-        <b>Nuovo operatore?</b> Crea l'account in <b>Supabase → Authentication → Add user</b> (email + password).
-        Ricompare qui, dove puoi completarne nome e contatti con <b>Modifica</b>.
+        <b>Come funziona?</b> Con <b>➕ Nuovo operatore</b> crei accesso e profilo in un colpo: scegli il <b>ruolo</b> e detti la password generata.
+        Il <b>Responsabile</b> riceve le escalation degli ordini urgenti; l'<b>Amministratore</b> gestisce gli operatori.
       </div>
     </div>
   </div>
@@ -985,6 +988,14 @@ body{
     </div>
     <div style="display:grid;gap:10px">
       <input type="hidden" id="edit-user-id">
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">Ruolo</div>
+        <select id="edit-user-ruolo" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none;background:#fff">
+          <option value="operatore">Operatore</option>
+          <option value="responsabile">Responsabile (riceve escalation urgenti)</option>
+          <option value="admin">Amministratore</option>
+        </select>
+      </div>
       <div>
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">Nome</div>
         <input id="edit-user-nome" type="text" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
@@ -1001,6 +1012,50 @@ body{
     <div style="display:flex;gap:8px;margin-top:18px">
       <button onclick="closeEditModal()" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:none;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;color:var(--mid)">Annulla</button>
       <button onclick="saveEditUser()" style="flex:2;padding:10px;background:var(--blue);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer">💾 Salva modifiche</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CREATE USER MODAL ══════════════════════════════════════════ -->
+<div id="create-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;width:100%;max-width:440px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.3)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div style="font-size:16px;font-weight:900;color:var(--dark)">➕ Nuovo operatore</div>
+      <button onclick="closeCreateModal()" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);background:none;cursor:pointer;font-size:14px;color:var(--gray)">✕</button>
+    </div>
+    <div style="display:grid;gap:10px">
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">Nome</div>
+        <input id="create-user-nome" type="text" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px"><span data-ic="mail"></span> Email (serve per l'accesso)</div>
+        <input id="create-user-email" type="email" autocomplete="off" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">Ruolo</div>
+        <select id="create-user-ruolo" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none;background:#fff">
+          <option value="operatore">Operatore</option>
+          <option value="responsabile">Responsabile (riceve escalation urgenti)</option>
+          <option value="admin">Amministratore</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px"><span data-ic="phone"></span> WhatsApp (opzionale, con prefisso)</div>
+        <input id="create-user-tel" type="text" placeholder="393471234567" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px">Password iniziale</div>
+        <div style="display:flex;gap:6px">
+          <input id="create-user-pwd" type="text" style="flex:1;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--mono,monospace);outline:none">
+          <button type="button" onclick="regenCreatePwd()" title="Genera un'altra password" style="padding:0 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--light);cursor:pointer;font-size:15px">🎲</button>
+        </div>
+        <div style="font-size:10px;color:var(--gray);margin-top:4px">La comunichi tu all'operatore (a voce/WhatsApp). Potrà cambiarla dopo il primo accesso.</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:18px">
+      <button onclick="closeCreateModal()" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:none;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;color:var(--mid)">Annulla</button>
+      <button id="create-save-btn" onclick="saveCreateUser()" style="flex:2;padding:10px;background:var(--blue);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer">✓ Crea operatore</button>
     </div>
   </div>
 </div>
@@ -1028,6 +1083,7 @@ let currentFilter = "all";
 let currentSearch = "";
 let selectedOrderId = null;
 let allUsers = [];
+let currentUserId = "";   // id auth dell'operatore loggato (lega le iscrizioni push al profilo)
 
 // ── Interruttore PREZZO ── metti true per rimostrare i prezzi ovunque.
 const SHOW_PREZZO = false;
@@ -1128,6 +1184,7 @@ async function enterAppFromSession(user) {
   const btn = document.querySelector(".login-btn");
   const err = document.getElementById("login-error");
   try {
+    currentUserId = user.id;
     const profs = await sb("GET", `profiles?id=eq.${user.id}&select=*`);
     const prof = profs && profs[0];
     if (!prof || prof.attivo === false) {
@@ -1260,6 +1317,7 @@ function openEditModal(id) {
   const u = allUsers.find(x => x.id === id);
   if (!u) return;
   document.getElementById("edit-user-id").value    = u.id;
+  document.getElementById("edit-user-ruolo").value = u.ruolo || "operatore";
   document.getElementById("edit-user-nome").value  = u.nome || "";
   document.getElementById("edit-user-tel").value   = u.telefono || "";
   document.getElementById("edit-user-email").value = u.email || "";
@@ -1272,6 +1330,7 @@ function closeEditModal() {
 
 async function saveEditUser() {
   const id    = document.getElementById("edit-user-id").value;
+  const ruolo = document.getElementById("edit-user-ruolo").value;
   const nome  = document.getElementById("edit-user-nome").value.trim();
   const tel   = document.getElementById("edit-user-tel").value.trim();
   const email = document.getElementById("edit-user-email").value.trim();
@@ -1282,6 +1341,11 @@ async function saveEditUser() {
       telefono: tel || null,
       email: email || null
     });
+    // Il ruolo è sensibile (privilegi) → passa dalla funzione admin-gated, non da una PATCH client.
+    const orig = allUsers.find(x => x.id === id);
+    if (orig && (orig.ruolo || "operatore") !== ruolo) {
+      await callGestioneOperatori({ action: "setRole", id, ruolo });
+    }
     showToast("Operatore aggiornato", "green");
     closeEditModal();
     await loadUsers();
@@ -1299,12 +1363,77 @@ async function toggleUser(id, attivo) {
 async function deleteUser(id) {
   const u = allUsers.find(x => x.id === id);
   const nome = u ? u.nome : "";
-  if (!confirm(`Rimuovere il profilo di "${nome}"?\n\nNota: l'account resta in Supabase → Authentication. Eliminalo da lì per revocare del tutto l'accesso.`)) return;
+  if (!confirm(`Eliminare definitivamente l'operatore "${nome}"?\n\nVengono rimossi sia il profilo sia l'accesso (login). L'operazione non è reversibile.`)) return;
   try {
-    await sb("DELETE", `profiles?id=eq.${id}`);
-    showToast("Profilo rimosso", "red");
+    await callGestioneOperatori({ action: "delete", id });
+    showToast("Operatore eliminato", "red");
     await loadUsers();
   } catch(e) { showToast("Errore: " + e.message, "red"); }
+}
+
+// ── Ponte verso l'Edge Function admin-gated (crea / setRole / delete) ──────────
+// Tiene la service_role key lato server: dall'HTML non si può creare/eliminare un login.
+async function callGestioneOperatori(payload) {
+  const { data: { session } } = await sbAuth.auth.getSession();
+  if (!session) throw new Error("Sessione scaduta — rifai il login");
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/gestione-operatori`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${session.access_token}`,
+      "apikey": SUPABASE_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ("HTTP " + r.status));
+  return j;
+}
+
+// Password iniziale robusta e leggibile (niente caratteri ambigui: 0/O, 1/l/I).
+function genPassword() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const arr = new Uint32Array(14);
+  crypto.getRandomValues(arr);
+  let p = "";
+  for (let i = 0; i < arr.length; i++) p += chars[arr[i] % chars.length];
+  return p;
+}
+
+function openCreateUser() {
+  document.getElementById("create-user-nome").value  = "";
+  document.getElementById("create-user-email").value = "";
+  document.getElementById("create-user-tel").value   = "";
+  document.getElementById("create-user-ruolo").value = "operatore";
+  document.getElementById("create-user-pwd").value   = genPassword();
+  document.getElementById("create-modal").style.display = "flex";
+}
+function closeCreateModal() { document.getElementById("create-modal").style.display = "none"; }
+function regenCreatePwd() { document.getElementById("create-user-pwd").value = genPassword(); }
+
+async function saveCreateUser() {
+  const nome     = document.getElementById("create-user-nome").value.trim();
+  const email    = document.getElementById("create-user-email").value.trim();
+  const tel      = document.getElementById("create-user-tel").value.trim();
+  const ruolo    = document.getElementById("create-user-ruolo").value;
+  const password = document.getElementById("create-user-pwd").value;
+  if (!nome)  { showToast("Il nome è obbligatorio", "red"); return; }
+  if (!email) { showToast("L'email è obbligatoria", "red"); return; }
+  if ((password || "").length < 8) { showToast("Password troppo corta (min 8)", "red"); return; }
+  const btn = document.getElementById("create-save-btn");
+  if (btn) { btn.disabled = true; btn.textContent = "⏳ Creazione…"; }
+  try {
+    await callGestioneOperatori({ action: "create", nome, email, telefono: tel, ruolo, password });
+    closeCreateModal();
+    // La password non è più recuperabile: mostrala una volta perché l'admin la comunichi.
+    alert(`Operatore creato ✓\n\nComunica queste credenziali a ${nome}:\n\nEmail:    ${email}\nPassword: ${password}\n\n(la password non è più recuperabile: se la perdi, ne genererai una nuova con "Modifica" in Supabase o creando di nuovo l'operatore)`);
+    showToast("Operatore creato", "green");
+    await loadUsers();
+  } catch(e) {
+    showToast("Errore: " + e.message, "red");
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "✓ Crea operatore"; }
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -3527,6 +3656,203 @@ function showToast(msg, type = "") {
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.remove("show"), 2800);
 }
+</script>
+
+<!-- ══ AVVISI URGENTI (Web Push) + MONITOR ═══════════════════════════════
+     Blocco autonomo: pulsante "Attiva avvisi", iscrizione push legata al profilo,
+     e barra-monitor degli ordini urgenti non ancora in produzione.
+     La consegna vera parte in Fase B (cron + Edge Function notifica-push). -->
+<style>
+  #btn-avvisi.on { background: var(--blue); color: #fff; }
+  #urgenti-monitor {
+    display: none; align-items: center; gap: 14px; flex-wrap: wrap;
+    margin: 0 0 12px; padding: 10px 14px; border-radius: 12px;
+    background: #FEF2F2; border: 1.5px solid #FCA5A5; color: #7F1D1D;
+    font-size: 13px;
+  }
+  #urgenti-monitor .um-left { display: flex; align-items: center; gap: 7px; font-weight: 600; }
+  #urgenti-monitor .um-age { color: #B45309; font-weight: 500; }
+  #urgenti-monitor .um-dot {
+    width: 9px; height: 9px; border-radius: 50%; background: #DC2626;
+    box-shadow: 0 0 0 0 rgba(220,38,38,.6); animation: umpulse 1.8s infinite;
+  }
+  @keyframes umpulse {
+    0% { box-shadow: 0 0 0 0 rgba(220,38,38,.55); }
+    70% { box-shadow: 0 0 0 8px rgba(220,38,38,0); }
+    100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+  }
+  #urgenti-monitor .um-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  #urgenti-monitor .um-chip {
+    border: none; border-radius: 999px; padding: 4px 11px; cursor: pointer;
+    font-size: 12px; font-weight: 700; font-family: var(--font); color: #fff;
+  }
+  #urgenti-monitor .um-chip.lvl3 { background: #DC2626; }   /* Urgente */
+  #urgenti-monitor .um-chip.lvl2 { background: #EA580C; }   /* Express */
+  #urgenti-monitor .um-more { align-self: center; font-weight: 700; color: #7F1D1D; }
+  @media (prefers-color-scheme: dark) {
+    #urgenti-monitor { background: #3f1414; border-color: #7f1d1d; color: #fecaca; }
+  }
+</style>
+<script>
+// ── Chiave pubblica VAPID (l'omologa privata sta nei secret della Edge Function) ──
+const VAPID_PUBLIC_KEY = "BDdN8VakLAIdckTQFns7htnr79pG16xPOxCPvvaPp4nqdMGKzoc3e5l_MgyJddD_MMQs7RoUQYl6orLTM7BBj30";
+
+function urlB64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+// ── Salva/aggiorna l'iscrizione push del dispositivo, legata al profilo loggato ──
+async function salvaSubscription(sub) {
+  const j = sub.toJSON();
+  const { data: { session } } = await sbAuth.auth.getSession();
+  const token = (session && session.access_token) || SUPABASE_KEY;
+  const row = {
+    profile_id: currentUserId,
+    endpoint: j.endpoint,
+    p256dh: j.keys.p256dh,
+    auth: j.keys.auth,
+    user_agent: navigator.userAgent,
+    attivo: true,
+    last_seen_at: new Date().toISOString(),
+  };
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?on_conflict=endpoint`, {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "Prefer": "resolution=merge-duplicates,return=minimal",
+    },
+    body: JSON.stringify(row),
+  });
+  if (!res.ok) throw new Error("save subscription " + res.status + " " + (await res.text()));
+}
+
+async function attivaAvvisiUrgenti() {
+  try {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      showToast("Questo browser non supporta le notifiche push", "error"); return;
+    }
+    if (!currentUserId) { showToast("Accedi prima di attivare gli avvisi", "error"); return; }
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") { showToast("Permesso notifiche negato", "error"); refreshPushButton(); return; }
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+    await salvaSubscription(sub);
+    showToast("🔔 Avvisi urgenti attivati su questo dispositivo", "success");
+    refreshPushButton();
+  } catch (e) {
+    console.error("attivaAvvisi:", e);
+    showToast("Attivazione avvisi non riuscita", "error");
+  }
+}
+
+async function refreshPushButton() {
+  const btn = document.getElementById("btn-avvisi");
+  if (!btn) return;
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) { btn.style.display = "none"; return; }
+  if (Notification.permission === "denied") {
+    btn.textContent = "🔕 Avvisi bloccati";
+    btn.title = "Le notifiche sono bloccate: sbloccale dalle impostazioni del browser per questo sito";
+    btn.classList.remove("on"); btn.onclick = null; return;
+  }
+  let sub = null;
+  try { const reg = await navigator.serviceWorker.ready; sub = await reg.pushManager.getSubscription(); } catch (e) {}
+  if (sub) {
+    btn.textContent = "🔔 Avvisi attivi";
+    btn.title = "Ricevi le notifiche degli ordini urgenti su questo dispositivo";
+    btn.classList.add("on"); btn.onclick = null;
+  } else {
+    btn.textContent = "🔔 Attiva avvisi";
+    btn.title = "Attiva le notifiche degli ordini urgenti su questo dispositivo";
+    btn.classList.remove("on"); btn.onclick = attivaAvvisiUrgenti;
+  }
+}
+
+// ── Monitor: ordini urgenti/express ancora 'nuovo' (non mandati in produzione) ──
+function renderUrgentiMonitor() {
+  const host = document.getElementById("urgenti-monitor");
+  if (!host) return;
+  // 'ricevuto' = arrivato ma non ancora mandato in produzione (poi 'in_lavorazione' → 'concluso')
+  const list = (allOrders || []).filter(o => prioLevel(o) && o.status === "ricevuto");
+  if (!list.length) { host.style.display = "none"; host.innerHTML = ""; return; }
+  const now = Date.now();
+  const withAge = list
+    .map(o => ({ o, age: now - new Date(o.created_at || now).getTime() }))
+    .sort((a, b) => b.age - a.age);
+  const mins = Math.max(0, Math.round(withAge[0].age / 60000));
+  const oldestTxt = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins} min`;
+  host.style.display = "flex";
+  host.innerHTML = `
+    <div class="um-left">
+      <span class="um-dot"></span>
+      <b>${list.length}</b>&nbsp;urgent${list.length === 1 ? "e" : "i"} non ancora in produzione
+      <span class="um-age">· il più vecchio da ${oldestTxt}</span>
+    </div>
+    <div class="um-chips">
+      ${withAge.slice(0, 6).map(({ o }) => {
+        const cli = esc(((o.nome || "").trim()) || ((o.azienda || "").trim()) || "Cliente");
+        return `<button class="um-chip lvl${prioLevel(o)}" onclick="openDetail('${o.id}')" title="Apri l'ordine">${cli}</button>`;
+      }).join("")}
+      ${list.length > 6 ? `<span class="um-more">+${list.length - 6}</span>` : ""}
+    </div>`;
+}
+
+// ── Init una-tantum: SW + pulsante, appena l'operatore è loggato ──
+let _pushInit = false;
+async function initPushForOperator() {
+  const btn = document.getElementById("btn-avvisi");
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) { if (btn) btn.style.display = "none"; return; }
+  try { await navigator.serviceWorker.register("sw.js"); } catch (e) { console.warn("SW non registrato:", e); }
+  await refreshPushButton();
+  // Se il dispositivo è già iscritto, rinfresca la riga lato server (best-effort).
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub && currentUserId) await salvaSubscription(sub);
+  } catch (e) { /* best-effort */ }
+}
+
+// ── Innesto nel DOM: pulsante nell'header + barra-monitor sopra la lista ──
+(function mountAvvisiUI() {
+  const actions = document.querySelector(".main-actions");
+  if (actions && !document.getElementById("btn-avvisi")) {
+    const b = document.createElement("button");
+    b.id = "btn-avvisi";
+    b.className = "refresh-btn";
+    b.type = "button";
+    b.textContent = "🔔 Attiva avvisi";
+    b.onclick = attivaAvvisiUrgenti;
+    actions.insertBefore(b, actions.firstChild);
+  }
+  const header = document.querySelector(".main-header");
+  if (header && !document.getElementById("urgenti-monitor")) {
+    const m = document.createElement("div");
+    m.id = "urgenti-monitor";
+    header.insertAdjacentElement("afterend", m);
+  }
+  // Aggancia il monitor a ogni render della lista e fa partire l'init al primo render post-login.
+  if (typeof renderOrders === "function" && !renderOrders._urgentiWrapped) {
+    const orig = renderOrders;
+    renderOrders = function () {
+      orig.apply(this, arguments);
+      try { renderUrgentiMonitor(); } catch (e) {}
+      if (!_pushInit && currentUserId) { _pushInit = true; initPushForOperator(); }
+    };
+    renderOrders._urgentiWrapped = true;
+  }
+})();
 </script>
 <div id="print-sheet" style="display:none"></div>
 </body>

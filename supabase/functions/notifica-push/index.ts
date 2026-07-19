@@ -20,7 +20,7 @@
 //    (qui convertite dal formato base64url standard) e gestione 404/410 (subscription scadute).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import * as webpush from "jsr:@negrel/webpush@0.3";
+import * as webpush from "jsr:@negrel/webpush";
 
 // ── Config ────────────────────────────────────────────────────
 const WEBHOOK_SECRET = Deno.env.get("WEBHOOK_SECRET")!;

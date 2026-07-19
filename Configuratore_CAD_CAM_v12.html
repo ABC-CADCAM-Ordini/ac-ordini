@@ -1831,7 +1831,9 @@ async function saveOrderToSupabase(fileLink, fileName, token) {
   // (INSERT fallito, o il cliente che ritenta e genera un altro token), quel modello del paziente
   // resta lì senza nessuna riga che lo referenzi — invisibile a ogni pulizia e scaricabile per
   // sempre da chi conosce l'URL. Non blocca l'ordine: se fallisce, l'Admin usa il caricamento manuale.
-  await uploadStlToStorage(shareToken).catch(e => console.warn("⚠️ STL storage:", e.message));
+  // Copia STL per l'anteprima 3D: best-effort e non bloccante (ordine e ZIP sono già al sicuro).
+  // Niente await: non ritardiamo la conferma al cliente caricando due volte lo stesso file in fila.
+  uploadStlToStorage(shareToken).catch(e => console.warn("⚠️ STL storage:", e.message));
 }
 
 const EMAILJS_SERVICE_ID  = "service_dzymfnb";

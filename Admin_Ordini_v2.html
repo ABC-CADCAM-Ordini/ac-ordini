@@ -3659,40 +3659,11 @@ function showToast(msg, type = "") {
 }
 </script>
 
-<!-- ══ AVVISI URGENTI (Web Push) + MONITOR ═══════════════════════════════
-     Blocco autonomo: pulsante "Attiva avvisi", iscrizione push legata al profilo,
-     e barra-monitor degli ordini urgenti non ancora in produzione.
+<!-- ══ AVVISI URGENTI (Web Push) ═══════════════════════════════
+     Blocco autonomo: pulsante "Attiva avvisi" + iscrizione push legata al profilo.
      La consegna vera parte in Fase B (cron + Edge Function notifica-push). -->
 <style>
   #btn-avvisi.on { background: var(--blue); color: #fff; }
-  #urgenti-monitor {
-    display: none; align-items: center; gap: 14px; flex-wrap: wrap;
-    margin: 0 0 12px; padding: 10px 14px; border-radius: 12px;
-    background: #FEF2F2; border: 1.5px solid #FCA5A5; color: #7F1D1D;
-    font-size: 13px;
-  }
-  #urgenti-monitor .um-left { display: flex; align-items: center; gap: 7px; font-weight: 600; }
-  #urgenti-monitor .um-age { color: #B45309; font-weight: 500; }
-  #urgenti-monitor .um-dot {
-    width: 9px; height: 9px; border-radius: 50%; background: #DC2626;
-    box-shadow: 0 0 0 0 rgba(220,38,38,.6); animation: umpulse 1.8s infinite;
-  }
-  @keyframes umpulse {
-    0% { box-shadow: 0 0 0 0 rgba(220,38,38,.55); }
-    70% { box-shadow: 0 0 0 8px rgba(220,38,38,0); }
-    100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
-  }
-  #urgenti-monitor .um-chips { display: flex; gap: 6px; flex-wrap: wrap; }
-  #urgenti-monitor .um-chip {
-    border: none; border-radius: 999px; padding: 4px 11px; cursor: pointer;
-    font-size: 12px; font-weight: 700; font-family: var(--font); color: #fff;
-  }
-  #urgenti-monitor .um-chip.lvl3 { background: #DC2626; }   /* Urgente */
-  #urgenti-monitor .um-chip.lvl2 { background: #EA580C; }   /* Express */
-  #urgenti-monitor .um-more { align-self: center; font-weight: 700; color: #7F1D1D; }
-  @media (prefers-color-scheme: dark) {
-    #urgenti-monitor { background: #3f1414; border-color: #7f1d1d; color: #fecaca; }
-  }
 </style>
 <script>
 // ── Chiave pubblica VAPID (l'omologa privata sta nei secret della Edge Function) ──
@@ -3781,35 +3752,6 @@ async function refreshPushButton() {
   }
 }
 
-// ── Monitor: ordini urgenti/express ancora 'nuovo' (non mandati in produzione) ──
-function renderUrgentiMonitor() {
-  const host = document.getElementById("urgenti-monitor");
-  if (!host) return;
-  // 'ricevuto' = arrivato ma non ancora mandato in produzione (poi 'in_lavorazione' → 'concluso')
-  const list = (allOrders || []).filter(o => prioLevel(o) && o.status === "ricevuto");
-  if (!list.length) { host.style.display = "none"; host.innerHTML = ""; return; }
-  const now = Date.now();
-  const withAge = list
-    .map(o => ({ o, age: now - new Date(o.created_at || now).getTime() }))
-    .sort((a, b) => b.age - a.age);
-  const mins = Math.max(0, Math.round(withAge[0].age / 60000));
-  const oldestTxt = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins} min`;
-  host.style.display = "flex";
-  host.innerHTML = `
-    <div class="um-left">
-      <span class="um-dot"></span>
-      <b>${list.length}</b>&nbsp;urgent${list.length === 1 ? "e" : "i"} non ancora in produzione
-      <span class="um-age">· il più vecchio da ${oldestTxt}</span>
-    </div>
-    <div class="um-chips">
-      ${withAge.slice(0, 6).map(({ o }) => {
-        const cli = esc(((o.nome || "").trim()) || ((o.azienda || "").trim()) || "Cliente");
-        return `<button class="um-chip lvl${prioLevel(o)}" onclick="openDetail('${o.id}')" title="Apri l'ordine">${cli}</button>`;
-      }).join("")}
-      ${list.length > 6 ? `<span class="um-more">+${list.length - 6}</span>` : ""}
-    </div>`;
-}
-
 // ── Init una-tantum: SW + pulsante, appena l'operatore è loggato ──
 let _pushInit = false;
 async function initPushForOperator() {
@@ -3825,7 +3767,7 @@ async function initPushForOperator() {
   } catch (e) { /* best-effort */ }
 }
 
-// ── Innesto nel DOM: pulsante nell'header + barra-monitor sopra la lista ──
+// ── Innesto nel DOM: solo il pulsante "Attiva avvisi" nell'header ──
 (function mountAvvisiUI() {
   const actions = document.querySelector(".main-actions");
   if (actions && !document.getElementById("btn-avvisi")) {
@@ -3837,18 +3779,11 @@ async function initPushForOperator() {
     b.onclick = attivaAvvisiUrgenti;
     actions.insertBefore(b, actions.firstChild);
   }
-  const header = document.querySelector(".main-header");
-  if (header && !document.getElementById("urgenti-monitor")) {
-    const m = document.createElement("div");
-    m.id = "urgenti-monitor";
-    header.insertAdjacentElement("afterend", m);
-  }
-  // Aggancia il monitor a ogni render della lista e fa partire l'init al primo render post-login.
+  // Fa partire l'init push al primo render della lista dopo il login.
   if (typeof renderOrders === "function" && !renderOrders._urgentiWrapped) {
     const orig = renderOrders;
     renderOrders = function () {
       orig.apply(this, arguments);
-      try { renderUrgentiMonitor(); } catch (e) {}
       if (!_pushInit && currentUserId) { _pushInit = true; initPushForOperator(); }
     };
     renderOrders._urgentiWrapped = true;

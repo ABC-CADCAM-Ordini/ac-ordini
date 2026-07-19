@@ -6,6 +6,46 @@
 <title>Portale ordini — AbutmentCompatibili.com</title>
 <link rel="icon" href="favicon-32.png">
 <link rel="manifest" href="manifest-portale.json">
+<script>
+/* iOS PWA + token. Se apro il portale con ?c=TOKEN riscrivo il manifest così che,
+   aggiungendo l'app alla schermata Home, iOS la lanci con la start_url che PORTA il
+   token. Senza questo iOS usa la start_url statica (./portale.html, senza token) e
+   la web-app in Home — che su iPhone ha storage isolato da Safari — non ha modo di
+   recuperarlo: parte "nuda" e non carica nessun ordine. Va eseguito PRIMA che iOS
+   legga il manifest, quindi sta qui nel <head>, subito dopo il link. */
+(function(){
+  try{
+    var tok = new URLSearchParams(location.search).get("c");
+    if(!tok) return;
+    var dir = location.href.replace(/[?#].*$/,"").replace(/[^/]*$/,""); // cartella con slash finale
+    var abs = function(p){ return dir + p; };
+    var man = {
+      name:"Ordini — AbutmentCompatibili.com",
+      short_name:"Ordini",
+      description:"Segui i tuoi ordini e ricevi gli avvisi — Biaggini Medical Devices S.r.l.",
+      start_url: dir + "portale.html?c=" + encodeURIComponent(tok),
+      scope: dir,
+      display:"standalone",
+      orientation:"portrait-primary",
+      background_color:"#E2EBF5",
+      theme_color:"#0065B3",
+      lang:"it",
+      capture_links:"none",
+      categories:["medical","business","productivity"],
+      icons:[
+        { src:abs("favicon-16.png"),       sizes:"16x16",   type:"image/png" },
+        { src:abs("favicon-32.png"),       sizes:"32x32",   type:"image/png" },
+        { src:abs("apple-touch-icon.png"), sizes:"180x180", type:"image/png" },
+        { src:abs("icon-192.png"),         sizes:"192x192", type:"image/png", purpose:"any" },
+        { src:abs("icon-512.png"),         sizes:"512x512", type:"image/png", purpose:"any" }
+      ]
+    };
+    var href = "data:application/manifest+json;charset=utf-8," + encodeURIComponent(JSON.stringify(man));
+    var link = document.querySelector('link[rel="manifest"]');
+    if(link){ link.setAttribute("href", href); }
+  }catch(e){}
+})();
+</script>
 <meta name="theme-color" content="#0065B3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -204,8 +244,14 @@ function render(rows, info){
 function toggleConclusi(){ _showConclusi = !_showConclusi; renderList(); }
 function renderList(){
   const info = _info;
-  const rows = _showConclusi ? _rows : _rows.filter(o => o.stato !== 'concluso');
-  const concN = _rows.filter(o => o.stato === 'concluso').length;
+  // Un concluso resta "tra gli ordini" per 48h dalla conclusione (updated_at): così il
+  // cliente fa in tempo ad aprirlo e vedere il tracking del corriere. Solo i conclusi
+  // più vecchi finiscono dietro il toggle "Mostra conclusi".
+  const RECENTE_MS = 48 * 3600 * 1000;
+  const conclusoRecente = o => o.stato === 'concluso' && o.updated_at &&
+    (Date.now() - new Date(o.updated_at).getTime()) < RECENTE_MS;
+  const rows = _showConclusi ? _rows : _rows.filter(o => o.stato !== 'concluso' || conclusoRecente(o));
+  const concN = _rows.filter(o => o.stato === 'concluso' && !conclusoRecente(o)).length;
   const cnt = rows.length + (rows.length === 1 ? " ordine" : " ordini");
   const tipoLabel = {commerciale:'Commerciale', cliente:'Cliente'}[info?.tipo] || '';
   document.getElementById("sub").textContent = info ? [info.nome, tipoLabel, cnt].filter(Boolean).join(' · ') : cnt;
@@ -325,10 +371,15 @@ async function load(){
   if(token){ try{ localStorage.setItem("portale_token", token); }catch(e){} }
   else { try{ token = localStorage.getItem("portale_token") || ""; }catch(e){} }
   if(!token){ hide("loading"); show("empty"); return; }
-  const call = (fn) => fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
-    method:"POST", headers:{ "apikey":SUPABASE_KEY, "Content-Type":"application/json" },
-    body: JSON.stringify({ p_token: token })
-  }).then(r => { if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
+  const call = (fn) => {
+    const ctl = ("AbortController" in window) ? new AbortController() : null;
+    const timer = ctl ? setTimeout(() => ctl.abort(), 12000) : null;   // niente attese infinite
+    return fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+      method:"POST", headers:{ "apikey":SUPABASE_KEY, "Content-Type":"application/json" },
+      body: JSON.stringify({ p_token: token }), signal: ctl ? ctl.signal : undefined
+    }).then(r => { if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .finally(() => { if(timer) clearTimeout(timer); });
+  };
   try{
     const [info, rows] = await Promise.all([
       call("collaboratore_info").catch(() => []),

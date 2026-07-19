@@ -61,9 +61,11 @@
     transition:border-color .15s, box-shadow .15s, transform .05s;}
   .ord-card:hover{border-color:var(--blue); box-shadow:0 4px 14px rgba(0,101,179,.10)}
   .ord-card:active{transform:scale(.995)}
-  .ord-ic{flex-shrink:0; width:44px; height:44px; border-radius:10px; background:var(--blue-light);
-    display:flex; align-items:center; justify-content:center; color:var(--blue)}
-  .ord-ic svg{width:24px; height:24px}
+  .ord-ic{flex-shrink:0; width:72px; height:72px; border-radius:12px;
+    background:radial-gradient(ellipse at 50% 32%, #F7FAFF 0%, #E2ECF6 100%);
+    display:flex; align-items:center; justify-content:center; color:#5E82AD; overflow:hidden}
+  .ord-ic svg{width:30px; height:30px}
+  .ord-ic img{width:100%; height:100%; object-fit:contain; display:block}
   .ord-main{flex:1; min-width:0}
   .ord-code{font-size:12px; font-weight:800; color:var(--blue); letter-spacing:.02em}
   .ord-lav{font-size:14.5px; font-weight:800; color:var(--dark); margin:1px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -162,7 +164,7 @@ function render(rows, info){
   list.innerHTML = rows.map(o => {
     const st = esc(o.stato);
     return `<a class="ord-card" href="traccia-ordine.html?t=${esc(o.share_token)}">
-      <div class="ord-ic">${CUBE}</div>
+      <div class="ord-ic" data-tok="${esc(o.share_token)}">${CUBE}</div>
       <div class="ord-main">
         <div class="ord-code">${esc(codeOf(o))}</div>
         <div class="ord-lav">${esc(o.lavorazione || "Ordine")}</div>
@@ -176,6 +178,77 @@ function render(rows, info){
     </a>`;
   }).join("");
   show("list");
+  hydrateThumbs();
+}
+
+// ── Anteprime 3D degli STL (stesso motore dell'Admin): render on-demand, pigro e in cache ──
+// Le miniature si generano solo per le card che entrano in vista (IntersectionObserver),
+// una alla volta (coda), e la PNG viene messa in cache (RAM + localStorage) così al reload
+// compaiono subito. three.js si carica SOLO quando c'è davvero uno STL da disegnare.
+const STL_BUCKET = "ordini-stl";
+const stlUrl = tok => `${SUPABASE_URL}/storage/v1/object/public/${STL_BUCKET}/${encodeURIComponent(tok)}.stl`;
+let _three = null;
+function loadThree(){
+  if(!_three) _three = (async () => {
+    const V = "0.160.0";
+    const THREE = await import(`https://esm.sh/three@${V}`);
+    const { STLLoader } = await import(`https://esm.sh/three@${V}/examples/jsm/loaders/STLLoader.js`);
+    return { THREE, STLLoader };
+  })();
+  return _three;
+}
+const _thumbRam = new Map();   // token -> dataURL | 'none' | 'pending'
+const _lsGet = t => { try { return localStorage.getItem("stlthumb:" + t); } catch(e){ return null; } };
+const _lsSet = (t,d) => { try { localStorage.setItem("stlthumb:" + t, d); }
+  catch(e){ try { Object.keys(localStorage).filter(k=>k.startsWith("stlthumb:")).forEach(k=>localStorage.removeItem(k)); localStorage.setItem("stlthumb:" + t, d); } catch(_){} } };
+
+function stlThumbDataUrl(THREE, STLLoader, buf){
+  const W=132, H=132;
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 100000);
+  scene.add(new THREE.DirectionalLight(0xffffff,2.3), new THREE.AmbientLight(0xffffff,0.6), new THREE.HemisphereLight(0xffffff,0x394a5a,0.5));
+  const geom = new STLLoader().parse(buf); geom.computeVertexNormals(); geom.center(); geom.computeBoundingSphere();
+  const mesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({ color:0xC9D6E4, metalness:0.14, roughness:0.55 }));
+  mesh.rotation.x = -Math.PI/2; scene.add(mesh);
+  const r = (geom.boundingSphere && geom.boundingSphere.radius) || 1;
+  const d = r / Math.sin((38*Math.PI/180)/2) * 1.25;
+  cam.position.set(d*0.55, d*0.5, d*0.95); cam.near = Math.max(d/500,0.01); cam.far = d*500; cam.updateProjectionMatrix(); cam.lookAt(0,0,0);
+  const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true, preserveDrawingBuffer:true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(W,H); renderer.render(scene, cam);
+  const url = renderer.domElement.toDataURL("image/png");
+  renderer.dispose(); renderer.forceContextLoss(); geom.dispose(); mesh.material.dispose();
+  return url;
+}
+async function _hydrateOne(box){
+  const tok = box.dataset.tok; if(!tok) return;
+  let c = _thumbRam.get(tok);
+  if(!c){ const ls = _lsGet(tok); if(ls){ _thumbRam.set(tok, ls); c = ls; } }
+  if(c === 'none' || c === 'pending') return;
+  if(c){ box.innerHTML = `<img src="${c}" alt="Anteprima 3D">`; return; }
+  _thumbRam.set(tok, 'pending');
+  try {
+    const res = await fetch(stlUrl(tok));
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const buf = await res.arrayBuffer();
+    const { THREE, STLLoader } = await loadThree();
+    const d = stlThumbDataUrl(THREE, STLLoader, buf);
+    _thumbRam.set(tok, d); _lsSet(tok, d);
+    box.innerHTML = `<img src="${d}" alt="Anteprima 3D">`;
+  } catch(e){ _thumbRam.set(tok, 'none'); }   // STL assente (ordine vecchio) o errore: resta il cubo
+}
+let _io = null, _q = Promise.resolve();
+function hydrateThumbs(){
+  const boxes = [...document.querySelectorAll('.ord-ic[data-tok]')];
+  const kick = box => { _q = _q.then(() => _hydrateOne(box)); };
+  if('IntersectionObserver' in window){
+    if(_io) _io.disconnect();
+    _io = new IntersectionObserver((entries, obs) => {
+      entries.forEach(en => { if(en.isIntersecting){ obs.unobserve(en.target); kick(en.target); } });
+    }, { rootMargin: '250px' });
+    boxes.forEach(b => _io.observe(b));
+  } else {
+    boxes.forEach(kick);
+  }
 }
 
 async function load(){

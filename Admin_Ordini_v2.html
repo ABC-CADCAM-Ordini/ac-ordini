@@ -390,6 +390,14 @@
   .sync-dot { width:9px; height:9px; border-radius:50%; flex:none; }
   .sync-dot.ok { background:#16A34A; box-shadow:0 0 0 2px #D1FAE5; }
   .sync-dot.no { background:#DC2626; box-shadow:0 0 0 2px #FEE2E2; }
+  /* Badge di stato sotto il pallino sync: operatore (assegnato) e commerciale (seguito) */
+  .thumb-badges { position:absolute; top:6px; right:6px; z-index:2; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .thumb-badges .sync-dot { position:static; }
+  .thumb-badge { width:15px; height:15px; border-radius:5px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 2px #fff, 0 1px 2px rgba(0,0,0,.25); }
+  .thumb-badge .ui-ic svg { width:10px; height:10px; }
+  .thumb-badge.op   { background:var(--blue); color:#fff; }   /* operatore assegnato */
+  .thumb-badge.comm { background:#5B47D6;      color:#fff; }   /* seguito da un commerciale */
+  .thumb-badge.off  { background:#EEF2F7;      color:#9FB0C3; } /* non assegnato / senza commerciale */
   .stl-preview-box { position:relative; margin-top:8px; border:1.5px solid var(--border); border-radius:10px; background:var(--light); overflow:hidden; min-height:56px; }
   .stl-preview-box.clickable { cursor:pointer; }
   .stl-preview-box.clickable:hover { border-color:var(--blue); }
@@ -1283,6 +1291,7 @@ async function loadOrders() {
     showSpinner(true);
     const data = await sb("GET", "orders?select=*&order=created_at.desc");
     allOrders = data || [];
+    await loadShareMeta().catch(() => {});   // meta per i badge "commerciale" in lista
     renderOrders();
     updateStats();
     // I suggerimenti sono un extra letto da un file che può non esistere: non devono MAI
@@ -1889,6 +1898,8 @@ const UI_IC = {
   search:   `<svg ${_S}><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.2-4.2"/></svg>`,
   chevron:  `<svg ${_S}><path d="M9 6l6 6-6 6"/></svg>`,
   back:     `<svg ${_S}><path d="M15 6l-6 6 6 6"/></svg>`,
+  person:    `<svg ${_S}><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/></svg>`,
+  briefcase: `<svg ${_S}><rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M9 7.5V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1.5"/><path d="M3.5 12.5h17"/></svg>`,
 };
 function icon(name, cls) { return `<span class="ui-ic ${cls || ''}">${UI_IC[name] || ''}</span>`; }
 function hydrateUiIcons(root) {
@@ -1915,7 +1926,18 @@ function renderOrders() {
         <div class="thumb-wrap">
           <input type="checkbox" class="row-check" ${selectedOrders.has(o.id) ? 'checked' : ''} onclick="event.stopPropagation();toggleRowSelect('${o.id}',this.checked)" title="Seleziona per collegare più casi a un cliente">
           <div class="order-thumb-row is-icon" id="rthumb-${o.id}" title="Anteprima 3D quando disponibile">${lavIcon(o)}</div>
-          <span class="sync-dot ${isSyncedNA(o) ? 'ok' : 'no'}" title="${isSyncedNA(o) ? 'Sync NA avvenuta — scheda produzione ricevuta da New Ancorvis' : 'In attesa della scheda produzione (sync NA)'}"></span>
+          ${(function(){
+            const m = (_shareMeta && _shareMeta[o.id]) || null;
+            const c = !!(m && m.comm);
+            const syncTitle = isSyncedNA(o) ? 'Sync NA avvenuta — scheda produzione ricevuta da New Ancorvis' : 'In attesa della scheda produzione (sync NA)';
+            const opTitle = o.operator ? 'Assegnato a ' + esc(o.operator) : 'Non ancora assegnato';
+            const coTitle = c ? ('Seguito da un commerciale' + (m.commName ? ': ' + esc(m.commName) : '')) : 'Nessun commerciale collegato';
+            return `<div class="thumb-badges">
+              <span class="sync-dot ${isSyncedNA(o) ? 'ok' : 'no'}" title="${syncTitle}"></span>
+              <span class="thumb-badge ${o.operator ? 'op' : 'off'}" title="${opTitle}">${icon('person')}</span>
+              <span class="thumb-badge ${c ? 'comm' : 'off'}" title="${coTitle}">${icon('briefcase')}</span>
+            </div>`;
+          })()}
         </div>
       </div>
       <div class="order-cliente">
@@ -1954,6 +1976,34 @@ async function loadCollab(force) {
   return _collab;
 }
 const normStudio = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+// Meta per i badge in lista: per ogni ordine, se è seguito da un commerciale (cliente collegato
+// che ha un commerciale, oppure un commerciale collegato direttamente). Caricato una volta e
+// invalidato quando cambiano le condivisioni.
+let _shareMeta = null;
+async function loadShareMeta(force) {
+  if (_shareMeta && !force) return _shareMeta;
+  try {
+    const [collab, shares] = await Promise.all([
+      loadCollab(),
+      sb('GET', 'ordini_condivisi?select=order_id,collaboratore_id')
+    ]);
+    const byId = {}; collab.forEach(c => { byId[c.id] = c; });
+    const byOrder = {};
+    (shares || []).forEach(s => {
+      const c = byId[s.collaboratore_id]; if (!c) return;
+      const m = byOrder[s.order_id] || (byOrder[s.order_id] = { comm: false, commName: '' });
+      if (c.tipo === 'commerciale') { m.comm = true; if (!m.commName) m.commName = c.nome || ''; }
+      else if (c.tipo === 'cliente' && c.commerciale_id) {
+        m.comm = true;
+        const cm = byId[c.commerciale_id]; if (cm && !m.commName) m.commName = cm.nome || '';
+      }
+    });
+    _shareMeta = byOrder;
+  } catch (e) { if (!_shareMeta) _shareMeta = {}; }
+  return _shareMeta;
+}
+function refreshShareBadges() { _shareMeta = null; loadShareMeta().then(() => renderOrders()); }
 
 async function renderDashboardBlock(o) {
   const box = document.getElementById('d-dashboard');
@@ -2014,6 +2064,7 @@ async function dashLink(orderId, collabId) {
   try {
     await sb('POST', 'ordini_condivisi', { order_id: orderId, collaboratore_id: collabId });
     showToast('Caso collegato alla dashboard ✓', 'green');
+    refreshShareBadges();
     const o = allOrders.find(x => x.id === orderId); if (o) renderDashboardBlock(o);
   } catch (e) { showToast('Errore: ' + e.message, 'red'); }
 }
@@ -2021,6 +2072,7 @@ async function dashUnlink(orderId, collabId) {
   try {
     await sb('DELETE', `ordini_condivisi?order_id=eq.${orderId}&collaboratore_id=eq.${collabId}`);
     showToast('Caso scollegato', 'green');
+    refreshShareBadges();
     const o = allOrders.find(x => x.id === orderId); if (o) renderDashboardBlock(o);
   } catch (e) { showToast('Errore: ' + e.message, 'red'); }
 }
@@ -2037,6 +2089,7 @@ async function dashCreateClient(orderId) {
     await loadCollab(true);
     if (newId) await sb('POST', 'ordini_condivisi', { order_id: orderId, collaboratore_id: newId });
     showToast('Cliente creato e collegato ✓', 'green');
+    refreshShareBadges();
     renderDashboardBlock(o);
   } catch (e) { showToast('Errore: ' + e.message, 'red'); }
 }
@@ -2086,6 +2139,7 @@ async function bulkLink() {
   selectedOrders.clear();
   renderBulkBar();
   renderOrders();
+  refreshShareBadges();
   const o = allOrders.find(x => x.id === selectedOrderId); if (o) renderDashboardBlock(o);
 }
 function bulkClear() {

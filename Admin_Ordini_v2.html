@@ -363,6 +363,7 @@
   /* Checkbox multi-selezione: angolo alto-sinistra della miniatura, discreta finché non selezioni */
   .row-check { position:absolute; top:6px; left:6px; width:18px; height:18px; z-index:3; cursor:pointer; accent-color:var(--blue); opacity:.38; transition:opacity .12s; }
   .order-row:hover .row-check, .row-check:checked { opacity:1; }
+  @media (hover: none){ .row-check{ opacity:.9; width:22px; height:22px; } }
   /* Barra azioni in blocco (galleggiante) */
   .bulk-bar { position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(20px); display:none; align-items:center; gap:11px; flex-wrap:wrap; background:#14202E; color:#fff; padding:11px 16px; border-radius:12px; box-shadow:0 12px 34px rgba(0,0,0,.30); z-index:150; opacity:0; transition:opacity .15s, transform .15s; max-width:calc(100vw - 28px); }
   .bulk-bar.open { display:flex; opacity:1; transform:translateX(-50%) translateY(0); }
@@ -771,13 +772,13 @@ body{
     <div class="login-sub">Accesso riservato agli operatori</div>
 
     <div class="login-field">
-      <label>Email</label>
+      <label for="login-name">Email</label>
       <input type="email" id="login-name" placeholder="nome@studio.it" autocomplete="username"
         onkeydown="if(event.key==='Enter')document.getElementById('login-pwd').focus()">
     </div>
     <div class="login-field">
-      <label>Password</label>
-      <input type="password" id="login-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      <label for="login-pwd">Password</label>
+      <input type="password" id="login-pwd" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <button class="login-btn" onclick="doLogin()">Accedi</button>
     <div class="login-error" id="login-error">Nome o password non corretti.</div>
@@ -1076,7 +1077,9 @@ async function doLogin() {
 
   const { data, error } = await sbAuth.auth.signInWithPassword({ email, password: pwd });
   if (error || !data || !data.session) {
-    err.textContent = "Email o password non corretti.";
+    // Distingui credenziali sbagliate (400) da un problema di rete/server.
+    const credErr = !error || error.status === 400 || /invalid login/i.test(error.message || "");
+    err.textContent = credErr ? "Email o password non corretti." : "Errore di connessione — riprova.";
     err.style.display = "block";
     btn.textContent = "Accedi"; btn.disabled = false;
     return;
@@ -1210,7 +1213,7 @@ async function loadUsers() {
         </div>
       </div>`).join("");
   } catch(e) {
-    list.innerHTML = `<div style="color:var(--red);padding:12px">Errore: ${e.message}</div>`;
+    list.innerHTML = `<div style="color:var(--red);padding:12px">Errore: ${esc(e.message)}</div>`;
   }
 }
 
@@ -1347,8 +1350,8 @@ function updateStats() {
   const ric = allOrders.filter(o => o.status === "ricevuto").length;
   const lav = allOrders.filter(o => o.status === "in_lavorazione").length;
   const con = allOrders.filter(o => o.status === "concluso").length;
-  const mine = allOrders.filter(o => o.operator === currentOperator).length;
-  const una = allOrders.filter(o => !o.operator).length;
+  const mine = allOrders.filter(o => o.operator === currentOperator && o.status !== 'concluso').length;
+  const una = allOrders.filter(o => !o.operator && o.status !== 'concluso').length;
 
   document.getElementById("stat-total").textContent = ric + lav;   // "Attivi" = ricevuti + in lavorazione
   document.getElementById("stat-ricevuti").textContent = ric;
@@ -2036,7 +2039,9 @@ async function renderBulkBar() {
   const n = selectedOrders.size;
   if (!n) { if (bar) bar.classList.remove('open'); return; }
   if (!bar) { bar = document.createElement('div'); bar.id = 'bulk-bar'; bar.className = 'bulk-bar'; document.body.appendChild(bar); }
-  const clienti = (await loadCollab()).filter(c => c.tipo === 'cliente');
+  let clienti;
+  try { clienti = (await loadCollab()).filter(c => c.tipo === 'cliente'); }
+  catch(e) { showToast('Rubrica non caricata: ' + e.message, 'red'); clienti = []; }
   bar.innerHTML =
     `<span class="bulk-count">${n} cas${n === 1 ? 'o' : 'i'} selezionat${n === 1 ? 'o' : 'i'}</span>` +
     `<span class="bulk-sep">→ collega a</span>` +
@@ -2374,7 +2379,7 @@ function openDetail(id) {
 
     <!-- LINK CLIENTE -->
     ${o.share_token ? (() => {
-      const url = `https://abc-cadcam-ordini.github.io/ac-ordini/traccia-ordine.html?t=${o.share_token}`;
+      const url = `${TRACCIA_URL}${o.share_token}`;
       return `<details class="detail-section dash-advanced">
         <summary class="detail-section-title">${icon('link')} Solo questo caso <span class="dash-adv-tag">avanzato</span></summary>
         <div style="font-size:10.5px;color:var(--gray);margin:8px 0 8px">Link del <b>singolo caso</b> — per situazioni speciali in cui non vuoi mostrare l'intera dashboard del cliente. Normalmente si manda il <b>link dashboard</b> qui sopra.</div>
@@ -3005,13 +3010,14 @@ let _notifyStatus  = null;
 function showNotifyModal(id, status) {
   const o = allOrders.find(x => x.id === id);
   if(!o) return;
+  closeNotifyModal();   // rimuovi una modale precedente ancora aperta (due cambi stato ravvicinati)
   _notifyOrderId = id;
   _notifyStatus  = status;
 
   const hasWA    = !!o.telefono;
   const hasEmail = !!o.email;
   const waText   = STATUS_MSG[status] ? STATUS_MSG[status](o) : '';
-  const preview  = waText;
+  const preview  = waText + linkClienteBlocco(o);   // l'anteprima deve corrispondere al messaggio inviato
 
   const overlay = document.createElement('div');
   overlay.className = 'notify-overlay';
@@ -3365,12 +3371,7 @@ function demoUpdateStatus(id, status) {
     showToast("Stato aggiornato: " + statusLabel(status), "green");
     const hasContact = !!(o.telefono || o.email);
     if(hasContact) showNotifyModal(id, status);
-    return;
   }
-  if (o) { o.status = status; o.updated_at = new Date().toISOString(); }
-  renderOrders(); updateStats();
-  if (selectedOrderId === id) openDetail(id);
-  showToast("(Demo) Stato: " + statusLabel(status), "green");
 }
 function demoTakeCharge(id) {
   const o = allOrders.find(x => x.id === id);

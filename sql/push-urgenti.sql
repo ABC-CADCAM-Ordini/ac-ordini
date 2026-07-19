@@ -94,6 +94,10 @@ create policy "operatori gestiscono urgenti_notifiche" on public.urgenti_notific
 -- Richiede le extension pg_cron e pg_net (Dashboard → Database → Extensions).
 -- Il WEBHOOK_SECRET è lo stesso salvato nei secret della Edge Function; NON in chiaro nel repo.
 --
+-- Il cron gira ogni 5 min SEMPRE: la finestra operativa (lun-ven 8:00-17:00 fuso Roma,
+-- esclusi i festivi nazionali) è imposta DAL CODICE della funzione, che fa no-op fuori orario.
+-- Non restringere qui gli orari: pg_cron gira in UTC e sballerebbe col cambio d'ora.
+--
 --   select cron.schedule(
 --     'notifica-push-urgenti',
 --     '*/5 * * * *',

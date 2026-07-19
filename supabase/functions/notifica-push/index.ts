@@ -38,6 +38,53 @@ const ADMIN_URL = "https://abc-cadcam-ordini.github.io/ac-ordini/Admin_Ordini_v2
 const db = createClient(SUPABASE_URL, SERVICE_KEY);
 const RUOLI_RESPONSABILE = ["admin", "responsabile"];
 
+// ── Finestra operativa: lun-ven, 8:00–17:00 (fuso Roma), esclusi i festivi nazionali ──
+const TZ = "Europe/Rome";
+const WORK_START = Number(Deno.env.get("WORK_START_HOUR") ?? "8");  // ora inclusa
+const WORK_END = Number(Deno.env.get("WORK_END_HOUR") ?? "17");    // ora esclusa (alle 17:00 stop)
+
+// Ora/giorno LOCALI a Roma (gestisce da sé CET/CEST); wd: 1=lun … 7=dom.
+function romeParts(d: Date) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: TZ, weekday: "short", hour: "2-digit", hour12: false,
+      year: "numeric", month: "2-digit", day: "2-digit",
+    }).formatToParts(d).map((p) => [p.type, p.value]),
+  );
+  const wd: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+  return {
+    y: Number(parts.year), m: Number(parts.month), day: Number(parts.day),
+    hour: Number(parts.hour), wd: wd[parts.weekday as string] ?? 0,
+  };
+}
+
+// Domenica di Pasqua (algoritmo di Meeus/Butcher, calendario gregoriano).
+function pasqua(y: number): { m: number; d: number } {
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100;
+  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const mth = Math.floor((a + 11 * h + 22 * l) / 451);
+  return { m: Math.floor((h + l - 7 * mth + 114) / 31), d: ((h + l - 7 * mth + 114) % 31) + 1 };
+}
+
+// Festivi nazionali italiani (i "giorni rossi"): fissi + Pasqua e Lunedì dell'Angelo.
+function isFestivo(y: number, m: number, day: number): boolean {
+  const fissi = new Set(["1-1", "1-6", "4-25", "5-1", "6-2", "8-15", "11-1", "12-8", "12-25", "12-26"]);
+  if (fissi.has(`${m}-${day}`)) return true;
+  const p = pasqua(y);
+  if (m === p.m && day === p.d) return true;                       // Pasqua
+  const lun = new Date(Date.UTC(y, p.m - 1, p.d) + 86400000);      // Pasquetta = Pasqua + 1
+  return m === lun.getUTCMonth() + 1 && day === lun.getUTCDate();
+}
+
+function inFinestraOperativa(now: Date): boolean {
+  const t = romeParts(now);
+  if (t.wd < 1 || t.wd > 5) return false;              // solo lun-ven
+  if (t.hour < WORK_START || t.hour >= WORK_END) return false; // 8:00–17:00
+  return !isFestivo(t.y, t.m, t.day);                   // niente giorni rossi
+}
+
 // ── VAPID: dalle chiavi base64url standard al formato JWK della libreria ──────
 function b64urlToBytes(s: string): Uint8Array {
   s = s.replace(/-/g, "+").replace(/_/g, "/");
@@ -74,6 +121,14 @@ function labelOrdine(o: any): string {
 Deno.serve(async (req) => {
   if (req.headers.get("x-webhook-secret") !== WEBHOOK_SECRET) {
     return new Response("forbidden", { status: 403 });
+  }
+
+  // Niente avvisi fuori orario di lavoro o nei giorni rossi: gli operatori non ci sono.
+  // Gli ordini restano 'ricevuto' e ripartono al primo tick utile (es. lunedì alle 8:00).
+  if (!inFinestraOperativa(new Date())) {
+    return new Response(JSON.stringify({ ok: true, skipped: "fuori finestra operativa" }), {
+      status: 200, headers: { "Content-Type": "application/json" },
+    });
   }
   const now = Date.now();
 
@@ -142,7 +197,10 @@ Deno.serve(async (req) => {
     const ultimo = st?.ultimo_avviso_at ? new Date(st.ultimo_avviso_at).getTime() : 0;
     if (ultimo && now - ultimo < REMINDER_MIN * 60_000) continue;
 
-    const ageMin = (now - new Date(o.created_at).getTime()) / 60_000;
+    // Escalation misurata dal PRIMO avviso effettivo (non dalla creazione): così un ordine
+    // arrivato fuori orario non fa scattare l'escalation al responsabile al primo tick utile.
+    const primoAvviso = st?.primo_avviso_at ? new Date(st.primo_avviso_at).getTime() : now;
+    const ageMin = (now - primoAvviso) / 60_000;
     const escalation = ageMin >= ESCALATE_MIN;
     const label = labelOrdine(o);
     const urg = o.urgenza === "urgente" ? "URGENTE" : "EXPRESS";

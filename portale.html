@@ -93,6 +93,12 @@
   .pbadge.off{background:#EEF2F7; color:#9FB0C3}
   .ord-legend{display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin:2px 4px 12px; font-size:11.5px; font-weight:600; color:var(--gray)}
   .ord-legend span{display:inline-flex; align-items:center; gap:6px}
+  .conc-toggle{display:inline-flex; align-items:center; gap:6px; margin:0 4px 12px; padding:7px 14px;
+    border:1.5px solid var(--border); border-radius:999px; background:var(--white); color:var(--mid);
+    font-family:var(--font); font-weight:700; font-size:12.5px; cursor:pointer; -webkit-tap-highlight-color:transparent;
+    transition:border-color .15s, color .15s, background .15s}
+  .conc-toggle:hover{border-color:var(--blue); color:var(--blue)}
+  .conc-toggle.on{background:var(--blue); color:#fff; border-color:var(--blue)}
   .ord-main{flex:1; min-width:0}
   .ord-code{font-size:12px; font-weight:800; color:var(--blue); letter-spacing:.02em}
   .ord-lav{font-size:14.5px; font-weight:800; color:var(--dark); margin:1px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -183,19 +189,33 @@ function codeOf(o){
 }
 function dmy(s){ if(!s) return ""; const d = new Date(s); return isNaN(d) ? "" : d.toLocaleDateString("it-IT"); }
 
+let _rows = [], _info = null, _showConclusi = false;
 function render(rows, info){
   hide("loading");
+  _rows = rows || []; _info = info || null;
+  if(!_rows.length){
+    document.getElementById("sub").textContent = _info ? (_info.nome || "0 ordini") : "0 ordini";
+    show("empty"); return;
+  }
+  renderList();
+  show("list");
+}
+function toggleConclusi(){ _showConclusi = !_showConclusi; renderList(); }
+function renderList(){
+  const info = _info;
+  const rows = _showConclusi ? _rows : _rows.filter(o => o.stato !== 'concluso');
+  const concN = _rows.filter(o => o.stato === 'concluso').length;
   const cnt = rows.length + (rows.length === 1 ? " ordine" : " ordini");
   const tipoLabel = {commerciale:'Commerciale', cliente:'Cliente'}[info?.tipo] || '';
   document.getElementById("sub").textContent = info ? [info.nome, tipoLabel, cnt].filter(Boolean).join(' · ') : cnt;
-  if(!rows.length){ show("empty"); return; }
-  const list = document.getElementById("list");
   const legend = `<div class="ord-legend">
     <span><span class="pbdot ok"></span> sincronizzato</span>
     <span><span class="pbadge cli">${PERSON}</span> cliente</span>
     <span><span class="pbadge comm">${BRIEF}</span> commerciale</span>
   </div>`;
-  list.innerHTML = legend + rows.map(o => {
+  const toggle = concN ? `<button type="button" class="conc-toggle ${_showConclusi?'on':''}" onclick="toggleConclusi()">${_showConclusi ? 'Nascondi' : 'Mostra'} conclusi (${concN})</button>` : '';
+  const list = document.getElementById("list");
+  const cards = rows.map(o => {
     const st = esc(o.stato);
     return `<a class="ord-card" href="traccia-ordine.html?t=${esc(o.share_token)}">
       <div class="ord-thumb">
@@ -218,7 +238,7 @@ function render(rows, info){
       <div class="ord-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
     </a>`;
   }).join("");
-  show("list");
+  list.innerHTML = legend + toggle + (cards || `<div class="state" style="padding:24px">Nessun ordine attivo${concN ? ` · ${concN} conclusi nascosti` : ''}.</div>`);
   hydrateThumbs();
 }
 

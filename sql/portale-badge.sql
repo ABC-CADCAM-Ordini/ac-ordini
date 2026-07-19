@@ -68,7 +68,9 @@ as $$
         and cli.attivo = true
     ))
   )
-  where (o.status <> 'concluso' or (o.share_expires_at is not null and o.share_expires_at > now()))
+  -- operatore vede_tutto: riceve anche i conclusi (il portale li nasconde di default, con toggle);
+  -- gli altri (clienti/commerciali) vedono i conclusi solo entro la scadenza dello share.
+  where (me.vede_tutto or o.status <> 'concluso' or (o.share_expires_at is not null and o.share_expires_at > now()))
   order by ricevuto_il desc;
 $$;
 grant execute on function ordini_collaboratore(uuid) to anon;

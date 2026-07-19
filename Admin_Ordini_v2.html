@@ -2601,7 +2601,9 @@ function openDetail(id) {
         ${sp.software ? row("Software", sp.software) : ""}
         ${imp ? rowRaw("Impianti", imp) : ""}
         ${lot ? rowRaw("Tracciabilità lotti", lot) : ""}
-        ${o.tracking ? row("Tracking spedizione", o.tracking) : ""}
+        ${o.tracking ? (/^https?:\/\//i.test(o.tracking)
+            ? rowRaw("Tracking spedizione", `<a href="${safeUrl(o.tracking)}" target="_blank" rel="noopener" style="color:var(--blue);font-weight:700">Traccia la spedizione ↗</a>`)
+            : row("Tracking spedizione", o.tracking)) : ""}
         ${(sp.codice_ordine || sp.id_na) ? row("Rif. NA", [sp.codice_ordine, sp.id_na].filter(Boolean).join(" · ")) : ""}
       </div>`;
     })()}

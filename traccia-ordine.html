@@ -308,7 +308,9 @@ function render(row, token){
   ].join("");
 
   document.getElementById("o-track").innerHTML = row.tracking
-    ? `<div class="f"><div class="k">Tracking spedizione</div><div class="v">${esc(row.tracking)}</div></div>`
+    ? `<div class="f"><div class="k">Tracking spedizione</div><div class="v">${/^https?:\/\//i.test(row.tracking)
+        ? `<a href="${esc(row.tracking)}" target="_blank" rel="noopener">Traccia la spedizione ↗</a>`
+        : esc(row.tracking)}</div></div>`
     : `<div class="track-wait">🚚 Tracking spedizione — disponibile appena l'ordine parte</div>`;
 
   if(token) initStl(token);

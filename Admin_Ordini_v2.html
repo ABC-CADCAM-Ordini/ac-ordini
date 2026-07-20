@@ -1555,6 +1555,21 @@ function fmtDate(iso) {
     " " + d.toLocaleTimeString("it-IT", { hour:"2-digit", minute:"2-digit" });
 }
 
+// Storico ordine (SOLO Admin/operatori): timeline dei passaggi di stato + prese in carico.
+// Legge o.storico (jsonb popolato dal trigger registra_storico); per gli ordini vecchi
+// senza storico mostra almeno la ricezione. La traccia cliente NON lo include.
+function renderStorico(o) {
+  const label = { ricevuto: "Ricevuto", in_lavorazione: "In lavorazione", concluso: "Concluso" };
+  const st = (Array.isArray(o.storico) ? o.storico.slice() : []).sort((a, b) => (a.at || "").localeCompare(b.at || ""));
+  const line = (at, txt) => `<div style="display:flex;gap:8px;align-items:baseline;font-size:11.5px;padding:3px 0;border-bottom:1px dashed #e5e7eb"><span style="font-family:monospace;font-size:10px;color:var(--gray)">${fmtDate(at)}</span><span>${txt}</span></div>`;
+  let rows = line(o.created_at, "📥 Ricevuto");
+  for (const e of st) {
+    if (e.tipo === "assegnazione") rows += line(e.at, e.a ? ("👤 Preso in carico — " + esc(e.a)) : "↩︎ Rilasciato");
+    else if (e.tipo === "stato") rows += line(e.at, "→ " + esc(label[e.a] || e.a || ""));
+  }
+  return `<div style="margin-top:12px"><div class="detail-section-title" style="font-size:11px">Storico ordine</div>${rows}</div>`;
+}
+
 function shortId(id) {
   return id ? id.substring(0,8).toUpperCase() : "—";
 }
@@ -2683,6 +2698,7 @@ function openDetail(id) {
       ${row("Ricevuto il", fmtDate(o.created_at))}
       ${row("Ultimo aggiornamento", fmtDate(o.updated_at))}
       ${rowRaw("ID completo", `<span style="font-family:monospace;font-size:10px">${esc(o.id)}</span>`)}
+      ${renderStorico(o)}
     </div>
   `;
 

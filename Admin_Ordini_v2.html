@@ -1008,6 +1008,10 @@ body{
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:4px"><span data-ic="mail"></span> Email notifiche</div>
         <input id="edit-user-email" type="email" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
       </div>
+      <label style="display:flex;align-items:center;gap:8px;padding:8px 2px;cursor:pointer">
+        <input id="edit-user-avvisi" type="checkbox" style="width:16px;height:16px;cursor:pointer;accent-color:var(--blue)">
+        <span style="font-size:12px;font-weight:600;color:var(--dark)">🔔 Riceve avvisi WhatsApp — nuovi ordini non assegnati e urgenti in attesa</span>
+      </label>
     </div>
     <div style="display:flex;gap:8px;margin-top:18px">
       <button onclick="closeEditModal()" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:none;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;color:var(--mid)">Annulla</button>
@@ -1303,6 +1307,7 @@ async function loadUsers() {
         <div style="display:flex;gap:16px;padding:6px 12px 10px 54px;font-size:11px;color:var(--gray)">
           <span title="WhatsApp notifiche">${icon('phone')} ${u.telefono ? esc(u.telefono) : '<span style="color:#FCA5A5;font-weight:600">non impostato</span>'}</span>
           <span title="Email notifiche">${icon('mail')} ${u.email ? esc(u.email) : '<span style="color:#FCA5A5;font-weight:600">non impostata</span>'}</span>
+          <span title="${u.avvisi_whatsapp ? 'Riceve avvisi WhatsApp (nuovi ordini non assegnati e urgenti)' : 'Avvisi WhatsApp disattivati'}" style="font-weight:700;color:${u.avvisi_whatsapp ? 'var(--green)' : 'var(--gray)'}">🔔 ${u.avvisi_whatsapp ? 'Avvisi ON' : 'Avvisi OFF'}</span>
         </div>
       </div>`).join("");
   } catch(e) {
@@ -1321,6 +1326,7 @@ function openEditModal(id) {
   document.getElementById("edit-user-nome").value  = u.nome || "";
   document.getElementById("edit-user-tel").value   = u.telefono || "";
   document.getElementById("edit-user-email").value = u.email || "";
+  document.getElementById("edit-user-avvisi").checked = !!u.avvisi_whatsapp;
   document.getElementById("edit-modal").style.display = "flex";
 }
 
@@ -1334,12 +1340,15 @@ async function saveEditUser() {
   const nome  = document.getElementById("edit-user-nome").value.trim();
   const tel   = document.getElementById("edit-user-tel").value.trim();
   const email = document.getElementById("edit-user-email").value.trim();
+  const avvisi = document.getElementById("edit-user-avvisi").checked;
   if (!nome) { showToast("Il nome è obbligatorio", "red"); return; }
+  if (avvisi && !tel) { showToast("Serve un numero WhatsApp per ricevere gli avvisi", "red"); return; }
   try {
     await sb("PATCH", `profiles?id=eq.${id}`, {
       nome,
       telefono: tel || null,
-      email: email || null
+      email: email || null,
+      avvisi_whatsapp: avvisi
     });
     // Il ruolo è sensibile (privilegi) → passa dalla funzione admin-gated, non da una PATCH client.
     const orig = allUsers.find(x => x.id === id);

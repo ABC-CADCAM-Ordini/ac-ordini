@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cadcam-v5';
+const CACHE_NAME = 'cadcam-v6';
 // Percorsi relativi alla posizione di sw.js (es. /ac-ordini/): robusti a un eventuale rename del repo.
 const ASSETS = [
   './Configuratore_CAD_CAM_v12.html',

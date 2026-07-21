@@ -235,7 +235,7 @@ function codeOf(o){
 }
 function dmy(s){ if(!s) return ""; const d = new Date(s); return isNaN(d) ? "" : d.toLocaleDateString("it-IT"); }
 
-let _rows = [], _info = null, _showConclusi = false;
+let _rows = [], _info = null, _showConclusi = false, _portaleToken = null;
 function render(rows, info){
   hide("loading");
   _rows = rows || []; _info = info || null;
@@ -269,7 +269,9 @@ function renderList(){
   const list = document.getElementById("list");
   const cards = rows.map(o => {
     const st = esc(o.stato);
-    return `<a class="ord-card" href="traccia-ordine.html?t=${esc(o.share_token)}">
+    // Operatore (vede_tutto): apre traccia con &c=<token> → la chat lo riconosce e posta come operatore.
+    const href = `traccia-ordine.html?t=${esc(o.share_token)}${(_info && _info.vede_tutto && _portaleToken) ? ('&c=' + esc(_portaleToken)) : ''}`;
+    return `<a class="ord-card" href="${href}">
       <div class="ord-thumb">
         <div class="ord-ic" data-tok="${esc(o.share_token)}">${CUBE}</div>
         <div class="ord-badges">
@@ -376,6 +378,7 @@ async function load(){
   if(token){ try{ localStorage.setItem("portale_token", token); }catch(e){} }
   else { try{ token = localStorage.getItem("portale_token") || ""; }catch(e){} }
   if(!token){ hide("loading"); show("empty"); return; }
+  _portaleToken = token;   // serve per aprire traccia come operatore (chat), via &c=<token>
   const call = (fn) => {
     const ctl = ("AbortController" in window) ? new AbortController() : null;
     const timer = ctl ? setTimeout(() => ctl.abort(), 12000) : null;   // niente attese infinite

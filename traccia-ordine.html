@@ -135,6 +135,27 @@
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .doc-btn .dl{font-size:11px; font-weight:800; color:var(--blue); text-transform:uppercase; letter-spacing:.04em; flex-shrink:0}
 
+  /* ── Chat ordine ── */
+  .chat-msgs{display:flex;flex-direction:column;gap:8px;max-height:380px;overflow-y:auto;padding:4px 2px 8px}
+  .msg{max-width:82%;padding:9px 12px;border-radius:14px;font-size:13.5px;line-height:1.45;overflow-wrap:anywhere}
+  .msg .who{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;opacity:.72;margin-bottom:3px}
+  .msg .when{font-size:10px;opacity:.6;margin-top:4px}
+  .msg.cliente{align-self:flex-end;background:var(--blue);color:#fff;border-bottom-right-radius:4px}
+  .msg.operatore{align-self:flex-start;background:var(--pearl);color:var(--dark);border:1px solid var(--border);border-bottom-left-radius:4px}
+  .msg-media{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .msg-media a{display:block;width:76px;height:76px;border-radius:8px;overflow:hidden;border:1px solid rgba(0,0,0,.12)}
+  .msg-media img{width:100%;height:100%;object-fit:cover;display:block}
+  .msg-media .stl-att{display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--blue-light);color:var(--blue);text-decoration:none;font-size:11px;font-weight:800;gap:2px}
+  .chat-empty{color:var(--gray);font-size:13px;text-align:center;padding:20px}
+  .chat-thumbs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chat-thumb{position:relative;width:56px;height:56px;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+  .chat-thumb img{width:100%;height:100%;object-fit:cover}
+  .chat-thumb .x{position:absolute;top:1px;right:1px;background:rgba(0,0,0,.6);color:#fff;border-radius:50%;width:16px;height:16px;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .chat-input{display:flex;gap:8px;align-items:flex-end;margin-top:10px}
+  .chat-input textarea{flex:1;min-height:42px;max-height:120px;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;font-family:var(--font);font-size:13.5px;resize:none}
+  .chat-attach{flex-shrink:0;width:42px;height:42px;border-radius:12px;border:1.5px solid var(--border);background:var(--light);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center}
+  .chat-send{flex-shrink:0;height:42px;padding:0 16px;border:none;border-radius:12px;background:var(--blue);color:#fff;font-weight:800;font-size:14px;cursor:pointer}
+  .chat-send:disabled{opacity:.5;cursor:default}
   .hidden{display:none}
   /* Banner promo ScanLogiQ */
   .scanlogiq-promo{display:block;text-decoration:none;border-radius:16px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.16);margin:16px 20px 4px;transition:transform .1s,box-shadow .15s}
@@ -213,6 +234,16 @@
           <h3>Spedizione</h3>
           <div class="grid" id="o-ship"></div>
           <div id="o-track" style="margin-top:12px"></div>
+        </div>
+        <div class="sec hidden" id="sec-chat">
+          <h3>Messaggi</h3>
+          <div class="chat-msgs" id="chat-msgs"><div class="chat-empty">Caricamento messaggi…</div></div>
+          <div class="chat-thumbs" id="chat-thumbs"></div>
+          <div class="chat-input">
+            <label class="chat-attach" title="Allega foto o STL">📎<input type="file" id="chat-file" accept="image/*,.stl" multiple style="display:none"></label>
+            <textarea id="chat-text" placeholder="Scrivi un messaggio al laboratorio…" rows="1"></textarea>
+            <button class="chat-send" id="chat-send" type="button">Invia</button>
+          </div>
         </div>
       </div>
 
@@ -313,7 +344,7 @@ function render(row, token){
         : esc(row.tracking)}</div></div>`
     : `<div class="track-wait">🚚 Tracking spedizione — disponibile appena l'ordine parte</div>`;
 
-  if(token) initStl(token);
+  if(token) { initStl(token); initChat(token); } else hide("sec-chat");
   renderDocs(s);
   hide("loading"); show("content");
 }
@@ -423,6 +454,102 @@ function addDoc(d){
 function renderDocs(s){
   const docs = Array.isArray(s.documenti) ? s.documenti : [];
   for(const d of docs) addDoc({ ic: docIcon(d.tipo), nome: d.nome || d.tipo || "Documento", sub: d.tipo || "", url: d.url });
+}
+
+// ── Chat ordine (cliente, via share_token) ────────────────────
+let _chatToken = null, _chatCollab = null, _chatMine = 'cliente', _chatPending = [], _chatPoll = null, _chatLastCount = -1;
+const chatMediaUrl = path => `${SUPABASE_URL}/storage/v1/object/public/ordini-media/${path}`;
+const chatSafeName = n => String(n||"file").replace(/[^a-zA-Z0-9._-]/g,"_").slice(-40);
+async function chatRpc(fn, body){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method:"POST", headers:{ "apikey":SUPABASE_KEY, "Content-Type":"application/json" }, body: JSON.stringify(body) });
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return r.json();
+}
+function chatFmtTime(iso){ try{ return new Date(iso).toLocaleString("it-IT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}); }catch(e){ return ""; } }
+function renderMessages(list){
+  const box = document.getElementById("chat-msgs");
+  if(!list.length){ box.innerHTML = `<div class="chat-empty">Nessun messaggio. Scrivici qui per qualsiasi domanda sull'ordine.</div>`; return; }
+  box.innerHTML = list.map(m=>{
+    const mine = m.autore === _chatMine;
+    const who = mine ? "Tu" : (m.autore==="operatore" ? (m.autore_nome||"Laboratorio") : "Cliente");
+    const media = (Array.isArray(m.media)?m.media:[]).map(x=>{
+      const u = chatMediaUrl(x.path);
+      return x.tipo==="foto"
+        ? `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="${esc(x.nome||'foto')}" loading="lazy"></a>`
+        : `<a class="stl-att" href="${esc(u)}" target="_blank" rel="noopener">🧊 STL</a>`;
+    }).join("");
+    return `<div class="msg ${mine?'cliente':'operatore'}"><div class="who">${esc(who)}</div>${m.testo?`<div>${esc(m.testo)}</div>`:""}${media?`<div class="msg-media">${media}</div>`:""}<div class="when">${esc(chatFmtTime(m.created_at))}</div></div>`;
+  }).join("");
+  box.scrollTop = box.scrollHeight;
+}
+async function loadChatMessages(){
+  if(!_chatToken) return;
+  try{ const list = _chatCollab
+      ? await chatRpc("chat_lista_collab", { p_token:_chatCollab, p_share_token:_chatToken })
+      : await chatRpc("chat_lista", { p_share_token:_chatToken });
+    if(Array.isArray(list) && list.length !== _chatLastCount){ _chatLastCount = list.length; renderMessages(list); }
+  }catch(e){}
+}
+function chatToJpeg(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file), img=new Image();
+    img.onload=()=>{ const max=1600; let w=img.naturalWidth,h=img.naturalHeight;
+      if(w>max||h>max){ const s=Math.min(max/w,max/h); w=Math.round(w*s); h=Math.round(h*s); }
+      const cv=document.createElement("canvas"); cv.width=w; cv.height=h; cv.getContext("2d").drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      cv.toBlob(b=> b?res({thumb:cv.toDataURL("image/jpeg",0.55),blob:b}):rej(new Error("jpg")), "image/jpeg", 0.8); };
+    img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error("decode")); }; img.src=url; });
+}
+function renderChatThumbs(){
+  document.getElementById("chat-thumbs").innerHTML = _chatPending.map((p,i)=>
+    `<div class="chat-thumb">${p.type==='foto'&&p.thumb?`<img src="${p.thumb}">`:`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--blue-light);font-size:20px">🧊</div>`}<span class="x" onclick="chatRemovePending(${i})">×</span></div>`).join("");
+}
+function chatRemovePending(i){ _chatPending.splice(i,1); renderChatThumbs(); }
+async function chatAddFiles(files){
+  for(const f of Array.from(files)){
+    if(/\.stl$/i.test(f.name)){ _chatPending.push({type:"stl",name:f.name,blob:f}); }
+    else { try{ const r=await chatToJpeg(f); _chatPending.push({type:"foto",name:f.name.replace(/\.[^.]+$/,"")+".jpg",thumb:r.thumb,blob:r.blob}); }catch(e){ _chatPending.push({type:"foto",name:f.name,thumb:"",blob:f}); } }
+    renderChatThumbs();
+  }
+}
+async function chatUpload(p){
+  const uid = (crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2));
+  const path = `${_chatToken}/chat/${uid}-${chatSafeName(p.name)}`;
+  const ct = p.type==="foto" ? "image/jpeg" : "application/octet-stream";
+  const r = await fetch(`${SUPABASE_URL}/storage/v1/object/ordini-media/${path}`, {
+    method:"POST", headers:{ "apikey":SUPABASE_KEY, "Authorization":`Bearer ${SUPABASE_KEY}`, "Content-Type":ct, "x-upsert":"true" }, body:p.blob });
+  if(!r.ok) throw new Error("upload "+r.status);
+  return { tipo:p.type, nome:p.name, path };
+}
+async function sendChat(){
+  const ta = document.getElementById("chat-text"), btn = document.getElementById("chat-send");
+  const testo = ta.value.trim();
+  if(!testo && !_chatPending.length) return;
+  btn.disabled = true; btn.textContent = "…";
+  try{
+    const media = [];
+    for(const p of _chatPending){ try{ media.push(await chatUpload(p)); }catch(e){ console.warn("upload",e.message); } }
+    if(_chatCollab) await chatRpc("chat_invia_collab", { p_token:_chatCollab, p_share_token:_chatToken, p_testo:testo||null, p_media:media });
+    else await chatRpc("chat_invia", { p_share_token:_chatToken, p_testo:testo||null, p_media:media });
+    ta.value=""; ta.style.height="auto"; _chatPending=[]; renderChatThumbs();
+    _chatLastCount = -1; await loadChatMessages();
+  }catch(e){ alert("Messaggio non inviato: "+e.message); }
+  btn.disabled = false; btn.textContent = "Invia";
+}
+function initChat(token){
+  _chatToken = token;
+  _chatCollab = new URLSearchParams(location.search).get("c") || null;
+  _chatMine = _chatCollab ? 'operatore' : 'cliente';
+  show("sec-chat");
+  document.getElementById("chat-send").onclick = sendChat;
+  document.getElementById("chat-file").onchange = e => { chatAddFiles(e.target.files); e.target.value=""; };
+  const ta = document.getElementById("chat-text");
+  ta.placeholder = _chatCollab ? "Rispondi al cliente…" : "Scrivi un messaggio al laboratorio…";
+  ta.addEventListener("input", ()=>{ ta.style.height="auto"; ta.style.height=Math.min(ta.scrollHeight,120)+"px"; });
+  ta.addEventListener("keydown", e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); sendChat(); } });
+  _chatLastCount = -1; loadChatMessages();
+  clearInterval(_chatPoll); _chatPoll = setInterval(loadChatMessages, 20000);
 }
 
 async function load(){

@@ -1600,7 +1600,14 @@ const LAVORAZIONI = [
   {id:"befree", e:`<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="19" y="33" width="10" height="13" rx="5"/><line x1="19" y1="37" x2="29" y2="37"/><line x1="19" y1="41" x2="29" y2="41"/><path d="M21 33 L20 27 Q20 22 24 20 Q28 22 28 27 L27 33Z"/><path d="M16 27 Q14 18 24 14 Q34 18 32 27" stroke-dasharray="2.5 2" stroke-width="1.4"/><path d="M37 8 L38.2 11.5 L42 11.5 L39 13.8 L40.2 17.3 L37 15 L33.8 17.3 L35 13.8 L32 11.5 L35.8 11.5Z" stroke-width="1.2"/></svg>`,
    l:"#BeFree\nAbutment Custom", s:"Da impronta o campione fisico",
    d:"Abutment personalizzati su impronta analogica o campione fisico. Spedisci i materiali: Ti Base, MUA 4.8mm, Monconi Titanio JT, Transfer e Cappette di Guarigione su misura.",
-   multi:false, tiBase:false, befree:true}
+   multi:false, tiBase:false, befree:true},
+
+  // Implant Detector e Replica Impianto
+  {id:"implant_detector",
+   e:`<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M24 5 v6"/><path d="M20 11 h8 v3.5 a4 4 0 0 1 -1.1 2.7 l-1.9 2.1 v4.7 h-2 v-4.7 l-1.9 -2.1 a4 4 0 0 1 -1.1 -2.7 z"/><circle cx="21" cy="32" r="8"/><line x1="26.8" y1="37.8" x2="34" y2="45"/></svg>`,
+   l:"Implant Detector\ne Replica Impianto", s:"Identifica l'impianto sconosciuto",
+   d:"Invii monconi o l'impronta in silicone della connessione: identifichiamo il sistema implantare e realizziamo i componenti protesici. Più impianti per richiesta. Prezzo a preventivo.",
+   multi:false, tiBase:false, detector:true}
 ];
 
 // ── MATERIALI #BeFree — prezzi fissi per prodotto (non usano getPrice) ──
@@ -1726,6 +1733,73 @@ async function saveOrderToSupabase(fileLink, fileName, token) {
   // lastOrderToken si imposta SOLO dopo un INSERT riuscito (più in basso): altrimenti,
   // se il salvataggio fallisce, il box "Segui il tuo ordine" mostrerebbe un link a un
   // ordine mai creato. Fino ad allora resta al valore precedente (null a pagina appena aperta).
+
+  // Payload Implant Detector
+  if(lav && lav.detector) {
+    const items = detector.items.map((it,idx)=>({
+      idx: idx+1,
+      descrizione: it.descrizione||"",
+      modalita: it.modalita,
+      componenti: DET_COMPONENTI.filter(c=>it.comp[c.id]&&it.comp[c.id].on).map(c=>{
+        const d = it.comp[c.id];
+        return { tipo:c.id, nome:c.n, qta:Number(d.qta)||1,
+                 hg:(c.hg&&d.hg)?Number(d.hg):null, incl:(c.incl&&d.incl)?Number(d.incl):null,
+                 materiale:(c.mat&&d.mat)?d.mat:null, rhein:(c.rhein&&d.rhein)?d.rhein:null };
+      }),
+      media: it.media.map((m,mi)=>({ tipo:m.type, nome:m.name, path: detMediaPath(shareToken, idx+1, mi+1, m.name) })),
+      // campi compilati dal lab
+      identificazione: null, esito: "da_identificare", fase: "in_identificazione"
+    }));
+    const schedaDati = {
+      origine: "configuratore",
+      detector: {
+        fase: "richiesta_aperta",
+        campioni_tipo: detector.campioniTipo,
+        libreria: detector.libreria==="si",
+        cad: detector.cad==="altro" ? (detector.cadAltro||"altro") : detector.cad,
+        lavorazione_protesica: detector.lavProtesica==="altro" ? (detector.lavAltro||"altro") : detector.lavProtesica,
+        paziente: cliente.nomePaziente||null,
+        items
+      }
+    };
+    const payload = {
+      nome: cliente.nome, cognome: cliente.cognome,
+      azienda: cliente.azienda, telefono: cliente.telefono,
+      email: cliente.email || null, piva: cliente.piva || null,
+      ind_fattura: cliente.indFattura || null, citta_fattura: cliente.cittaFattura || null,
+      cap_fattura: cliente.capFattura || null, prov_fattura: cliente.provFattura || null,
+      same_spedizione: cliente.sameSpedizione,
+      ind_spedizione: cliente.sameSpedizione ? null : (cliente.indSpedizione || null),
+      citta_spedizione: cliente.sameSpedizione ? null : (cliente.cittaSpedizione || null),
+      cap_spedizione: cliente.sameSpedizione ? null : (cliente.capSpedizione || null),
+      prov_spedizione: cliente.sameSpedizione ? null : (cliente.provSpedizione || null),
+      lavorazione: "Implant Detector e Replica Impianto",
+      workflow: "Campione fisico / impronta",
+      note: [ cliente.note || null,
+              cliente.nomePaziente ? ("Paziente: " + cliente.nomePaziente) : null,
+              "Implant Detector — " + detector.items.length + " impianto/i",
+              "Prezzo a preventivo" ].filter(Boolean).join(" | ") || null,
+      prezzo_base: null,
+      iva: 22,
+      file_link: null, file_name: null,
+      scheda_dati: schedaDati,
+      share_token: shareToken,
+      consenso_whatsapp: !!cliente.consensoWhatsapp,
+      consenso_whatsapp_ts: cliente.consensoWhatsapp ? new Date().toISOString() : null,
+      status: "ricevuto"
+    };
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
+      method: "POST",
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json", "Prefer": "return=minimal" },
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok) { const e=await res.text(); throw new Error(`Supabase ${res.status}: ${e}`); }
+    lastOrderToken = shareToken;   // insert riuscito
+    // Media best-effort: non blocca la conferma (come lo STL nel flusso standard)
+    uploadDetectorMedia(shareToken).catch(e => console.warn("⚠️ media detector:", e.message));
+    return;
+  }
 
   // Payload BeFree
   if(lav && lav.befree) {
@@ -2475,6 +2549,13 @@ function buildPhases() {
     p.push("cliente");
     return p;
   }
+  if(lavObj()&&lavObj().detector) {
+    p.push("detector_setup");
+    p.push("detector_items");
+    p.push("detector_ship");
+    p.push("cliente");
+    return p;
+  }
   p.push("upload");
   if(xmlParsed && !xmlParsed.error) {
     p.push("xml_confirm");
@@ -2491,6 +2572,356 @@ function buildPhases() {
   p.push("clinico");
   p.push("cliente");
   return p;
+}
+
+// ══════════════════════════════════════════════════════════════
+// IMPLANT DETECTOR — modulo isolato (ramo lavId "implant_detector")
+// ══════════════════════════════════════════════════════════════
+const DET_COMPONENTI = [
+  {id:"scan_abutment", n:"Scan Abutment"},
+  {id:"analogo_dig",   n:"Analogo Digitale"},
+  {id:"analogo_gesso", n:"Analogo da Gesso"},
+  {id:"linkin",        n:"Link-in da incollaggio", hg:true},
+  {id:"mua",           n:"MUA", hg:true, incl:true},
+  {id:"transfert",     n:"Transfert / JT"},
+  {id:"moncone",       n:"Moncone personalizzato", hg:true, incl:true, mat:true},
+  {id:"vite_guar",     n:"Vite di guarigione", hg:true},
+  {id:"rhein",         n:"Attacchi Rhein83", rhein:true},
+];
+const DET_MATERIALI = ["Titanio", "Cobalto-Cromo", "Calcinabile"];
+
+const detector = {
+  campioniTipo: null,   // "monconi" | "impronta" | "misto"
+  libreria: null,       // "si" | "no"
+  cad: null,            // "exocad" | "3shape" | "dwos" | "altro"
+  cadAltro: "",
+  lavProtesica: null,   // "avvitata" | "incollaggio" | "altro"
+  lavAltro: "",
+  items: [],            // [{descrizione, modalita, comp:{}, media:[]}]
+  printed: false
+};
+function detNewItem(){ return { descrizione:"", modalita:"produci", comp:{}, media:[] }; }
+
+// ── Fase 1: dati della richiesta ──────────────────────────────
+function detectorSetupPhase(stepNum,total){
+  let h = stepHead(stepNum,total,"La tua richiesta","Implant Detector e Replica Impianto");
+  h += `<div class="upload-notice">Inviaci i <strong>componenti fisici</strong> (moncone, analogo, vite protesica) oppure l'<strong>impronta in silicone</strong> della connessione interna dell'impianto. Identifichiamo il sistema implantare e realizziamo i componenti protesici che ti servono. <em>Prezzo a preventivo.</em></div>`;
+
+  h += detLbl("Cosa ci invii?");
+  h += `<div class="grid grid-auto" style="margin-bottom:14px">`;
+  [["monconi","Monconi / componenti fisici","Vecchi monconi, analoghi o viti da misurare"],
+   ["impronta","Impronta in silicone","Calco della connessione interna"],
+   ["misto","Entrambi","Componenti fisici e impronte"]].forEach(o=>{
+    const sel = detector.campioniTipo===o[0] ? "selected" : "";
+    h += `<div class="opt-card ${sel}" onclick="detector.campioniTipo='${o[0]}';render()" style="text-align:center"><div class="opt-label" style="white-space:normal">${o[1]}</div><div class="opt-desc">${o[2]}</div></div>`;
+  });
+  h += `</div>`;
+
+  h += detLbl("Vuoi la libreria implantare?");
+  h += `<div class="grid grid-auto" style="grid-template-columns:1fr 1fr;margin-bottom:14px">`;
+  [["si","Sì"],["no","No"]].forEach(o=>{
+    const sel = detector.libreria===o[0] ? "selected" : "";
+    h += `<div class="opt-card ${sel}" onclick="detector.libreria='${o[0]}';render()" style="text-align:center;padding:12px"><div class="opt-label">${o[1]}</div></div>`;
+  });
+  h += `</div>`;
+
+  h += detLbl("Software CAD");
+  h += `<div class="grid grid-auto" style="margin-bottom:8px">`;
+  [["exocad","Exocad"],["3shape","3Shape"],["dwos","Dwos"],["altro","Altro"]].forEach(o=>{
+    const sel = detector.cad===o[0] ? "selected" : "";
+    h += `<div class="opt-card ${sel}" onclick="detector.cad='${o[0]}';render()" style="text-align:center;padding:12px"><div class="opt-label">${o[1]}</div></div>`;
+  });
+  h += `</div>`;
+  if(detector.cad==="altro") h += `<input value="${detector.cadAltro||''}" oninput="detector.cadAltro=this.value" placeholder="Quale software?" style="${DET_INP};margin-bottom:14px">`;
+  else h += `<div style="height:6px"></div>`;
+
+  h += detLbl("Lavorazione da eseguire");
+  h += `<div class="grid grid-auto" style="margin-bottom:8px">`;
+  [["avvitata","Avvitata diretta"],["incollaggio","Incollaggio / cementata"],["altro","Altro"]].forEach(o=>{
+    const sel = detector.lavProtesica===o[0] ? "selected" : "";
+    h += `<div class="opt-card ${sel}" onclick="detector.lavProtesica='${o[0]}';render()" style="text-align:center;padding:12px"><div class="opt-label" style="white-space:normal">${o[1]}</div></div>`;
+  });
+  h += `</div>`;
+  if(detector.lavProtesica==="altro") h += `<input value="${detector.lavAltro||''}" oninput="detector.lavAltro=this.value" placeholder="Specifica la lavorazione" style="${DET_INP};margin-bottom:8px">`;
+
+  h += navRow(true,"Avanti &rarr;", !detector.campioniTipo);
+  return h;
+}
+
+// ── Fase 2: impianti da identificare / produrre ───────────────
+function detectorItemsPhase(stepNum,total){
+  if(detector.items.length===0) detector.items.push(detNewItem());
+  let h = stepHead(stepNum,total,"Cosa identificare e produrre","Un blocco per ogni impianto");
+  h += `<div class="upload-notice">Aggiungi un blocco per <strong>ogni impianto</strong> da identificare. Foto e scansioni non sono obbligatorie, ma aiutano molto il riconoscimento. Le foto vengono convertite in JPG leggeri, gli STL sono visualizzabili in 3D.</div>`;
+  detector.items.forEach((it,i)=> h += detectorItemCard(it,i));
+  h += `<button type="button" onclick="detector.items.push(detNewItem());render()" style="width:100%;padding:12px;border:2px dashed var(--border);border-radius:12px;background:var(--white);color:var(--blue);font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font);margin-bottom:14px">+ Aggiungi impianto / abutment</button>`;
+  const valid = detector.items.length>0 && detector.items.every(it=>it.descrizione.trim());
+  h += navRow(true, "Avanti &rarr;", !valid);
+  return h;
+}
+
+function detectorItemCard(it,i){
+  let h = `<div style="border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px;background:var(--white)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:14px;font-weight:900;color:var(--dark)">Impianto ${i+1}</div>
+      ${detector.items.length>1?`<span onclick="detector.items.splice(${i},1);render()" style="cursor:pointer;color:var(--gray);font-size:12px;font-weight:700">&times; rimuovi</span>`:""}
+    </div>`;
+  h += `<textarea oninput="detector.items[${i}].descrizione=this.value" placeholder="Descrizione: es. moncone dritto avvitato, arcata superiore, sospetto Nobel Active…" style="width:100%;min-height:56px;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13px;resize:vertical;box-sizing:border-box">${it.descrizione||""}</textarea>`;
+  h += `<div style="display:flex;gap:8px;margin:10px 0 2px">`;
+  [["produci","Identifica e produci"],["identifica","Solo identificazione"]].forEach(o=>{
+    const on = it.modalita===o[0];
+    h += `<span onclick="detector.items[${i}].modalita='${o[0]}';render()" style="cursor:pointer;flex:1;text-align:center;padding:8px;border-radius:9px;font-size:12px;font-weight:700;border:2px solid ${on?'var(--blue)':'var(--border)'};background:${on?'var(--blue-light)':'var(--white)'};color:${on?'var(--blue)':'var(--mid)'}">${o[1]}</span>`;
+  });
+  h += `</div>`;
+  if(it.modalita==="produci") h += detectorCompCatalog(it,i);
+  h += detectorMediaBlock(it,i);
+  h += `</div>`;
+  return h;
+}
+
+function detectorCompCatalog(it,i){
+  let h = `<div style="font-size:11.5px;font-weight:800;color:var(--mid);margin:12px 0 6px">Cosa produrre per questo impianto</div>`;
+  h += `<div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px">`;
+  DET_COMPONENTI.forEach(c=>{
+    const on = it.comp[c.id] && it.comp[c.id].on;
+    h += `<span onclick="detToggleComp(${i},'${c.id}')" style="cursor:pointer;user-select:none;padding:7px 12px;border-radius:20px;font-size:12px;font-weight:700;border:2px solid ${on?'var(--blue)':'var(--border)'};background:${on?'var(--blue-light)':'var(--white)'};color:${on?'var(--blue)':'var(--mid)'}">${on?'✓ ':''}${c.n}</span>`;
+  });
+  h += `</div>`;
+  DET_COMPONENTI.filter(c=>it.comp[c.id]&&it.comp[c.id].on).forEach(c=>{
+    const d = it.comp[c.id];
+    h += `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--blue-light);border-radius:10px;padding:8px 10px;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:800;color:var(--dark);min-width:120px">${c.n}</span>
+      <label style="font-size:11px;color:var(--mid)">Q.tà <input type="number" min="1" value="${d.qta||1}" oninput="detCompField(${i},'${c.id}','qta',this.value)" style="width:52px;padding:5px;border:1px solid var(--border);border-radius:6px"></label>`;
+    if(c.hg)   h += `<label style="font-size:11px;color:var(--mid)">HG mm <input type="number" step="0.5" value="${d.hg||''}" oninput="detCompField(${i},'${c.id}','hg',this.value)" style="width:60px;padding:5px;border:1px solid var(--border);border-radius:6px"></label>`;
+    if(c.incl) h += `<label style="font-size:11px;color:var(--mid)">Incl. ° <input type="number" value="${d.incl||''}" oninput="detCompField(${i},'${c.id}','incl',this.value)" style="width:56px;padding:5px;border:1px solid var(--border);border-radius:6px"></label>`;
+    if(c.mat)  h += `<select onchange="detCompField(${i},'${c.id}','mat',this.value)" style="padding:5px;border:1px solid var(--border);border-radius:6px;font-size:11px"><option value="">Materiale…</option>${DET_MATERIALI.map(m=>`<option ${d.mat===m?'selected':''}>${m}</option>`).join('')}</select>`;
+    if(c.rhein)h += `<input value="${d.rhein||''}" oninput="detCompField(${i},'${c.id}','rhein',this.value)" placeholder="Tipo attacco Rhein83" style="padding:5px;border:1px solid var(--border);border-radius:6px;font-size:11px">`;
+    h += `</div>`;
+  });
+  return h;
+}
+
+function detectorMediaBlock(it,i){
+  let h = `<div style="font-size:11.5px;font-weight:800;color:var(--mid);margin:12px 0 6px">Foto e scansioni (facoltative)</div>`;
+  h += `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px">`;
+  it.media.forEach((m,mi)=>{
+    if(m.type==="foto"){
+      h += `<div style="position:relative;width:74px;height:74px;border-radius:8px;overflow:hidden;border:1px solid var(--border)">
+        ${m.thumb?`<img src="${m.thumb}" style="width:100%;height:100%;object-fit:cover">`:`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--blue-light)">🖼️</div>`}
+        <span onclick="detRemoveMedia(${i},${mi})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border-radius:50%;width:18px;height:18px;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer">&times;</span></div>`;
+    } else {
+      h += `<div onclick="detPreviewStl(${i},${mi})" title="Anteprima 3D" style="width:74px;height:74px;border-radius:8px;border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;background:var(--blue-light);cursor:pointer">
+        <span style="font-size:22px">🧊</span><span style="font-size:8px;color:var(--mid);padding:0 3px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.name}</span>
+        <span onclick="event.stopPropagation();detRemoveMedia(${i},${mi})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border-radius:50%;width:18px;height:18px;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer">&times;</span></div>`;
+    }
+  });
+  h += `</div>`;
+  h += `<label style="display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:700;color:var(--blue);border:2px dashed var(--border);border-radius:9px;padding:8px 14px">📎 Aggiungi foto o STL<input type="file" accept="image/*,.stl" multiple onchange="detAddMedia(${i},this.files);this.value=''" style="display:none"></label>`;
+  return h;
+}
+
+// ── helper stato / media ──────────────────────────────────────
+const DET_INP = "width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-family:var(--font);font-size:14px;box-sizing:border-box";
+function detLbl(t){ return `<div style="font-size:12px;font-weight:800;color:var(--dark);margin:2px 0 8px">${t}</div>`; }
+function detToggleComp(i,id){ const it=detector.items[i]; if(!it.comp[id]) it.comp[id]={on:true,qta:1}; else it.comp[id].on=!it.comp[id].on; render(); }
+function detCompField(i,id,f,v){ const it=detector.items[i]; if(!it.comp[id]) it.comp[id]={on:true,qta:1}; it.comp[id][f]=v; }
+function detRemoveMedia(i,mi){ detector.items[i].media.splice(mi,1); render(); }
+function detPreviewStl(i,mi){ const m=detector.items[i].media[mi]; if(m&&m.file) openStlInNewWindow(m.file); }
+async function detAddMedia(i,files){
+  const it=detector.items[i]; if(!it) return;
+  for(const f of Array.from(files)){
+    const isStl = /\.stl$/i.test(f.name) || f.type==="model/stl";
+    if(isStl){ it.media.push({type:"stl", name:f.name, file:f}); }
+    else {
+      try { const r=await detToJpeg(f); it.media.push({type:"foto", name:f.name.replace(/\.[^.]+$/,"")+".jpg", thumb:r.thumb, blob:r.blob}); }
+      catch(e){ it.media.push({type:"foto", name:f.name, thumb:"", blob:f, raw:true}); }
+    }
+    render();
+  }
+}
+function detToJpeg(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file), img=new Image();
+    img.onload=()=>{
+      const max=1600; let w=img.naturalWidth, h=img.naturalHeight;
+      if(w>max||h>max){ const s=Math.min(max/w,max/h); w=Math.round(w*s); h=Math.round(h*s); }
+      const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+      cv.getContext("2d").drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      cv.toBlob(b=>{ b ? res({thumb:cv.toDataURL("image/jpeg",0.55), blob:b}) : rej(new Error("jpg")); }, "image/jpeg", 0.8);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error("decode")); };
+    img.src=url;
+  });
+}
+
+// ── Fase 3: preparazione e spedizione ─────────────────────────
+function detectorShipPhase(stepNum,total){
+  let h = stepHead(stepNum,total,"Preparazione e spedizione","Come inviarci i materiali");
+  h += `<div class="upload-notice">Prepara i materiali seguendo il protocollo, poi spediscili con il <strong>modulo che stamperai a fine ordine</strong> (già con il codice). <em>Prezzo a preventivo · 6 giorni lavorativi dalla ricezione.</em></div>`;
+  h += `<div style="font-size:10px;font-weight:800;color:#374151;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Cosa inserire nel pacco</div>
+  <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:11px 15px;margin-bottom:14px;font-size:12px;color:#334155;line-height:1.8">
+    • <strong>Componenti fisici e/o impronta in silicone</strong> (VPS): integri, decontaminati, imbustati singolarmente e sterilizzati in autoclave.<br>
+    • <strong>Documentazione utile</strong>: RX endorale, foto occlusale della testa implantare, note cliniche.<br>
+    • <strong>Copia del modulo di richiesta</strong> — <em>obbligatoria</em>: senza modulo la lavorazione non viene avviata. Lo stampi al termine dell'ordine, già con il codice di aggancio.
+  </div>`;
+  h += `<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px">
+    <a href="https://drive.google.com/file/d/1o4JgNINcky82Q8APnzlKMYB09DjMP_iQ/view" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:11px 14px;text-decoration:none">
+      <span style="font-size:12px;font-weight:700;color:#1E293B">📄 Protocollo Implant Detector (PDF)</span><span style="font-size:11px;color:#0F5282;font-weight:800">Apri</span></a>
+    <a href="https://abutmentcompatibili.com/ritiro-reso-spedizione.html" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:11px 14px;text-decoration:none">
+      <span style="font-size:12px;font-weight:700;color:#1E293B">🚚 Prenota il ritiro (Ritiro Reso/Spedizione · €10)</span><span style="font-size:11px;color:#0F5282;font-weight:800">Apri</span></a>
+  </div>`;
+  h += navRow(true, "Avanti &rarr;", false);
+  return h;
+}
+
+// ── Schermata riepilogo / invio (dentro il blocco state.done) ──
+function detectorDoneScreen(){
+  let h = `<div style="font-size:11px;font-weight:700;color:var(--blue);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">Riepilogo richiesta — Implant Detector</div>`;
+  h += `<div style="font-size:22px;font-weight:900;color:var(--dark);margin-bottom:16px">${state.orderSent ? "Richiesta inviata" : "Pronto per l'invio"}</div>`;
+  h += `<div class="summary-box"><div class="summary-head">Cliente</div>
+    <div class="summary-row"><span class="summary-key">Nominativo</span><span class="summary-val">${cliente.nome} ${cliente.cognome}</span></div>
+    <div class="summary-row"><span class="summary-key">Studio / Lab</span><span class="summary-val">${cliente.azienda}</span></div>
+    <div class="summary-row"><span class="summary-key">Telefono</span><span class="summary-val">${cliente.telefono}</span></div>
+    ${cliente.email?`<div class="summary-row"><span class="summary-key">Email</span><span class="summary-val">${cliente.email}</span></div>`:""}
+    ${cliente.nomePaziente?`<div class="summary-row"><span class="summary-key">Paziente</span><span class="summary-val">${cliente.nomePaziente}</span></div>`:""}
+  </div>`;
+  h += `<div class="summary-box"><div class="summary-head">Impianti da identificare (${detector.items.length})</div>`;
+  detector.items.forEach((it,i)=>{
+    const comps = detCompSummary(it);
+    h += `<div class="summary-row"><span class="summary-key">Impianto ${i+1}</span><span class="summary-val">${it.modalita==='produci'?'Identifica e produci':'Solo identificazione'}${comps?' · '+comps:''}${it.media.length?' · '+it.media.length+' file':''}</span></div>`;
+  });
+  h += `</div>`;
+  if(!state.orderSent){
+    h += `<button class="submit-order-btn" id="det-send-btn" onclick="sendDetectorOrder()"><svg class="send-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><line x1="2" y1="10" x2="18" y2="10"/><polyline points="12,4 18,10 12,16"/></svg> Invia richiesta &rarr;</button>`;
+    h += `<div class="nav-row no-print" style="margin-top:16px"><button class="btn btn-secondary" onclick="editBeforeSend()">&larr; Modifica</button><button class="btn btn-secondary" onclick="resetApp()">+ Nuova richiesta</button></div>`;
+  } else {
+    h += renderConfirmScreen();
+  }
+  return h;
+}
+function detCompSummary(it){
+  if(it.modalita!=='produci') return "";
+  return DET_COMPONENTI.filter(c=>it.comp[c.id]&&it.comp[c.id].on).map(c=>{
+    const d=it.comp[c.id]; const ex=[];
+    if(c.mat&&d.mat) ex.push(d.mat);
+    if(c.hg&&d.hg) ex.push("HG "+d.hg);
+    if(c.incl&&d.incl) ex.push(d.incl+"°");
+    if(c.rhein&&d.rhein) ex.push(d.rhein);
+    return c.n+(ex.length?" ("+ex.join(", ")+")":"")+" ×"+(d.qta||1);
+  }).join("; ");
+}
+
+// ── Invio richiesta detector ──────────────────────────────────
+async function sendDetectorOrder(){
+  if(state.orderSent) return;
+  const btn = document.getElementById('det-send-btn');
+  if(btn){ btn.disabled=true; btn.innerHTML="Invio in corso…"; }
+  const shareToken = crypto.randomUUID();
+  let salvato = true;
+  try{
+    if(typeof showSpinner==='function') showSpinner('Registrazione richiesta…');
+    await saveOrderToSupabase(null,null,shareToken).catch(e=>{ salvato=false; console.error('Supabase detector error:',e); alert('⚠️ Richiesta non salvata nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com'); });
+    if(salvato && typeof sendEmailJSNotification==='function'){ try{ await sendEmailJSNotification(null); }catch(e){ console.warn('email:',e.message); } }
+    if(typeof hideSpinner==='function') hideSpinner();
+  }catch(err){ if(typeof hideSpinner==='function') hideSpinner(); alert('Errore: '+err.message); salvato=false; }
+  state.orderSent = salvato;
+  render();
+}
+
+function detSafeName(n){ return String(n||"file").replace(/[^a-zA-Z0-9._-]/g,"_").slice(-40); }
+function detMediaPath(shareToken, itemIdx, mediaIdx, name){ return `${shareToken}/i${itemIdx}-${mediaIdx}-${detSafeName(name)}`; }
+
+// Upload best-effort dei media nel bucket privato ordini-media (non blocca la conferma).
+async function uploadDetectorMedia(shareToken){
+  if(SUPABASE_URL.includes("YOUR_PROJECT")) return;
+  for(let idx=0; idx<detector.items.length; idx++){
+    const it = detector.items[idx];
+    for(let mi=0; mi<it.media.length; mi++){
+      const m = it.media[mi];
+      const blob = m.type==="foto" ? (m.blob||null) : (m.file||null);
+      if(!blob) continue;
+      const path = detMediaPath(shareToken, idx+1, mi+1, m.name);
+      const ct = m.type==="foto" ? "image/jpeg" : "application/octet-stream";
+      try{
+        const res = await fetch(`${SUPABASE_URL}/storage/v1/object/ordini-media/${path}`, {
+          method:"POST",
+          headers:{ "apikey":SUPABASE_KEY, "Authorization":`Bearer ${SUPABASE_KEY}`, "Content-Type":ct, "x-upsert":"true" },
+          body: blob
+        });
+        if(!res.ok) console.warn("media upload", path, res.status, await res.text());
+      }catch(e){ console.warn("media upload", path, e.message); }
+    }
+  }
+}
+
+// QR come dataURL (import on-demand da esm.sh, con fallback silenzioso).
+async function makeQrDataUrl(text){
+  try{
+    const mod = await import("https://esm.sh/qrcode@1.5.3");
+    const QR = mod.default || mod;
+    return await QR.toDataURL(text, { margin:1, width:220 });
+  }catch(e){ console.warn("QR:", e.message); return null; }
+}
+
+// Stampa del modulo di richiesta con codice ordine (8hex) + QR.
+async function printModuloDetector(){
+  const code = (lastOrderToken||"").replace(/-/g,"").slice(0,8).toUpperCase() || "—";
+  const trackUrl = lastOrderToken ? new URL('traccia-ordine.html?t='+lastOrderToken, location.href).href : "";
+  const qr = trackUrl ? await makeQrDataUrl(trackUrl) : null;
+  const fatAddr = [cliente.indFattura, cliente.capFattura, cliente.cittaFattura, cliente.provFattura].filter(Boolean).join(", ")||"—";
+  const spedAddr = cliente.sameSpedizione ? fatAddr : ([cliente.indSpedizione,cliente.capSpedizione,cliente.cittaSpedizione,cliente.provSpedizione].filter(Boolean).join(", ")||"—");
+  const cadLabel = detector.cad==="altro" ? (detector.cadAltro||"Altro") : ({exocad:"Exocad","3shape":"3Shape",dwos:"Dwos"}[detector.cad]||"—");
+  const lavLabel = detector.lavProtesica==="altro" ? (detector.lavAltro||"Altro") : ({avvitata:"Avvitata diretta",incollaggio:"Incollaggio / cementata"}[detector.lavProtesica]||"—");
+  const campLabel = {monconi:"Monconi / componenti fisici",impronta:"Impronta in silicone",misto:"Componenti + impronta"}[detector.campioniTipo]||"—";
+  const row = (l,v)=> v?`<tr><td style="padding:5px 8px;font-size:11px;color:#475569;font-weight:600;width:38%;border-bottom:1px solid #E2E8F0">${l}</td><td style="padding:5px 8px;font-size:11px;color:#0F1923;font-weight:700;border-bottom:1px solid #E2E8F0">${v}</td></tr>`:"";
+  const itemsHtml = detector.items.map((it,i)=>{
+    const comps = DET_COMPONENTI.filter(c=>it.comp[c.id]&&it.comp[c.id].on).map(c=>{
+      const d=it.comp[c.id]; const ex=[];
+      if(c.mat&&d.mat)ex.push(d.mat); if(c.hg&&d.hg)ex.push("HG "+d.hg+"mm"); if(c.incl&&d.incl)ex.push(d.incl+"°"); if(c.rhein&&d.rhein)ex.push(d.rhein);
+      return `<li>${c.n} ×${d.qta||1}${ex.length?" — "+ex.join(", "):""}</li>`;
+    }).join("");
+    return `<div style="border:1px solid #E2E8F0;border-radius:6px;padding:8px 12px;margin-bottom:8px">
+      <div style="font-size:12px;font-weight:800;color:#0F1923;margin-bottom:3px">Impianto ${i+1} — ${it.modalita==='produci'?'Identifica e produci':'Solo identificazione'}</div>
+      ${it.descrizione?`<div style="font-size:11px;color:#334155;margin-bottom:4px">${it.descrizione}</div>`:""}
+      ${comps?`<ul style="margin:2px 0 0 16px;padding:0;font-size:11px;color:#0F1923">${comps}</ul>`:""}
+      ${it.media.length?`<div style="font-size:10px;color:#64748B;margin-top:4px">${it.media.length} allegato/i inviati online</div>`:""}
+    </div>`;
+  }).join("");
+  const html = `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Modulo Implant Detector — ${cliente.azienda||cliente.nome}</title>
+  <style>body{font-family:'Helvetica Neue',Arial,sans-serif;margin:0;padding:20px;color:#0F1923;font-size:12px}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0065B3;padding-bottom:12px;margin-bottom:14px}
+  .header-title{font-size:18px;font-weight:900;color:#0065B3}.header-sub{font-size:10px;color:#64748B;margin-top:2px}
+  .badge{background:#0065B3;color:#fff;font-size:9px;font-weight:800;padding:3px 8px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase;margin-top:6px;display:inline-block}
+  .idbox{display:flex;justify-content:space-between;align-items:center;gap:16px;background:#F0F9FF;border:2px solid #0065B3;border-radius:8px;padding:12px 16px;margin-bottom:16px}
+  .idcode{font-size:30px;font-weight:900;letter-spacing:.12em;color:#0065B3;font-family:'Courier New',monospace}
+  .section{margin-bottom:12px}.section-title{font-size:9px;font-weight:800;color:#0065B3;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;padding-bottom:3px;border-bottom:1px solid #BFDBFE}
+  table{width:100%;border-collapse:collapse}
+  .firma-box{margin-top:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}.firma-field{border-top:1px solid #CBD5E1;padding-top:4px;font-size:9px;color:#64748B;text-align:center}
+  .footer{margin-top:18px;padding-top:10px;border-top:1px solid #E2E8F0;font-size:9px;color:#94A3B8;display:flex;justify-content:space-between}
+  @media print{body{padding:10px}}</style></head><body>
+  <div class="header"><div><div class="header-title">Biaggini Medical Devices S.r.l.</div>
+  <div class="header-sub">Via Aurelia Nord 340ab, 19021 Arcola (SP) · info@abutmentcompatibili.com · +39 0187.50.97.72</div>
+  <div class="badge">Implant Detector e Replica Impianto — Modulo di richiesta</div></div>
+  <div style="text-align:right;font-size:10px;color:#64748B"><div>Data: <strong>${new Date().toLocaleDateString("it-IT")}</strong></div><div style="margin-top:4px">P.IVA 00704980119</div><div>MD_149/1 REV.04</div></div></div>
+  <div class="idbox"><div><div style="font-size:9px;font-weight:800;color:#0369A1;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Codice richiesta — inserire questo foglio nel pacco</div>
+  <div class="idcode">${code}</div><div style="font-size:10px;color:#64748B;margin-top:4px">${trackUrl}</div></div>
+  ${qr?`<img src="${qr}" alt="QR codice ordine" style="width:96px;height:96px;flex-shrink:0">`:""}</div>
+  <div class="section"><div class="section-title">Dati cliente</div><table>
+  ${row("Ragione Sociale / Studio",cliente.azienda)}${row("Referente",(cliente.nome+" "+cliente.cognome).trim())}
+  ${row("Cellulare",cliente.telefono)}${row("E-mail",cliente.email||"—")}${row("P.IVA / C.F.",cliente.piva||"—")}
+  ${row("Indirizzo fatturazione",fatAddr)}${row("Indirizzo spedizione",spedAddr)}</table></div>
+  <div class="section"><div class="section-title">Dati richiesta</div><table>
+  ${row("Nome paziente",cliente.nomePaziente||"—")}${row("Cosa invia",campLabel)}${row("Libreria implantare",detector.libreria==="si"?"Sì":"No")}
+  ${row("Software CAD",cadLabel)}${row("Lavorazione",lavLabel)}${row("Prezzo","A preventivo")}</table></div>
+  <div class="section"><div class="section-title">Impianti da identificare (${detector.items.length})</div>${itemsHtml||'<div style="font-size:11px;color:#64748B">—</div>'}</div>
+  <div class="firma-box"><div class="firma-field">Data compilazione</div><div class="firma-field">Timbro</div><div class="firma-field">Firma</div></div>
+  <div class="footer"><span>Biaggini Medical Devices S.r.l. · ISO 13485 · CE 0425 · MDR 745/2017 · EUDAMED</span><span>www.abutmentcompatibili.com</span></div>
+  </body></html>`;
+  const win = window.open("","_blank","width=800,height=900");
+  if(!win){ alert("Popup bloccato — consenti i popup per stampare il modulo."); return; }
+  win.document.write(html); win.document.close();
+  win.onload = ()=>{ win.focus(); win.print(); };
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -3435,6 +3866,10 @@ function renderStep() {
     html += navRow(true,"Avanti — Dati cliente &rarr;", !befreeInfoValid());
   }
 
+  else if(phase==="detector_setup") { html += detectorSetupPhase(stepNum,total); }
+  else if(phase==="detector_items") { html += detectorItemsPhase(stepNum,total); }
+  else if(phase==="detector_ship")  { html += detectorShipPhase(stepNum,total); }
+
   else if(phase==="upload") {
     html += stepHead(stepNum, total, "Allega i file", "STL + ConstructionInfo");
     html += `<div class="upload-notice">
@@ -3481,7 +3916,7 @@ function renderStep() {
             class="${cliente.cognome.trim()?'valid':''}">
         </div>
       </div>
-      ${lavObj()&&lavObj().befree ? `
+      ${lavObj()&&(lavObj().befree||lavObj().detector) ? `
       <div class="form-grid" style="margin-top:10px">
         <div class="form-field">
           <label>Nome paziente <span class="opt-tag">facoltativo</span></label>
@@ -3698,6 +4133,14 @@ function renderStep() {
       return;
     }
     // ── Fine BeFree result ────────────────────────────────────────
+
+    // ── Implant Detector result screen ────────────────────────────
+    if(lav && lav.detector) {
+      html += detectorDoneScreen();
+      html += `</div>`;
+      document.getElementById("step-container").innerHTML = html;
+      return;
+    }
 
     const mats = MATERIALI[state.lavId]||[];
     const mat = mats[state.matIdx];
@@ -4346,6 +4789,7 @@ async function doSubmitOrder() {
 function renderConfirmScreen() {
   const lav = lavObj();
   const isBefree = lav && lav.befree;
+  const isDetector = lav && lav.detector;
   const methodLabel = { email:"Email", whatsapp:"WhatsApp", zip:"Download ZIP" };
 
   // ── Blocco dettagli ──────────────────────────────────────────
@@ -4360,6 +4804,9 @@ function renderConfirmScreen() {
     detailRows += `<div class="confirm-detail-row"><span>Prodotto</span><span>${prod.n||"—"}${qty>1?" × "+qty:""}</span></div>`;
     if(SHOW_PREZZO && state.befreeAnalogo) detailRows += `<div class="confirm-detail-row"><span>+ Analogo × ${qty}</span><span>${fmt(analogoPrice)} + IVA 22%</span></div>`;
     if(SHOW_PREZZO) detailRows += `<div class="confirm-detail-row"><span>Totale indicativo</span><span>${fmt(grandTotal)} (IVA esclusa)</span></div>`;
+  } else if(isDetector) {
+    detailRows += `<div class="confirm-detail-row"><span>Servizio</span><span>Implant Detector — ${detector.items.length} impianto/i</span></div>`;
+    detailRows += `<div class="confirm-detail-row"><span>Prezzo</span><span>A preventivo</span></div>`;
   } else {
     const mats = MATERIALI[state.lavId] || [];
     const mat = mats[state.matIdx];
@@ -4401,6 +4848,31 @@ function renderConfirmScreen() {
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="resetApp()">+ Nuovo ordine</button>
       </div>`;
+  } else if(isDetector) {
+    actionBtns = `
+      <div style="margin-bottom:14px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:10px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:800;color:#1E40AF;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Prossimi passi — da fare ora</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button onclick="printModuloDetector()" style="display:flex;align-items:center;gap:8px;background:#0F5282;color:#fff;font-size:12px;font-weight:700;padding:9px 16px;border-radius:8px;border:none;cursor:pointer;font-family:var(--font);text-align:left">
+            ${icDoc}
+            <div>
+              <div>🖨️ Stampa il modulo di richiesta</div>
+              <div style="font-size:10px;font-weight:400;opacity:.85;margin-top:1px">Con codice e QR — inseriscilo nel pacco (obbligatorio)</div>
+            </div>
+          </button>
+          <a href="https://abutmentcompatibili.com/ritiro-reso-spedizione.html" target="_blank" rel="noopener"
+            style="display:flex;align-items:center;gap:8px;background:#0F5282;color:#fff;font-size:12px;font-weight:700;padding:9px 16px;border-radius:8px;text-decoration:none">
+            ${icTruck}
+            <div>
+              <div>🚚 Prenota il ritiro corriere</div>
+              <div style="font-size:10px;font-weight:400;opacity:.85;margin-top:1px">Ritiro Reso/Spedizione · €10</div>
+            </div>
+          </a>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="resetApp()">+ Nuova richiesta</button>
+      </div>`;
   } else {
     actionBtns = `<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="resetApp()">+ Nuovo ordine</button>
@@ -4420,7 +4892,7 @@ function renderConfirmScreen() {
     <div class="confirm-title">Ordine inviato!</div>
     <div class="confirm-sub">
       Il tuo ordine è stato registrato e inviato correttamente.<br>
-      ${isBefree ? "Stampa il modulo e prenota il ritiro per completare la spedizione." : "Il nostro team ti contatterà per confermare il preventivo definitivo."}
+      ${isBefree ? "Stampa il modulo e prenota il ritiro per completare la spedizione." : isDetector ? "Stampa il modulo con il codice, inseriscilo nel pacco e prenota il ritiro. Ti contatteremo con il preventivo." : "Il nostro team ti contatterà per confermare il preventivo definitivo."}
     </div>
     <div class="confirm-detail">${detailRows}</div>
     ${trackBox}
@@ -4856,6 +5328,7 @@ function resetApp() {
   uploadedFiles.stl=null; uploadedFiles.infoConstr=null; uploadedFiles.scan=null;
   xmlParsed=null;
   Object.assign(clinico, { denti:[], shade:null, translucenza:null, urgenza:null, marcaImpianto:"", noteClinico:"" });
+  Object.assign(detector, { campioniTipo:null, libreria:null, cad:null, cadAltro:"", lavProtesica:null, lavAltro:"", items:[], printed:false });
   Object.assign(cliente, {
     nome:"", cognome:"", azienda:"", telefono:"", email:"", piva:"",
     nomePaziente:"",

@@ -2615,6 +2615,52 @@ function openDetail(id) {
       ${row("Workflow", o.workflow)}
     </div>
 
+    <!-- IMPLANT DETECTOR — richiesta + identificazione (solo ordini detector) -->
+    ${(() => {
+      const det = o.scheda_dati && o.scheda_dati.detector;
+      if(!det) return '';
+      const inp = "width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:12px;box-sizing:border-box";
+      const compTxt = c => `${esc(c.nome)} ×${esc(c.qta||1)}${[c.materiale, c.hg?('HG '+c.hg):null, c.incl?(c.incl+'°'):null, c.rhein].filter(Boolean).map(x=>' · '+esc(x)).join('')}`;
+      const campLabel = {monconi:'Monconi / componenti fisici', impronta:'Impronta in silicone', misto:'Componenti + impronta'}[det.campioni_tipo] || det.campioni_tipo || '—';
+      const sel = (val, opts) => opts.map(op2=>`<option value="${op2[0]}" ${val===op2[0]?'selected':''}>${op2[1]}</option>`).join('');
+      const items = Array.isArray(det.items) ? det.items : [];
+      const itemsHtml = items.map((it,idx)=>{
+        const id0 = it.identificazione || {};
+        const media = (Array.isArray(it.media)?it.media:[]).map(m=>{
+          const u = acMediaUrl(m.path);
+          return m.tipo==='foto'
+            ? `<a href="${esc(u)}" target="_blank" rel="noopener" style="display:block;width:64px;height:64px;border-radius:7px;overflow:hidden;border:1px solid var(--border)"><img src="${esc(u)}" loading="lazy" style="width:100%;height:100%;object-fit:cover"></a>`
+            : `<a href="${esc(u)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:7px;background:var(--blue-light);color:var(--blue);font-size:10px;font-weight:800;text-decoration:none">🧊 STL</a>`;
+        }).join('');
+        const comps = (Array.isArray(it.componenti)?it.componenti:[]).map(c=>`<div style="font-size:11.5px;color:var(--dark)">• ${compTxt(c)}</div>`).join('') || '<div style="font-size:11.5px;color:var(--gray)">Solo identificazione</div>';
+        return `<div style="border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:10px;background:var(--white)">
+          <div style="font-size:13px;font-weight:800;color:var(--dark);margin-bottom:3px">Impianto ${idx+1} — ${it.modalita==='produci'?'Identifica e produci':'Solo identificazione'}</div>
+          ${it.descrizione?`<div style="font-size:12px;color:var(--mid);margin-bottom:6px">${esc(it.descrizione)}</div>`:''}
+          <div style="margin-bottom:7px">${comps}</div>
+          ${media?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px">${media}</div>`:''}
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--blue);margin:4px 0 6px">Identificazione (lab)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <input id="det-${o.id}-${idx}-sist" placeholder="Sistema (es. Nobel Active)" value="${esc(id0.sistema||'')}" style="${inp}">
+            <input id="det-${o.id}-${idx}-piatt" placeholder="Piattaforma (es. NP)" value="${esc(id0.piattaforma||'')}" style="${inp}">
+            <input id="det-${o.id}-${idx}-diam" placeholder="Diametro Ø" value="${esc(id0.diametro||'')}" style="${inp}">
+            <select id="det-${o.id}-${idx}-conf" style="${inp}"><option value="">Confidenza…</option>${sel(id0.confidenza,[['alta','Alta'],['media','Media'],['bassa','Bassa']])}</select>
+            <select id="det-${o.id}-${idx}-esito" style="${inp}">${sel(it.esito||'da_identificare',[['da_identificare','Da identificare'],['identificato','Identificato'],['non_identificabile','Non identificabile']])}</select>
+            <input id="det-${o.id}-${idx}-note" placeholder="Note" value="${esc(id0.note||'')}" style="${inp}">
+          </div>
+        </div>`;
+      }).join('');
+      return `<div class="detail-section" style="background:#F0F9FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px 14px">
+        <div class="detail-section-title">🔍 Implant Detector — richiesta</div>
+        ${row("Cosa invia", campLabel)}
+        ${row("Nome paziente", det.paziente)}
+        ${row("Libreria", det.libreria ? "Sì" : "No")}
+        ${row("Software CAD", det.cad)}
+        ${row("Lavorazione", det.lavorazione_protesica)}
+        <div style="margin-top:10px">${itemsHtml}</div>
+        <button onclick="saveDetectorIdent('${o.id}')" class="save-note-btn">Salva identificazioni</button>
+      </div>`;
+    })()}
+
     <!-- SCHEDA PRODUZIONE (New Ancorvis, dal sync) -->
     ${(() => {
       const sp = o.scheda_dati;
@@ -2709,11 +2755,114 @@ function openDetail(id) {
       ${rowRaw("ID completo", `<span style="font-family:monospace;font-size:10px">${esc(o.id)}</span>`)}
       ${renderStorico(o)}
     </div>
+
+    <!-- CHAT CLIENTE -->
+    <div class="detail-section">
+      <div class="detail-section-title">Messaggi cliente</div>
+      <div id="ac-msgs" style="display:flex;flex-direction:column;gap:7px;max-height:340px;overflow-y:auto;padding:2px 2px 6px"><div style="color:var(--gray);font-size:12px;text-align:center;padding:14px">Caricamento…</div></div>
+      <div id="ac-thumbs" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px"></div>
+      <div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px">
+        <label title="Allega foto o STL" style="flex-shrink:0;width:38px;height:38px;border-radius:10px;border:1.5px solid var(--border);background:var(--light);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">📎<input type="file" id="ac-file" accept="image/*,.stl" multiple style="display:none"></label>
+        <textarea id="ac-text" placeholder="Rispondi al cliente…" rows="1" style="flex:1;min-height:38px;max-height:110px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:12.5px;resize:none"></textarea>
+        <button id="ac-send" type="button" style="flex-shrink:0;height:38px;padding:0 14px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-weight:800;font-size:13px;cursor:pointer">Invia</button>
+      </div>
+    </div>
   `;
 
   document.getElementById("detail-panel").classList.add("open");
   renderDashboardBlock(o);
   if (o.file_link) initStlPreview(o);
+  initAdminChat(o);
+}
+
+// ══════════════════════════════════════════════════════════════
+// CHAT CLIENTE (operatore loggato → legge/scrive ordine_messaggi via sb())
+// ══════════════════════════════════════════════════════════════
+let _acOrder = null, _acPending = [], _acPoll = null, _acLast = -1;
+const acMediaUrl = p => `${SUPABASE_URL}/storage/v1/object/public/ordini-media/${p}`;
+const acSafe = n => String(n || "file").replace(/[^a-zA-Z0-9._-]/g, "_").slice(-40);
+const acTime = iso => { try { return new Date(iso).toLocaleString("it-IT", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" }); } catch(e){ return ""; } };
+function acRender(list){
+  const box = document.getElementById("ac-msgs"); if(!box) return;
+  if(!list.length){ box.innerHTML = `<div style="color:var(--gray);font-size:12px;text-align:center;padding:14px">Nessun messaggio con il cliente.</div>`; return; }
+  box.innerHTML = list.map(m=>{
+    const op = m.autore === "operatore";
+    const who = op ? (m.autore_nome || "Tu") : "Cliente";
+    const align = op ? "align-self:flex-end;background:var(--blue);color:#fff" : "align-self:flex-start;background:var(--pearl);color:var(--dark);border:1px solid var(--border)";
+    const media = (Array.isArray(m.media)?m.media:[]).map(x=>{
+      const u = acMediaUrl(x.path);
+      return x.tipo==="foto"
+        ? `<a href="${esc(u)}" target="_blank" rel="noopener" style="display:block;width:68px;height:68px;border-radius:7px;overflow:hidden;border:1px solid rgba(0,0,0,.12)"><img src="${esc(u)}" loading="lazy" style="width:100%;height:100%;object-fit:cover"></a>`
+        : `<a href="${esc(u)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;width:68px;height:68px;border-radius:7px;background:var(--blue-light);color:var(--blue);font-size:10px;font-weight:800;text-decoration:none">🧊 STL</a>`;
+    }).join("");
+    return `<div style="max-width:84%;padding:8px 11px;border-radius:12px;font-size:12.5px;line-height:1.45;overflow-wrap:anywhere;${align}"><div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;opacity:.7;margin-bottom:2px">${esc(who)}</div>${m.testo?`<div>${esc(m.testo)}</div>`:""}${media?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:5px">${media}</div>`:""}<div style="font-size:9.5px;opacity:.6;margin-top:3px">${esc(acTime(m.created_at))}</div></div>`;
+  }).join("");
+  box.scrollTop = box.scrollHeight;
+}
+async function acLoad(){
+  if(!_acOrder) return;
+  try{
+    const list = await sb("GET", `ordine_messaggi?order_id=eq.${_acOrder.id}&order=created_at.asc&select=id,autore,autore_nome,testo,media,created_at`);
+    if(Array.isArray(list) && list.length !== _acLast){ _acLast = list.length; acRender(list); }
+  }catch(e){}
+}
+function acToJpeg(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file), img=new Image();
+    img.onload=()=>{ const max=1600; let w=img.naturalWidth,h=img.naturalHeight;
+      if(w>max||h>max){ const s=Math.min(max/w,max/h); w=Math.round(w*s); h=Math.round(h*s); }
+      const cv=document.createElement("canvas"); cv.width=w; cv.height=h; cv.getContext("2d").drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      cv.toBlob(b=> b?res({thumb:cv.toDataURL("image/jpeg",0.5),blob:b}):rej(new Error("jpg")), "image/jpeg", 0.8); };
+    img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error("decode")); }; img.src=url; });
+}
+function acThumbs(){
+  const box=document.getElementById("ac-thumbs"); if(!box) return;
+  box.innerHTML=_acPending.map((p,i)=>`<div style="position:relative;width:48px;height:48px;border-radius:6px;overflow:hidden;border:1px solid var(--border)">${p.type==='foto'&&p.thumb?`<img src="${p.thumb}" style="width:100%;height:100%;object-fit:cover">`:`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--blue-light);font-size:16px">🧊</div>`}<span onclick="acRemove(${i})" style="position:absolute;top:0;right:0;background:rgba(0,0,0,.6);color:#fff;width:15px;height:15px;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer">×</span></div>`).join("");
+}
+function acRemove(i){ _acPending.splice(i,1); acThumbs(); }
+async function acAdd(files){
+  for(const f of Array.from(files)){
+    if(/\.stl$/i.test(f.name)){ _acPending.push({type:"stl",name:f.name,blob:f}); }
+    else { try{ const r=await acToJpeg(f); _acPending.push({type:"foto",name:f.name.replace(/\.[^.]+$/,"")+".jpg",thumb:r.thumb,blob:r.blob}); }catch(e){ _acPending.push({type:"foto",name:f.name,thumb:"",blob:f}); } }
+    acThumbs();
+  }
+}
+async function acUpload(p){
+  const uid = (crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2));
+  const path = `${_acOrder.share_token}/chat/${uid}-${acSafe(p.name)}`;
+  const ct = p.type==="foto" ? "image/jpeg" : "application/octet-stream";
+  const r = await fetch(`${SUPABASE_URL}/storage/v1/object/ordini-media/${path}`, {
+    method:"POST", headers:{ "apikey":SUPABASE_KEY, "Authorization":`Bearer ${SUPABASE_KEY}`, "Content-Type":ct, "x-upsert":"true" }, body:p.blob });
+  if(!r.ok) throw new Error("upload "+r.status);
+  return { tipo:p.type, nome:p.name, path };
+}
+async function acSend(){
+  if(!_acOrder) return;
+  const ta=document.getElementById("ac-text"), btn=document.getElementById("ac-send");
+  const testo = ta.value.trim();
+  if(!testo && !_acPending.length) return;
+  btn.disabled=true; btn.textContent="…";
+  try{
+    const media=[];
+    for(const p of _acPending){ try{ media.push(await acUpload(p)); }catch(e){ console.warn("upload",e.message); } }
+    await sb("POST","ordine_messaggi",{ order_id:_acOrder.id, autore:"operatore", autore_nome: currentOperator||null, testo: testo||null, media, letto_operatore:true, letto_cliente:false });
+    ta.value=""; ta.style.height="auto"; _acPending=[]; acThumbs();
+    _acLast=-1; await acLoad();
+  }catch(e){ alert("Messaggio non inviato: "+e.message); }
+  btn.disabled=false; btn.textContent="Invia";
+}
+function initAdminChat(o){
+  _acOrder = o; _acPending=[]; _acLast=-1;
+  const box=document.getElementById("ac-msgs"); if(box) box.innerHTML=`<div style="color:var(--gray);font-size:12px;text-align:center;padding:14px">Caricamento…</div>`;
+  acThumbs();
+  const send=document.getElementById("ac-send"); if(send) send.onclick=acSend;
+  const file=document.getElementById("ac-file"); if(file) file.onchange=e=>{ acAdd(e.target.files); e.target.value=""; };
+  const ta=document.getElementById("ac-text");
+  if(ta){ ta.addEventListener("input",()=>{ ta.style.height="auto"; ta.style.height=Math.min(ta.scrollHeight,110)+"px"; });
+    ta.addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); acSend(); } }); }
+  acLoad();
+  clearInterval(_acPoll); _acPoll=setInterval(acLoad, 25000);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -3601,6 +3750,27 @@ async function saveNote(id) {
     const o = allOrders.find(x => x.id === id);
     if (o) { o.operator_note = note; }
     showToast("Nota salvata", "green");
+  } catch(e) { showToast("Errore: " + e.message, "red"); }
+}
+
+// Salva le identificazioni per impianto dentro scheda_dati.detector (stesso pattern di saveNote).
+async function saveDetectorIdent(id) {
+  const o = allOrders.find(x => x.id === id);
+  if (!o || !o.scheda_dati || !o.scheda_dati.detector) return;
+  const items = Array.isArray(o.scheda_dati.detector.items) ? o.scheda_dati.detector.items : [];
+  items.forEach((it, idx) => {
+    const g = f => (document.getElementById(`det-${id}-${idx}-${f}`) || {}).value || "";
+    const sist = g('sist').trim(), piatt = g('piatt').trim(), diam = g('diam').trim(), conf = g('conf'), note = g('note').trim();
+    it.identificazione = (sist || piatt || diam || conf || note)
+      ? { sistema: sist || null, piattaforma: piatt || null, diametro: diam || null, confidenza: conf || null, note: note || null }
+      : null;
+    it.esito = g('esito') || it.esito || 'da_identificare';
+  });
+  if (!configured()) { showToast("Identificazioni salvate (demo)", "green"); return; }
+  try {
+    await sb("PATCH", `orders?id=eq.${id}`, { scheda_dati: o.scheda_dati, updated_at: new Date().toISOString() });
+    o.updated_at = new Date().toISOString();
+    showToast("Identificazioni salvate", "green");
   } catch(e) { showToast("Errore: " + e.message, "red"); }
 }
 

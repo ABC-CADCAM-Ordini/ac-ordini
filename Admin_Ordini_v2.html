@@ -2814,7 +2814,7 @@ async function initDetectorMedia(o){
 // ══════════════════════════════════════════════════════════════
 // CHAT CLIENTE (operatore loggato → legge/scrive ordine_messaggi via sb())
 // ══════════════════════════════════════════════════════════════
-let _acOrder = null, _acPending = [], _acPoll = null, _acLast = -1;
+let _acOrder = null, _acPending = [], _acPoll = null, _acLast = -1, _acSending = false;
 const acMediaUrl = p => `${SUPABASE_URL}/storage/v1/object/public/ordini-media/${p}`;
 const acSafe = n => String(n || "file").replace(/[^a-zA-Z0-9._-]/g, "_").slice(-40);
 const acTime = iso => { try { return new Date(iso).toLocaleString("it-IT", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" }); } catch(e){ return ""; } };
@@ -2874,20 +2874,22 @@ async function acUpload(p){
   return { tipo:p.type, nome:p.name, path };
 }
 async function acSend(){
-  if(!_acOrder) return;
+  if(!_acOrder || _acSending) return;
   const ta=document.getElementById("ac-text"), btn=document.getElementById("ac-send");
   const testo = ta.value.trim();
   if(!testo && !_acPending.length) return;
-  btn.disabled=true; btn.textContent="…";
+  _acSending=true; btn.disabled=true; btn.textContent="…";
   try{
+    const nPending = _acPending.length;
     const media=[], upErrs=[];
     for(const p of _acPending){ try{ media.push(await acUpload(p)); }catch(e){ upErrs.push(e.message); } }
-    if(_acPending.length && !media.length && !testo) throw new Error("Foto non caricata — " + (upErrs[0] || "errore di rete"));
+    if(nPending && !media.length && !testo) throw new Error("Foto non caricata — " + (upErrs[0] || "errore di rete"));
     await sb("POST","ordine_messaggi",{ order_id:_acOrder.id, autore:"operatore", autore_nome: currentOperator||null, testo: testo||null, media, letto_operatore:true, letto_cliente:false });
     ta.value=""; ta.style.height="auto"; _acPending=[]; acThumbs();
     _acLast=-1; await acLoad();
+    if(upErrs.length) alert(upErrs.length + (upErrs.length===1 ? " foto non è stata caricata" : " foto non sono state caricate") + " e non compaiono nel messaggio. Riprova ad allegarle.");
   }catch(e){ alert("Messaggio non inviato: "+e.message); }
-  btn.disabled=false; btn.textContent="Invia";
+  finally{ _acSending=false; btn.disabled=false; btn.textContent="Invia"; }
 }
 function initAdminChat(o){
   _acOrder = o; _acPending=[]; _acLast=-1;
@@ -3795,18 +3797,29 @@ async function saveDetectorIdent(id) {
   const o = allOrders.find(x => x.id === id);
   if (!o || !o.scheda_dati || !o.scheda_dati.detector) return;
   const items = Array.isArray(o.scheda_dati.detector.items) ? o.scheda_dati.detector.items : [];
-  items.forEach((it, idx) => {
+  // Leggi i campi + guardia clinica: 'Identificato' richiede almeno Sistema o Piattaforma.
+  const edits = [];
+  for (let idx = 0; idx < items.length; idx++) {
     const g = f => (document.getElementById(`det-${id}-${idx}-${f}`) || {}).value || "";
     const sist = g('sist').trim(), piatt = g('piatt').trim(), diam = g('diam').trim(), conf = g('conf'), note = g('note').trim();
-    it.identificazione = (sist || piatt || diam || conf || note)
-      ? { sistema: sist || null, piattaforma: piatt || null, diametro: diam || null, confidenza: conf || null, note: note || null }
-      : null;
-    it.esito = g('esito') || it.esito || 'da_identificare';
-  });
-  if (!configured()) { showToast("Identificazioni salvate (demo)", "green"); return; }
+    const esito = g('esito') || items[idx].esito || 'da_identificare';
+    if (esito === 'identificato' && !sist && !piatt) {
+      showToast(`Impianto ${idx+1}: per "Identificato" indica almeno Sistema o Piattaforma.`, "red");
+      return;
+    }
+    edits.push({ idx, ident: (sist || piatt || diam || conf || note) ? { sistema: sist||null, piattaforma: piatt||null, diametro: diam||null, confidenza: conf||null, note: note||null } : null, esito });
+  }
+  const applyLocal = () => edits.forEach(e => { if (items[e.idx]) { items[e.idx].identificazione = e.ident; items[e.idx].esito = e.esito; } });
+  if (!configured()) { applyLocal(); showToast("Identificazioni salvate (demo)", "green"); return; }
   try {
-    await sb("PATCH", `orders?id=eq.${id}`, { scheda_dati: o.scheda_dati, updated_at: new Date().toISOString() });
-    o.updated_at = new Date().toISOString();
+    // Rileggi la riga FRESCA e fai merge mirato: non sovrascrivere modifiche concorrenti dell'intero scheda_dati.
+    let sd = o.scheda_dati;
+    try { const fresh = await sb("GET", `orders?id=eq.${id}&select=scheda_dati`); if (Array.isArray(fresh) && fresh[0] && fresh[0].scheda_dati) sd = fresh[0].scheda_dati; } catch(e) {}
+    if (!sd.detector) sd.detector = { items: [] };
+    if (!Array.isArray(sd.detector.items)) sd.detector.items = [];
+    edits.forEach(e => { if (sd.detector.items[e.idx]) { sd.detector.items[e.idx].identificazione = e.ident; sd.detector.items[e.idx].esito = e.esito; } });
+    await sb("PATCH", `orders?id=eq.${id}`, { scheda_dati: sd, updated_at: new Date().toISOString() });
+    o.scheda_dati = sd; o.updated_at = new Date().toISOString();
     showToast("Identificazioni salvate", "green");
   } catch(e) { showToast("Errore: " + e.message, "red"); }
 }

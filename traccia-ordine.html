@@ -458,7 +458,7 @@ function renderDocs(s){
 }
 
 // ── Chat ordine (cliente, via share_token) ────────────────────
-let _chatToken = null, _chatCollab = null, _chatMine = 'cliente', _chatPending = [], _chatPoll = null, _chatLastCount = -1;
+let _chatToken = null, _chatCollab = null, _chatMine = 'cliente', _chatPending = [], _chatPoll = null, _chatLastCount = -1, _chatSending = false;
 const chatMediaUrl = path => `${SUPABASE_URL}/storage/v1/object/public/ordini-media/${path}`;
 const chatSafeName = n => String(n||"file").replace(/[^a-zA-Z0-9._-]/g,"_").slice(-40);
 async function chatRpc(fn, body){
@@ -524,21 +524,24 @@ async function chatUpload(p){
   return { tipo:p.type, nome:p.name, path };
 }
 async function sendChat(){
+  if(_chatSending) return;   // guardia: Enter + click, o doppio Enter, non devono inviare due volte
   const ta = document.getElementById("chat-text"), btn = document.getElementById("chat-send");
   const testo = ta.value.trim();
   if(!testo && !_chatPending.length) return;
-  btn.disabled = true; btn.textContent = "…";
+  _chatSending = true; btn.disabled = true; btn.textContent = "…";
   try{
+    const nPending = _chatPending.length;
     const media = [], upErrs = [];
     for(const p of _chatPending){ try{ media.push(await chatUpload(p)); }catch(e){ upErrs.push(e.message); } }
     // Se c'erano allegati, NESSUNO è passato e non c'è testo: mostra il vero errore, non il "vuoto" 400.
-    if(_chatPending.length && !media.length && !testo) throw new Error("Foto non caricata — " + (upErrs[0] || "errore di rete"));
+    if(nPending && !media.length && !testo) throw new Error("Foto non caricata — " + (upErrs[0] || "errore di rete"));
     if(_chatCollab) await chatRpc("chat_invia_collab", { p_token:_chatCollab, p_share_token:_chatToken, p_testo:testo||null, p_media:media });
     else await chatRpc("chat_invia", { p_share_token:_chatToken, p_testo:testo||null, p_media:media });
     ta.value=""; ta.style.height="auto"; _chatPending=[]; renderChatThumbs();
     _chatLastCount = -1; await loadChatMessages();
+    if(upErrs.length) alert(upErrs.length + (upErrs.length===1 ? " foto non è stata caricata" : " foto non sono state caricate") + " e non compaiono nel messaggio. Riprova ad allegarle.");
   }catch(e){ alert("Messaggio non inviato: "+e.message); }
-  btn.disabled = false; btn.textContent = "Invia";
+  finally{ _chatSending = false; btn.disabled = false; btn.textContent = "Invia"; }
 }
 function initChat(token){
   _chatToken = token;

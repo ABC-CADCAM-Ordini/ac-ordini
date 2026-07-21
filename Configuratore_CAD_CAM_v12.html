@@ -2666,7 +2666,7 @@ function detectorItemCard(it,i){
       <div style="font-size:14px;font-weight:900;color:var(--dark)">Impianto ${i+1}</div>
       ${detector.items.length>1?`<span onclick="detector.items.splice(${i},1);render()" style="cursor:pointer;color:var(--gray);font-size:12px;font-weight:700">&times; rimuovi</span>`:""}
     </div>`;
-  h += `<textarea oninput="detector.items[${i}].descrizione=this.value" placeholder="Descrizione: es. moncone dritto avvitato, arcata superiore, sospetto Nobel Active…" style="width:100%;min-height:56px;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13px;resize:vertical;box-sizing:border-box">${it.descrizione||""}</textarea>`;
+  h += `<textarea oninput="detector.items[${i}].descrizione=this.value;refreshDetItemsNav()" placeholder="Descrizione: es. moncone dritto avvitato, arcata superiore, sospetto Nobel Active…" style="width:100%;min-height:56px;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13px;resize:vertical;box-sizing:border-box">${escAttr(it.descrizione||"")}</textarea>`;
   h += `<div style="display:flex;gap:8px;margin:10px 0 2px">`;
   [["produci","Identifica e produci"],["identifica","Solo identificazione"]].forEach(o=>{
     const on = it.modalita===o[0];
@@ -2724,7 +2724,9 @@ function detectorMediaBlock(it,i){
 const DET_INP = "width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-family:var(--font);font-size:14px;box-sizing:border-box";
 function detLbl(t){ return `<div style="font-size:12px;font-weight:800;color:var(--dark);margin:2px 0 8px">${t}</div>`; }
 function detToggleComp(i,id){ const it=detector.items[i]; if(!it.comp[id]) it.comp[id]={on:true,qta:1}; else it.comp[id].on=!it.comp[id].on; render(); }
-function detCompField(i,id,f,v){ const it=detector.items[i]; if(!it.comp[id]) it.comp[id]={on:true,qta:1}; it.comp[id][f]=v; }
+function detCompField(i,id,f,v){ const it=detector.items[i]; if(!it.comp[id]) it.comp[id]={on:true,qta:1}; if(f==='qta'){ v=Math.max(1,Math.floor(Number(v)||1)); } it.comp[id][f]=v; }
+// Ri-valuta il gate "Avanti" della fase impianti senza ridisegnare (evita di far perdere il focus al textarea).
+function refreshDetItemsNav(){ const valid = detector.items.length>0 && detector.items.every(it=>(it.descrizione||'').trim()); const b=document.querySelector('.nav-row .btn-primary'); if(b) b.disabled=!valid; }
 function detRemoveMedia(i,mi){ detector.items[i].media.splice(mi,1); render(); }
 function detPreviewStl(i,mi){ const m=detector.items[i].media[mi]; if(m&&m.file) openStlInNewWindow(m.file); }
 async function detAddMedia(i,files){
@@ -2779,17 +2781,18 @@ function detectorShipPhase(stepNum,total){
 function detectorDoneScreen(){
   let h = `<div style="font-size:11px;font-weight:700;color:var(--blue);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">Riepilogo richiesta — Implant Detector</div>`;
   h += `<div style="font-size:22px;font-weight:900;color:var(--dark);margin-bottom:16px">${state.orderSent ? "Richiesta inviata" : "Pronto per l'invio"}</div>`;
+  const E = (typeof escAttr==='function') ? escAttr : (v=>String(v==null?'':v));
   h += `<div class="summary-box"><div class="summary-head">Cliente</div>
-    <div class="summary-row"><span class="summary-key">Nominativo</span><span class="summary-val">${cliente.nome} ${cliente.cognome}</span></div>
-    <div class="summary-row"><span class="summary-key">Studio / Lab</span><span class="summary-val">${cliente.azienda}</span></div>
-    <div class="summary-row"><span class="summary-key">Telefono</span><span class="summary-val">${cliente.telefono}</span></div>
-    ${cliente.email?`<div class="summary-row"><span class="summary-key">Email</span><span class="summary-val">${cliente.email}</span></div>`:""}
-    ${cliente.nomePaziente?`<div class="summary-row"><span class="summary-key">Paziente</span><span class="summary-val">${cliente.nomePaziente}</span></div>`:""}
+    <div class="summary-row"><span class="summary-key">Nominativo</span><span class="summary-val">${E(cliente.nome)} ${E(cliente.cognome)}</span></div>
+    <div class="summary-row"><span class="summary-key">Studio / Lab</span><span class="summary-val">${E(cliente.azienda)}</span></div>
+    <div class="summary-row"><span class="summary-key">Telefono</span><span class="summary-val">${E(cliente.telefono)}</span></div>
+    ${cliente.email?`<div class="summary-row"><span class="summary-key">Email</span><span class="summary-val">${E(cliente.email)}</span></div>`:""}
+    ${cliente.nomePaziente?`<div class="summary-row"><span class="summary-key">Paziente</span><span class="summary-val">${E(cliente.nomePaziente)}</span></div>`:""}
   </div>`;
   h += `<div class="summary-box"><div class="summary-head">Impianti da identificare (${detector.items.length})</div>`;
   detector.items.forEach((it,i)=>{
     const comps = detCompSummary(it);
-    h += `<div class="summary-row"><span class="summary-key">Impianto ${i+1}</span><span class="summary-val">${it.modalita==='produci'?'Identifica e produci':'Solo identificazione'}${comps?' · '+comps:''}${it.media.length?' · '+it.media.length+' file':''}</span></div>`;
+    h += `<div class="summary-row"><span class="summary-key">Impianto ${i+1}</span><span class="summary-val">${it.modalita==='produci'?'Identifica e produci':'Solo identificazione'}${comps?' · '+E(comps):''}${it.media.length?' · '+it.media.length+' file':''}</span></div>`;
   });
   h += `</div>`;
   if(!state.orderSent){
@@ -2835,23 +2838,26 @@ function detMediaPath(shareToken, itemIdx, mediaIdx, name){ return `${shareToken
 // Upload best-effort dei media nel bucket privato ordini-media (non blocca la conferma).
 async function uploadDetectorMedia(shareToken){
   if(SUPABASE_URL.includes("YOUR_PROJECT")) return;
+  // Snapshot SINCRONO: se il cliente clicca "Nuova richiesta" durante l'upload, non perdiamo i file.
+  const jobs = [];
   for(let idx=0; idx<detector.items.length; idx++){
     const it = detector.items[idx];
     for(let mi=0; mi<it.media.length; mi++){
       const m = it.media[mi];
       const blob = m.type==="foto" ? (m.blob||null) : (m.file||null);
       if(!blob) continue;
-      const path = detMediaPath(shareToken, idx+1, mi+1, m.name);
-      const ct = m.type==="foto" ? "image/jpeg" : "application/octet-stream";
-      try{
-        const res = await fetch(`${SUPABASE_URL}/storage/v1/object/ordini-media/${path}`, {
-          method:"POST",
-          headers:{ "apikey":SUPABASE_KEY, "Content-Type":ct },
-          body: blob
-        });
-        if(!res.ok) console.warn("media upload", path, res.status, await res.text());
-      }catch(e){ console.warn("media upload", path, e.message); }
+      // Foto non convertibili (raw, es. HEIC non decodificato): niente etichetta image/jpeg fasulla →
+      // octet-stream (accettato dal bucket) così il file si carica comunque.
+      const ct = m.type==="foto" ? (m.raw ? "application/octet-stream" : "image/jpeg") : "application/octet-stream";
+      jobs.push({ path: detMediaPath(shareToken, idx+1, mi+1, m.name), blob, ct });
     }
+  }
+  for(const j of jobs){
+    try{
+      const res = await fetch(`${SUPABASE_URL}/storage/v1/object/ordini-media/${j.path}`, {
+        method:"POST", headers:{ "apikey":SUPABASE_KEY, "Content-Type":j.ct }, body: j.blob });
+      if(!res.ok) console.warn("media upload", j.path, res.status, await res.text());
+    }catch(e){ console.warn("media upload", j.path, e.message); }
   }
 }
 
@@ -2866,7 +2872,21 @@ async function makeQrDataUrl(text){
 
 // Stampa del modulo di richiesta con codice ordine (8hex) + QR.
 async function printModuloDetector(){
-  const code = (lastOrderToken||"").replace(/-/g,"").slice(0,8).toUpperCase() || "—";
+  // La finestra va aperta SUBITO, dentro il gesto del click: dopo un await di rete (import QR)
+  // Safari/iOS perde la user-activation e blocca il popup.
+  const win = window.open("","_blank","width=800,height=900");
+  if(!win){ alert("Popup bloccato — consenti i popup per stampare il modulo."); return; }
+  try{ win.document.write('<!doctype html><meta charset="utf-8"><body style="font-family:Arial,sans-serif;padding:28px;color:#334">Preparazione del modulo…</body>'); }catch(e){}
+  const E = (typeof escAttr==='function') ? escAttr : (v=>String(v==null?'':v));
+  // Codice ordine UFFICIALE (id[:8], come mostrato in traccia e nell'Admin), via RPC pubblica —
+  // così il codice sul pacco coincide con quello che vede l'operatore. Lo share_token va nel QR.
+  let code = (lastOrderToken||"").replace(/-/g,"").slice(0,8).toUpperCase() || "—";
+  if(lastOrderToken){
+    try{
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/scheda_ordine_pubblica`, { method:"POST", headers:{ "apikey":SUPABASE_KEY, "Content-Type":"application/json" }, body: JSON.stringify({ p_token: lastOrderToken }) });
+      if(r.ok){ const rows = await r.json(); if(Array.isArray(rows) && rows[0] && rows[0].codice) code = String(rows[0].codice); }
+    }catch(e){}
+  }
   const trackUrl = lastOrderToken ? new URL('traccia-ordine.html?t='+lastOrderToken, location.href).href : "";
   const qr = trackUrl ? await makeQrDataUrl(trackUrl) : null;
   const fatAddr = [cliente.indFattura, cliente.capFattura, cliente.cittaFattura, cliente.provFattura].filter(Boolean).join(", ")||"—";
@@ -2874,21 +2894,21 @@ async function printModuloDetector(){
   const cadLabel = detector.cad==="altro" ? (detector.cadAltro||"Altro") : ({exocad:"Exocad","3shape":"3Shape",dwos:"Dwos"}[detector.cad]||"—");
   const lavLabel = detector.lavProtesica==="altro" ? (detector.lavAltro||"Altro") : ({avvitata:"Avvitata diretta",incollaggio:"Incollaggio / cementata"}[detector.lavProtesica]||"—");
   const campLabel = {monconi:"Monconi / componenti fisici",impronta:"Impronta in silicone",misto:"Componenti + impronta"}[detector.campioniTipo]||"—";
-  const row = (l,v)=> v?`<tr><td style="padding:5px 8px;font-size:11px;color:#475569;font-weight:600;width:38%;border-bottom:1px solid #E2E8F0">${l}</td><td style="padding:5px 8px;font-size:11px;color:#0F1923;font-weight:700;border-bottom:1px solid #E2E8F0">${v}</td></tr>`:"";
+  const row = (l,v)=> v?`<tr><td style="padding:5px 8px;font-size:11px;color:#475569;font-weight:600;width:38%;border-bottom:1px solid #E2E8F0">${E(l)}</td><td style="padding:5px 8px;font-size:11px;color:#0F1923;font-weight:700;border-bottom:1px solid #E2E8F0">${E(v)}</td></tr>`:"";
   const itemsHtml = detector.items.map((it,i)=>{
     const comps = DET_COMPONENTI.filter(c=>it.comp[c.id]&&it.comp[c.id].on).map(c=>{
       const d=it.comp[c.id]; const ex=[];
       if(c.mat&&d.mat)ex.push(d.mat); if(c.hg&&d.hg)ex.push("HG "+d.hg+"mm"); if(c.incl&&d.incl)ex.push(d.incl+"°"); if(c.rhein&&d.rhein)ex.push(d.rhein);
-      return `<li>${c.n} ×${d.qta||1}${ex.length?" — "+ex.join(", "):""}</li>`;
+      return `<li>${E(c.n)} ×${Number(d.qta)||1}${ex.length?" — "+E(ex.join(", ")):""}</li>`;
     }).join("");
     return `<div style="border:1px solid #E2E8F0;border-radius:6px;padding:8px 12px;margin-bottom:8px">
       <div style="font-size:12px;font-weight:800;color:#0F1923;margin-bottom:3px">Impianto ${i+1} — ${it.modalita==='produci'?'Identifica e produci':'Solo identificazione'}</div>
-      ${it.descrizione?`<div style="font-size:11px;color:#334155;margin-bottom:4px">${it.descrizione}</div>`:""}
+      ${it.descrizione?`<div style="font-size:11px;color:#334155;margin-bottom:4px">${E(it.descrizione)}</div>`:""}
       ${comps?`<ul style="margin:2px 0 0 16px;padding:0;font-size:11px;color:#0F1923">${comps}</ul>`:""}
       ${it.media.length?`<div style="font-size:10px;color:#64748B;margin-top:4px">${it.media.length} allegato/i inviati online</div>`:""}
     </div>`;
   }).join("");
-  const html = `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Modulo Implant Detector — ${cliente.azienda||cliente.nome}</title>
+  const html = `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Modulo Implant Detector — ${E(cliente.azienda||cliente.nome)}</title>
   <style>body{font-family:'Helvetica Neue',Arial,sans-serif;margin:0;padding:20px;color:#0F1923;font-size:12px}
   .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0065B3;padding-bottom:12px;margin-bottom:14px}
   .header-title{font-size:18px;font-weight:900;color:#0065B3}.header-sub{font-size:10px;color:#64748B;margin-top:2px}
@@ -2905,7 +2925,7 @@ async function printModuloDetector(){
   <div class="badge">Implant Detector e Replica Impianto — Modulo di richiesta</div></div>
   <div style="text-align:right;font-size:10px;color:#64748B"><div>Data: <strong>${new Date().toLocaleDateString("it-IT")}</strong></div><div style="margin-top:4px">P.IVA 00704980119</div><div>MD_149/1 REV.04</div></div></div>
   <div class="idbox"><div><div style="font-size:9px;font-weight:800;color:#0369A1;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Codice richiesta — inserire questo foglio nel pacco</div>
-  <div class="idcode">${code}</div><div style="font-size:10px;color:#64748B;margin-top:4px">${trackUrl}</div></div>
+  <div class="idcode">${E(code)}</div><div style="font-size:10px;color:#64748B;margin-top:4px">${E(trackUrl)}</div></div>
   ${qr?`<img src="${qr}" alt="QR codice ordine" style="width:96px;height:96px;flex-shrink:0">`:""}</div>
   <div class="section"><div class="section-title">Dati cliente</div><table>
   ${row("Ragione Sociale / Studio",cliente.azienda)}${row("Referente",(cliente.nome+" "+cliente.cognome).trim())}
@@ -2918,10 +2938,8 @@ async function printModuloDetector(){
   <div class="firma-box"><div class="firma-field">Data compilazione</div><div class="firma-field">Timbro</div><div class="firma-field">Firma</div></div>
   <div class="footer"><span>Biaggini Medical Devices S.r.l. · ISO 13485 · CE 0425 · MDR 745/2017 · EUDAMED</span><span>www.abutmentcompatibili.com</span></div>
   </body></html>`;
-  const win = window.open("","_blank","width=800,height=900");
-  if(!win){ alert("Popup bloccato — consenti i popup per stampare il modulo."); return; }
-  win.document.write(html); win.document.close();
-  win.onload = ()=>{ win.focus(); win.print(); };
+  try{ win.document.open(); win.document.write(html); win.document.close(); }catch(e){}
+  win.onload = ()=>{ try{ win.focus(); win.print(); }catch(e){} };
 }
 
 // ══════════════════════════════════════════════════════════════

@@ -1620,6 +1620,30 @@ const BEFREE_PRODOTTI = [
   {id:"cappetta",  n:"Cappetta di Guarigione Personalizzata",s:"Titanio gr.5",                    prezzo:55,  iva:4,  e:"🔒"},
 ];
 
+// ── Identificazione impianto #BeFree — elenco marche (rif. New Ancorvis), connessioni, altezze transmucose ──
+const BEFREE_MARCHE = [
+  "3P IMPLAFAVOURITE","AB DENTAL","ACERBONI","ADIN","ADVAN","ADVANCE","ALLMED","ALPHA-BIO","ALPHA-DENT","ANTHOGYR",
+  "AON","AVENIR","AXELMED","AZ","B&B","BANP IMPLANT","BEGO","BIAGGINI","BICON","BIO-HORIZONS","BIO-IMPLANT",
+  "BIO-MICRON","BIOHELIX","BIOLOGITECH","BIOMAX","BIONER","BIONICA","BIONNOVATION","BIOSERVICE","BIOTEC BTK",
+  "BIOTECH DENTAL","BIOTYPE","BONE SYSTEM","BOTTICELLI","BREDENT","BTI","BTLOCK","C-TECH","CAMLOG","CLC SCIENTIFIC",
+  "CONNEST","COWELLMEDI","DENTAL PLANET","DENTALPRO","DENTALTECH","DENTAURUM","DENTIS","DENTIUM","DENTSPLY SIRONA",
+  "DIO IMPLANT","DYNA","EDIERRE","ETK (EUROTEKNIKA)","EVERTIS","FDS76","FMD","FUTUR IMPLANT","FUTURA","GC IMPLANT",
+  "GEASS","GHIMAS","GIESSE TECHNOLOGY","GLOBAL D (TEKKA)","GLOBALWIN","HDC","HENRY SCHEIN - KRUGG","HI-TEC IMPLANTS",
+  "HIOSSEN","HTB","HUMANTECH","IDC","IDENT","IDI EVOLUTION","IMAX3","IML","IMPLADENT","IMPLAMED","IMPLANT DIRECT",
+  "IMPLANT SWISS","INTRA-LOCK","IRES","ISI","ISOMED","ITS","JDentalCare","JET IMPLANT","KALODON","KEYSTONE","KLIKE",
+  "KLOCKNER","LASAK","LEADER","LEADER MEDICA","LEONE","MACO","MAIPEK","MECH & HUMAN","MEDENTIKA","MEDENTIS","MEGAGEN",
+  "MEISINGER","METE' BIOMEDICAL","MICRODENT","MICROIMP","MIRAGE","MIS","MODUS IMPLANT","MULTY SYSTEM","MY IMPLANT",
+  "MYPLANT","NEOBIOTECH","NEODENT","NEOSS","NEW ANCORVIS","NOBEL BIOCARE","NORIS Medical","NORMADENT","NSI",
+  "NTA IMPLANT","NUCLEOSS","ORALPLANT","ORNAGHI","ORVIT","OSSTEM","OSTEO-TI","OSTEOCARE","OT MEDICAL","OVERMED",
+  "OXY IMPLANT","P-I BRANEMARK","P1H (Plan 1 Health)","PALTOP","PHI","PHIBO","PHYSIOPLANT","PRODENT","PROWITAL",
+  "RCF (errecieffe)","RESISTA","REX – MECTRON","RHEIN 83","ROOTT","SCHUTZ DENTAL","SGS DENTAL","SHAKLETON",
+  "SIGNO VINCES","SOUTHERN IMPLANTS","STEIN","STRAUMANN","SWEDEN&MARTINA","SYMPLA","TAG DENTAL","TBR","TFI","THOMMEN",
+  "TIRADIX","TRI","UMBRA","VECTOR","VULKAN","WIN IMPLANT","WIN SIX","YOUSE","ZEROS","ZIACOM","ZimVie (BIOMET 3I)",
+  "ZimVie (ZIMMER)","PERSONALIZZATO","ALTRO"
+];
+const BEFREE_CONNESSIONI = ["Interna","Esterna","MUA","Altro"];
+const BEFREE_HG_VALUES = ["0.3","0.5","0.7","1.0","1.5","2.0","2.5","3.0","3.5","4.0","4.5","5.0","5.5","6.0","6.5"];
+
 const BEFREE_ICONS = {
   "tibase": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAvKADAAQAAAABAAAAyAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAyAC8AwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMAAgICAgICAwICAwQDAwMEBQQEBAQFBwUFBQUFBwgHBwcHBwcICAgICAgICAoKCgoKCgsLCwsLDQ0NDQ0NDQ0NDf/bAEMBAgICAwMDBgMDBg0JBwkNDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDf/dAAQADP/aAAwDAQACEQMRAD8A/fnA9R+lJgeo/Snfh1pM+gzQAYHqP0pMD1H6U78KTp/DQAYHcj9KTA9R+lL/AMBpf+A0ANwPUfpRgdsfpSnrjFL+FADcD1H6UYHqP0p2favjD9q39pmT4L3Om+CdDubPTdf13S9Q1G1vtRTfADZlEitYlJVftV07t5RfcqiNsRzOUibizHMKOBw08XiL8kVd2Tb+5XZpSpyqSUI7s+zsD1H6UmB6j9K/Ea18Qaz8QI21Txf8ePF+vOzESwaFqseg2Cc/6swackMilejB3ByOVB4pH8G/CJBm71fxJdSE8yTeK9aZyfXIvQK/Esx+kRw5hazoxw+Im1/LTS/9LlB/gfoeF8L84rU1U5oJPvO/5Jr8T9usD1H6UYHbH6V+I0fh/wAGWrGTwt468ceHJBg+Zpvi7VB09VuLieMj2KkVb8PftfeLvgff3w1v4pR/EfQ7G0kuRY6vFatqDSxPEq6fFd2iRvJe3CyM0bOJAmw+ZEqN5qexw744cP5xWWHp060Ju2kqb66bwc0vm19+h5uc8BZnltH29dwcfKS/J2b+SP2uwPUUuB6j8qo6VqVrrOmWer2OWt763iuYWPBMcyh1PfsRV72xX7EfFBgeo/IUmB6j8qXp/DQARnigBMD1H5UYHqPypfbbRg4xigBMD1FGB6j8qXk9s0DntQAYHqPyFJgeo/IUvttoGRwB+tAH/9D9+eB1Jo49TS8+1Hze1ACceppePU0vPtRzntQAmRnrRx6ml+b2pPm9qADj1NHHqaX5vak+b2oAQ49TX5w/tieJ/hJ4b+KvhrR/i2bSbT/Fnh+5sI7e+tGu7dpLS6WRfMXy3Vd3nHax+6UOSvyk/pBzX4xf8FSjbJ4/+FxIgFxLp+sxbm1BtPZk8y1bY7OhgeHhi6Ow3AEDnbn47j/JqWa8P4nA1pSipJO8GoyTjJSTTeis0n6HpZRipYfFwrRSbXRq6102OIH7Jn7IvjidtQ8FyRWk7E5l8Pa47EH0CGWZEx6BRj0qOb9gj4fn/j18c+O7dB/CNVhKge2baviWWwl1C086awl1GBVwJLixl0zSlC9BEbKQmVABwx3Z7GuXu9L0Ayb/AOy/Bg/2FfVAx/EoTn8K/lGhwvxOnyUc/rtL+aCq28rzqRf3xR+gvNcFa8sJFN9pcv5L9T7j1D9jL9m7QEM3jvxvrdxAvLprWv28MRA9cRxHH/Aqydb1b9kv4I+GNbb4R6Baar4jXS7oW9zapLeNGJIynm/2hdF1WLcw3tC7YB5UA18Z2Ojz2n+k2GlXNmgJPn6NaXGrWw/3ort1XbjqQnA71b1YI/h3ULYtGIXtZ5wsMsT2rMqMHlitLYeVbSKCVmWdyBGWYBmWvSp8HZhiKkKeb5vXr07q9Pm9nB6/ahFyTXdKV7a6I555tRjFyw+GhB92uZ/Jvb7j+qrwhZJpvhPRdOQ8WunWkIxnGI4lUfyroR7k1zfgrzP+EN0Hfy39mWec9c+Smc102G68V/Zp+asb8vqc0uRyMn9aBupcN7UCEyvYmk4xjJzS4b2pRu9qAG8e/wCtGfUnNO+btijB9qAE+X1NAK9z/Oj5uaXB74/KgD//0f3549KOP7tLn3oz/tUAJgf3TRgf3aU8d6M/7VABgelJgf3TS/8AAqM/7VACYH92lwB2oz/tUZHrQAnHoa/Fz/gqRqN1bfEf4aW/2ny7X+y9VYwy3McNuzNPbBjJFOPJuF4UmEsjOwTawxz+0nHrX4zf8FQr1m+Ivwy02KWeMjTdWndx9mniVTNagEWlyhW5fcoAjVw+4oyjK14fEn/IsrXtt12/r0u3skzqwX8aJ+ctxAsONU1axsYg+Ct/4lgu7PIPBMNralkVeeOjfXrXN3fijT4ybf8A4SDw6VzghLXVfL/MuOPxrrEksdClZ52sdEu3G7zLyC+fVp+4JRC8cQ/2V3AdMDpUV74iu2IlXxDrQQ/xiVwn/fv7Pv8Awzmv5/oNylflk106L5e5Nf8AgLXotj6mUdLXS/rrqjg7eOz1GZrvTbOwvXj63Xh9LyW4UD+9FcMsb+uHZvoauaiZptE1JjJv32827CJB50kUZbMljDnyLmJfmLSsFePcCOgE6XFhrt7GklzpmvXKn5Y5YdSj1JGHeNvkVm46fKPfFX9fiQ6Jqkdy0wmNnJE0d7bx2lwNqsyRT2cDF7ggjfbyyMsZZdrkhju9aVZqtCEk07r4k779G0nbytFdk3ZrLlvFtf1/XzP6qPCO4+FdFMi4f+zrXcB0z5S5roMA9jXP+EJBN4S0SUHh9OtGwfeJTXQ9+or+hVsfJMQY64PNGF9DS5/2qAfemITA6YNAC9cGlz/tUfiKAEwOpBowOpBpR9RRn0IoAQYHY80mB6GnZ/2qTJ7MKAP/0v3659KPwFNyv940ZHYmgB3PpRz6U3I/vGjK/wB40AO5z0o59KTj1NJx/eNADufQUc5zgUmV9TSZGfvGgBxyeor8af8Agp1qD/8ACx/h3pNuLh530fVXCQLbSyfPPbrmGCbDTSHaQQpJjBEgXCua/ZXj1Nfjf/wU5gjvfiF8O7GS3e9Mmkas0dusUMhdkntc7T/x8RcH5pkP7tNwTl3NfP8AFTSyqs5bW/Vf1rp30OvA/wAeJ+cen3dxohez06+i0yXO6S10YXg1AHubieRXhDk9f5ms7U7nXQWDHxUCeQ7a/EGPvt3j8ttblhqTNb/2bp91dXlvFlfseh6o2kWETDqpku4w8hGMEhyD6Cql7pt1IPtCacgYjO0+KrdpP++zHnP41/PtOahX5qkVd/zSin5XTlCS+fN/iZ9U43jaL+7/AIZ/p6HDy6pcXpGn6jqgug+ALXxA93NvPTCTQqke7jjO45qbxBb3Vh4b1SC5S5tgbR08i5jWCUK4+VBtLT3tu7AeWS37uTaX+XONQ39zYJ5d/fXukwyDDJqGr/2vYsDnhktlaVR/wJAKj1u0to/C2oW0MH2ZJLOZ0WKNo7Rlddpe1nmP2mWKTIWSBVAUsr8AZPswqqNamlG0eZdmt+jWifpzPu7e68Gnyt9bf1/Wh/Vb4RRE8KaKkQ+RdOtQvPYRIBXQ57YrmfBSsvg3QkfIddMswwPUEQrmum49T+tf0Sj5Jh1OcUf8BpOPU8/Wl/E0CD320DI/hpO/JNLx6mgA/DNGfQZo7dTRx3J/WgAHc4pM4/ho9snNHHcmgD//0/36+bPak+bI6UmF9DRhfQ0AO+bsBR83tTcL6GjC+hoAd83bFHze1JhQehpPl9DQA75vaj5vakwv900mF9DQA47u2K/FT/gqNYWd58UvhsJIDdy/2RqbSQy2gntvKjnhIaR0cXEKAlvMkiUkAKp3ByB+1Xy/3TX4wf8ABUy1nk8a/Dqf+zLdrWPT9Rlk1K5tbm4jg8meA/ObZ96RoXVtwRsOUBIVjnxOI3bLatnbT9enn28zqwS/fRPz4eWTUrUSO82pW8YAWS51VNO0mNRjAhgukaVkx0LA5HQ1z9xZaS/zRweESOoX7fYMT/wLyv6VsXN3bbI7vU5IpfMGI7vX7yK9aXg/6mykVSi+ina3qKiuXiurUGO7sipHRPCNqIz/AMD3jj33Cv57oOVO1lZX/vv/ANIur/KPmkz6vR76/d+tv1+ZhxtfaaftFuJtNjOSJdH1mK6tcej20UYdl9kQn0Iqlq3kReHtRu1aIR3VrcOstlHIlldP5bBnWW4zMJQCRNBGMPGW+bgkWoLCOKVp7BbOSSPBebR9QtNIuk7gtArPvH+yWOfQ9Kj1d4JNF1PU3e3n3QSpNdjzImkkRSdly0wDR3CjkG3QGZMouMrXq03H2sWu62666J3ba8rteUV8S53fl1/r+v6Z/Vn4OZ5PCOhu3JbTbQk+5hXNdJ82ewrmvBpj/wCEQ0MxrtT+zbTA64HkriujwvpX9FI+TY75vaj5ulM4560uB6GgQ75qPm9qYMehowvoaAHYPtSjd7U0Yx0NGF9KAHfN04pMtTeMd6MD0NAH/9T9+cn+8KM/7Qo/4DRz120AHI6tRk/3hSe22l/4DQAv/AqTJ/vCjHPK0Y/2aADP+1R/wIUYzxto5/u0AGfevyf/AG+Phdr/AMS/i94PbwvNYtqmi+Hby5htrpmjldZLpEeS3dWUCWM4ADnyzvBblVB/WAj/AGa/Kj9szTbXUP2sfhLJfaLc67Bb+HtbZ7OxuhZ3p3bsPbzGa3CyowDD99FwDhs4B+J8SMTWw3DGNxOHnyyhByTaTXu6tNOUV7yXLrKNr3uelk8YyxlOMo8ybtZb/LR/kz87Lr4SfFrw/NKbrwnq1mXzuuEsofE97KPUyorKmf7oLgdPauN1DwX8Q1mMdvoXjhs8g/8ACG26r/3x5Gf0r701/UviXZeJP7M8J6hrvhOwh0HU9dW28Ry6frk0yac0EZg2xCWSLc1wpErX85IUgxgkGvWtH074t6lothqK+LtKRru1hnYSaC0hBkQMRlb+McZ9K/iep4p43B0qeKxUcO+fb4333ap1ddHtUklsfp1Hh+jXbjD2it35V/7dHv2R+XFj8JPjJr00ax+D9X1Hafka80pfDtyn+5csibT+C/UV69H+y547Tw1rXiXx5e2ugWdnpV1I0k0yXmq+XDGziKSZCbdQpGUnVjIvIwQW3fSPxF1D42aBLri2vjq3ij0Pw3N4jk+yaJbxPcLbNJvt0a4kuhEzqnyylZApOSjAYPnv7R2gXd18DPEdr4i8OeKbvWClkZNY1XXLS60mD/TIN7QW9rNbhnZcqjHTYm+Y5Kjr3UOPs3zHE4OjSq0KVOtOMLwTc0m43fLVdKFrST9yMpeV7GNbKcNhozbpznKKb1tbru48z+9pH7feBHD+CPDzq2Q2lWRH0MCV1X41xfw2O/4d+Fmx10XTjn/t3jrtB6ha/wBAD8mYZ/2qXP8AtU3r26UdecUCHZ/2qTP+1R15xR/wH3oAM+9Gf9qjtnFHbgUAGf8Aaoz6NRnvim/h/n8qAP/V/fjK/wB40ZHYmnfNntSfNkdKAEyP7xoyv94075uwFHze1ACceppOP7xp3zdsUfN7UAJlfU0mRn7xp3ze1Hze1ACcepr81P2m2/4zD+FSZz/xTesn/wBGV9ufGX4ixfCn4eX/AI1uGgjW3uNPsxNc7jb276leQWSTzBSrGKFpxJIAykqpG5c5H5ZfHbw7481H43eEfiND48xKuiPHpeo6iLeLTL65nllEtjDIkEsFsGhkjeIeXJLKqthnZWkX8T8aeLcsw2VVuGsTNxr4ulUUPdly6R6ySf3K7S95pRTZ9Hw1hqv1ynioq8YSV9r/ACOy+I//ACPp/wCyf+Kf/SjTa9c8InPhPRT/ANQ60/8ARS18m6vqnxpfxPcXfjXwLeXVsnhbWdEg1PRPs00c0+ovayIz2ou5Z0Rfs5BcbixYHy0FfXXhy1msvD2l2VyuyW3sreKRT/C6RqCPwIr/ADw4mwf1TK8LQdSE2r6wnGa3k94t20a0dmr6pM/bsuq+0xFSfK16prou/ozwD4xn994/X/qmepn9bitf9qIgfAbxOT2Sx/8AS23rA+OMXiOO78Qw6L4b1bXn8ReC7zQrT+zYUdEu52lA86SSSNIkAkViWbJGdoYgivMviknxr+I3gq40rxo9n4CsdS2CLRw1ve6jfTROssVnCkRuWupJXRQHie2Zc5MTgEV9Zw5lyrVcpxkq0IQp1Iyd5LmaXs2+WCvN/DLaNrqzaPNx2I5FiafK25Ra0WnXduyW66n7SfDTH/CuPCvJ/wCQJp3/AKTR123Hqf1r4e+F/j3VPhj4z8A/BXV/Eba+PEds9kmn3zxzajpUllYS3QlWaNVd7RhbPEBcb5C7KUlKqyV9xfNnsK/0m4M4wy7ifKqecZW5eyndLmTi7p2enXyabT6M/CcZhamHqulU3G/ieenWl/E0vze1HzdK+pOYb9SaXj1NL81Hze1ACdupo47k/rRg+1KN3tQA32yaOO5NO+bpxSZagD//1v35wvoaML6Gl59aT/gQoATC+howuehpcn+8KOfWgAAGehpML6GnZ/2qTJ/vCgAwM9KTC5xg07PP3qTP+0KAOP8AH/gfQfiT4L1fwL4kjkbTtatXtpTExjmiJ5SWJxyksThZI3HKuoI5FfiBF8Bf2gvCtrqehaH4h0vXvsd1c6dq2nXrT6M8ksDkFmig+0abdfaV2zrJdWZkdJFLsSST+9+fevhH45a14f8Ah38YWuPEF5Fpen+MNKhvIri4Pl2x1DTXFrcmWYgRxs8EtkiB2G7ZgZPFfiHj7hcbHhp5nltOM6lGUW4uClzQb5Wv5lZtS91p2iz6jhJ0J45YfEu0ZJ63tZ7p9vLVPc/NNfCXxy8OErD4D8R6Wg6f2Dq9g1rnplbbSbnQUwOoDQj3qC48Q/tBxHy4bL4gxKABhPD7z84/vt4kcn65+lfpfDPDcxJcW8iyxSAMjoQysD0II4IqWv4V/wCIt1nK9fAUW+1pNfdN1PzP1lcL00v3daSXr/lY/Ltz+0JrGIzofxBvyy4KyGfRFznjJ/4SGSM++UK4PIrr/C3wr/aQkuHuNK0S08ITXC7J73Utat1u5Iz2MugWdtfOfaS/bn+Kv0VrgvHXxL8H/D3S7u/8QahCk9tazXSWCOHvLhYULkRQJulfgZJCkKMsxCgmuiHijmWOawWAy+k5S2tGcn8kpKP/AJIyJ8NYWmva4itKy7tW/FN/iVv2KP2f77Q/HHiT4qeLdZXX30qSTRdHaGzSytFvXUHU7qNA0jyyDK2n2ieSScmOdWbaQB+mI29wa8v+CXhW78FfCbwt4c1IBdTh06KfUyBjfqV2DcXrn3kupJGPua9SH+8K/wBNuG8qlluV0MFUac4xSk0lFOVvedopJXd3oj8LxtdVq86kVZN6dbLotfIaMeh96OPQ04f71HP97rXtnKJgYpPl9DTv+BUc9N1ACcYOBntSfLjoadk+tAz/AHqAG8Y70YB7GnA/7VH/AAKgD//X/fr8KO44pMj1NGR6mgA+i0eny0cetJwO5oAd3zijnpikyvqaTK+poAdznpS8+lN+XPU0ZGepoAUj2r5e/aS09Y7rwR4jMYZU1S70W5ZgCi2mp2kkpDZ7PdWlsnuWFfUGR6mvEf2jbP7R8F/FGpRxmebQLZPEUMIIVpZNDlTUBEGPCmX7P5efRjXy3G+SvN+H8blkVeVWnOK/xOL5X8pWZ35Vivq2MpV3tGSfyvr+B8bS/B/4bNK9xZaHDpU0pLPLo8kulSOx6sz2TwMWPqTmq8vwh8Nyfd1XxVGPRfFWtf1vTTJvjN4G0pVHjGe48JS52suv272MKvgkqt2wNnKQATmKdxgHmtKL4u/CidDJD408PSKOpXVbUgflJX+UDfFEEpXrW6P32n6PVNea0P6ISy+WnuX+VzJPwV8DzcahJr2pL3j1DxHq93EfrHNePGfxWjUfhz4M0jSbXwh4T0HTtKXxXq+laNdrZWscDXFtfXkUd2ZGRQ0hFqZmJYkkA066+OvwatZVtx400S6uJG2pb2V7FeXDtkDCw25kkY5IGApOSB3FdP8AC3xHb/EP48eD9Hg0rVbOw0a01bxPHe6javYrdSWkSaaIkt5wlyAp1QSbpIo1yi7C3O37/wAMsl4izbirLsJmHtfYupGTU3JRapvna96yekXorvr0PHz7FYHDZfWqUeXm5WtLX106bbn6PY56Un0Wg4xjJ9KbkdMmv9ST8AF/Cjrk7aBj16UcdCTQAe+KP+A0cdzRkf3jQAo6dKP+A8UnGOTSZBHU0AOH0pv/AAH/AD+VKMHuaMjuxoA//9D9++fak+bjOKQ46YpeM9OaAD5vajB9qaQOODRxnoaAHfNmj5vbNJxnoaOPQ8UAL83tS8+1NwM9KOM9DkUAL82e1eW/HNXb4KfEBVG4t4X1kAAckmzlxXqOAexqG5trW8t5bS7hSaCZGjlikUMjo4IZWU8EMDgg9RSaurDR+PX7Wn/JLJPrqX/pm1KvpCTTtPusPc2sMrYHLxqx/Mg18k/8FD9Fm+HGi2PhP4ceJF1S+1IzXDeEtSj+0XVvY3dvdWjXNvemWJ/KTzHURzec5crtYIu0/ONh+358XIYhb6l8IJbi4AAMkF3NBET64a3l4/4HX+evEX0c+NKOW4XA4CEK0qcqt3GcY6SceV++4dnda2P2XAca5XKvUrVm48yjum9Ve+1z6v8Ai5FFB8YfhxHCixqIrvCqAo/5CuidhX1d8L/+TjNEx/0JfiP/ANOGiV+L3jT9pr4o+LPEujeMvEGn+H/AyaDFKtsl9M97NL5txa3OREksZYh7RAB8pwSMHII/fb9mzwTJpvgDRPHPiq2u28Za7pcMmpT37RtJCJQrtBbpCFit7diquI1UOQF84tIuR+oeFfgrxFlOb5VmuackFhoVVKPNzSbn7RJLlvHaabd/I8HP+KcFXw2Jw2Hu/aONnaysuXvr0Po75s+tHze1Jx1xScdwa/rs/Nx3zUfN0pgx6fWjj0NAD/mo+buBTcDHek+X0NADgG9qX5vam8Y4yaOPQmgB3zUmW/zmmjGOhowPQ0Af/9H9+ufWk/4EKX8KO44oATJ/vCjn1o+i0eny0ALn/apMn+8KXvnFHPTFABnn71Jn/aFLznpS8+lADc+9GefvClI9qOfSgD8Zv+CsAGsW/hPRbia016ysy1zL4csEUa7byzCUJqHmiORhbFY2iEe+INIM4mx+6/DZ9M0Tzfs8Vh41Hb7OVTI9gdn/ALLX7g/8FbLKV4vA99q8FtJpC/aVgOkCMeKFugCZGBdS7aciFNwjZVExUyA5jx+Hk3iPQ4m8keLfGCoMA27KN49ubpR7dKcRno/g3SDoUratZ+HovDUaqQ+s+JLgyzKCOfLgxCAx9flGOpPQ/wBWX7OFo1h8BPAFo1pe6c0fh6w3WuoyNLcxOYVLB2cK2NxJVSqbVwoRANg/lD8HaVDcXL6to3h28vHVCx1jxXMFt4VAyWWNVO76gkj+8Bmv6uf2a3sX+APw/OmxX8VqPD9isa6mHFyAsQHO8KShx+7OApj2lRtxSe4HtufQ0D/eFL35FJ9FoEA/3qOf73Wk/Cjrk7aAF/4FRz03Unvij/gNAC5PrQM/3qB06Uf8B4oAAf8Aao/4FQPpTf8AgP8An8qAP//S/fnI9TRkepp3PtSfNxnFACcetJwO5p3ze1GD7UAJlfU0mV9TTvmzR83tmgBPlz1NGRnqaX5val59qAG5HqaMjPU0vzZ7UvPtQB4l8dvgH8PP2h/Bb+DPHsE6iNzPYajZSeRf6dc4x5tvMAdpI4ZSCjjhlPGPyq13/gkl8RRdu3hr473v2ZmOyO902YSRqegMkd8dxHrtWv3C5pOfagD8ofgZ/wAEsvCPgLxhYeNPjD44v/iVNpcguLXS7q2NtpguEOUeeOSe5acIfmCkopIG4MOD+rg2jjPSnfN7UvPtQA04xjJ9KbkdMmn/ADZ9aPm9qAGjHr0o46EmnfNR83SgBvHc0ZH94075qPm7gUAN4xyaTII6mnAN7Uvze1ADRg9zRkd2NO+aky3+c0Af/9P9+Tjpil4z05p1Ieo+tADCBxwaOM9DTvT6n+tKeo+tADeM9DRx6Hin03+L/PtQAmBnpRxnocin03+L/PtQAmAexo+UnpT6TuaAG8dcGjg9van00dT/AJ7mgBMD0NGQTnBp9NHU/wCe5oATjrik47g089DTD3/H+tACDHp9aOPQ0o/ipfX6/wBaAEwMd6T5fQ0q/d/Ggdvw/pQAcY4yaOPQmhfu/jQO34f0oAQYx0NGB6GlX7v405en+fSgD//Z",
   "analogo": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAvKADAAQAAAABAAAAyAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAyAC8AwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMAAgICAgICAwICAwQDAwMEBQQEBAQFBwUFBQUFBwgHBwcHBwcICAgICAgICAoKCgoKCgsLCwsLDQ0NDQ0NDQ0NDf/bAEMBAgICAwMDBgMDBg0JBwkNDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDf/dAAQADP/aAAwDAQACEQMRAD8A/fnA9R+lJgeo/Snfh1pM+gzQAYHqP0pMD1H6U78KTp/DQAYHcj9KTA9R+lL/AMBpf+A0ANwPUfpRgdsfpSnrjFL+FADcD1H6UYHqP0p2faj8KAEwPUfpSYHqP0rL1XX9D0KLz9c1C00+PqHup0gXj3cgVwc/xw+Cto+y58f+FoWz0fWrJTn6GagD1DA9R+lGB2x+lcJpfxT+GGtyCLRvF2g37sRhbXU7aYn0wEkJNd2rKwDJgg9COQaADA9RS4HqPypfwpPbFABgeo/IUmB6j8qXp/DQARnigBMD1H5UYHqPypfbbRg4xigBMD1FGB6j8qXk9s0DntQAYHqPyFJgeo/IUvttoGRwB+tAH//Q/fngdSaOPU0vPtR83tQAnHqaXj1NLz7Uc57UAJkZ60ceppfm9qT5vagA49TRx6ml+b2pPm9qAON+Ini6HwB4A8TeO5oGu4/Dmj3+rtbhthlWxgecoGw20sExnBx6Gvy28M69rfx68Oal8Uvi18ZbyXQLWe5E/h/whqTeH9F0yCF2UR3c1pIL+Z2RRJ+9uFGGwoZcMf0S/aTz/wAM6/FP/sSvEP8A6b56/NDxV8C/hd4t1K51u+0f7Dq12MT6jpNxNpd3NyGzLLaSRGbkA/vd44HFAHo+lfD79kDSrAeJ4dO8D3Vu/P8Aa+pTWeou3ub28eZ2PqTITWXqnj34J6d9g/4QfwDa+K7G9u4rX7do+nWEVgWlBK+RcXBgiuiQpwYGeMYIaRDgHy2X4JalD4jg8W6V4811NVt7ea1jm1C20vUGENw0TupkksVnYloUwzSswwQCAzZy4vg58SLXRtE8P2fxFRbPw99k+wiXQ4ndRZR+XFuZblA2F68c0AfRVvH+yv43Y6bqGj+DpL9gPN0vWdNs7bUY85x5lpdxJOucHBKYbGVJHNYVr8LfgCdc/wCEc+FPii58EeI9ryJF4H8RS6fLGEGW3WMMz2bAZztlt2BAPGAa8U1f4J+NPEy6vF4l+IdzPDr2mRaRqEdro9jGJbSE3JVR563IRv8ASpfmUBuRgggGtp/gF4Z1SG1tvGOt+IPEttZhxBaXeofYrNPNG1wLXTI7KAqy8FWQgjg5FAH1Z+yx+0B4q8QfFXxH8APGPiyx+INxoFlcX1n4is4I7a58u0ezjlt79bf/AEZp1a9VA0QTmKTeNxKp+gI9ya/N39m7wz4e8I/HXQNC8K6ZaaRp8HgzxP5drZQpBCpN/oGTtQKNx7nqT1r9JMN14oAb8vqc0uRyMn9aBupcN7UAJlexNJxjGTmlw3tSjd7UAN49/wBaM+pOad83bFGD7UAJ8vqaAV7n+dHzc0uD3x+VAH//0f3549KOP7tLn3oz/tUAJgf3TRgf3aU8d6M/7VABgelJgf3TS/8AAqM/7VACYH92lwB2oz/tUZHrQB4p+0nj/hnb4p8Ef8UV4h/9N89fF5619pftJc/s6/FIZ6+CvEP/AKb56+LT1P1oASiiigAo5oooA7P4If8AJxWi/wDYmeJv/S/Qa/QfAPY1+fHwQ/5OK0X/ALEzxP8A+l+g1+hHfqKAEGOuDzRhfQ0uf9qgH3oATA6YNAC9cGlz/tUfiKAEwOpBowOpBpR9RRn0IoAQYHY80mB6GnZ/2qTJ7MKAP//S/frn0o/AU3K/3jRkdiaAHc+lHPpTcj+8aMr/AHjQA7nPSjn0pOPU0nH940AO59BRznOBSZX1NJkZ+8aAPGP2kuf2d/ilkf8AMl+If/TfPXxa3U/WvtH9pHH/AAzv8UsEn/ii/EP/AKb56+Lj1P1oATpRS0lABR2oooA7P4If8nFaL/2Jnib/ANL9Br9CM9sV+e/wR/5OK0X/ALEzxP8A+l+g1+hHHqf1oAOpzij/AIDScep5+tL+JoAPfbQMj+Gk78k0vHqaAD8M0Z9Bmjt1NHHcn9aAAdzikzj+Gj2yc0cdyaAP/9P9+vmz2pPmyOlJhfQ0YX0NADvm7AUfN7U3C+howvoaAHfN2xR83tSYUHoaT5fQ0AO+b2o+b2pML/dNJhfQ0AeMftJbv+Gdvil0/wCRK8Q5/wDBfPXxaetfbn7QVsLz4C/Em0CnM/hDXo/++7Ccf1r82LTxh4m0mGOPxboF1cKFB/tTRI/tlrMCOG+zKxvYnbqY1ilVeglfrQB6VRmvP/8Ahavw9i41HXLfSW/556vv0uT/AL93iwuPyp4+K3wub7vjLw+fpqtqf/alAHe0Zrz5vi18K0by/wDhMtAZ+yJqls7n6KshY/lTD8TNFuf3egWGsa5IfuCx024WF/8AdurhYbP85xQB7v8ABD/k4nRQP+hN8Tf+l+g1+hPzZ7CvzQ/Zsl8Wah+0ZZan4itYNMtv+EK8Qpaaekn2i4j3ahohaS4mX91vYAARx71TaT5j7sJ+luF9KAHfN7UfN0pnHPWlwPQ0AO+aj5vamDHoaML6GgB2D7Uo3e1NGMdDRhfSgB3zdOKTLU3jHejA9DQB/9T9+cn+8KM/7Qo/4DRz120AHI6tRk/3hSe22l/4DQAv/AqTJ/vCjHPK0Y/2aADP+1R/wIUYzxto5/u0AcD8VrX7d8LvGNkSD9o0DU4sf79rIv8AWvzVttfsNI8CQ+J9TZks7TSUvp2RGdhFHCJHIVQWYhQeAMmv1O8TWv27w5qtkVz59jcRcf7cbD+tfjfqbPqH7Nl3InLXPgaVl+smmkj9TQB6DL460Sxb/ibx6no+Orappd9YRgjriW4gjjYe6sR71mzfFH4Vx4a68XeH0J6ebqdqp/8AHpAa+yIZVnhjuFIxIocY9GGal3H+9QB8cRfE34fzKRpuvWWoE4/d6dJ9tc+mEtvMY/gKv6d4x03UtVg0dLPVrSe6gnuIDqOlXunJNHbNEspQ3cMJbaZo+QMHdwTX1wST1NfPfxOIb4oeFAOfK0DxAT/20utJx/6AaAO5/Z/iMvx4ln7WnhG8T6far6zP6+R+lffP418Lfs1xCb4yeKpcZNr4Z0kfT7TeXuPz8j9K+6R6haADP+1S5/2qb17dKOvOKAHZ/wBqkz/tUdecUf8AAfegAz70Z/2qO2cUduBQAZ/2qM+jUZ74pv4f5/KgD//V/fjK/wB40ZHYmnfNntSfNkdKAEyP7xoyv94075uwFHze1ACceppOP7xp3zdsUfN7UAJlfU0mRn7xp3ze1Hze1ADCEYFWJIIII9jX5I/HH4VfEP4B+C5tG0u0svGfgq6SLw/pAju47HXrZbwfZba2khuAtrebAwUzrPCxVctHkMx/XE7u2K/AbU/jroeuaLNq3xxtLjRPiDc6tb6vpniLWoJpNEvrKG9S8isrC/iSePTYhaoIWhYRqrgSSl3Z2IB9jeGvjXpNl4d0uz1fQvEUN9b2dvFcxjS5ZQsyRqHAePcjDcDyrEGtn/hevhn/AKAviP8A8FFx/wDE18wR/tNfBmKOFtZ8RWWlvMQEDXVtewnPT/SdPlu7UZ9DKD7Cuij+PnwPljEq+P8Aw0FI/i1W1U/k0gP6UAe//wDC8/DH/QH8R/8AgnuP/ia8H8a/ELxN4l+K/h1PBPhC9u/7XtP7CsrjWbiLRbJL+d5LlkmaYyXAUx24IMdvJk/KPmIBwr39pb4C2BVZPHGkzM5CqlpN9rdiegCwLIT+Vcfrnx4+CGsa3on/AAl2o6ZcaHpt1NeyWDtBrF5qjPaz2sVvFpdkbucBnuAzG6jhA2gBW3EqAfqx8B/g5rHw2TV/EXjHU7fUfE/iGOzhvF0+N49Ps7WwM7W9tb+Z+8k2vczM8z7WkZuERVVB9Ccep/Wvg79iL4h+LvGR8e6PqelalonhfS7zTLnwpp2tuZNStNPvrZhJFMGd5IkFxA7xwOxMKvsU+WIwv3l82ewoAb+J56daX8TS/N7UfN0oAb9SaXj1NL81Hze1ACdupo47k/rRg+1KN3tQA32yaOO5NO+bpxSZagD/1v35wvoaML6Gl59aT/gQoATC+howuehpcn+8KOfWgAAGehpML6GnZ/2qTJ/vCgAwM9KTC5xg07PP3qTP+0KADA9DX5I+CbWNvCNvp91GskcT3Vs8cgDKVinkj2kEYP3cYxX63Z96/KTw5D9lj1ey72fiLxDakehg1W7jx+G2gD0r4BRQQ/CHw5aQRxxrZwS2e1FCgfZJpIOg9PLr2HaPQflXjnwFb/i3Qi/54694miHsset3yr/46BXsnHpQAm0egr5c1i0s5vjB4p1VIIhPBYaTp5lCKH+RZ7gjdjOD9pGa+pPwr5bV/N+IPxBc87NctIlP+yujaaf/AEJmoA+iv2Uot2vfEe964vdKtf8Av1Z+bj/yPX2ONvcGvkb9kpGaH4kXHQHxZDCrf3gmiaWx/JnI+ue9fXY/3hQA0Y9D70cehpw/3qOf73WgBMDFJ8voad/wKjnpuoATjBwM9qT5cdDTsn1oGf71ADeMd6MA9jTgf9qj/gVAH//X/fr8KO44pMj1NGR6mgA+i0eny0cetJwO5oAd3zijnpikyvqaTK+poAdznpS8+lN+XPU0ZGepoAUj2r82P2v9E+HWla5Ff+Bdfv8Awz8SdV1LSY79NGjN3aS295cR25n1S2eCeyikaEMsM0vkzTFFRXcKFH6TZHqa/EH4k6J8Z4vHnxRPhCXTfEOiax40utQudJvpn0/UrS/06WD7LcWF+Y7mLIS3gBiuIGh2oFxtZwwB6Z4DT4t+AtEk0KHXNB1WN728vvtFxpFxBKXvZnuJAyx3xT77tjaAMdq7T/hMvi//AM/Phv8A8F93/wDJtfOfgTxp+0j4i/tC2Pwyj1GTSL4afeu2q2GmGGUwQ3IAAurwTkxTxtvURKd3RSCg9cSX41lAZPhlcK3cLrWmkfn5o/lQB2H/AAmXxfxxdeGs++n3f/ybXgd7oXimx8dafq3xH8bXlt4d8WeJd2s2nhPR5IbhYf7PkwElU6he4H2SIO0OxlTe2VA3L2+oXX7Q0Y/4lXwoWfJxmfxHYRFR6hVDhiPTcuf7wrxPRPFP7SfinXo9Y07wnpemzaFf39tZ3OtXkUdha3tsbjT7mRrSxlvLi8kizNHGxubeE53eW3yOAD9svhjpHw+0XwPpdr8LVsz4ZkiNxZTWM32mK4ExLtMZyztNJKzFnkdmd2JLEkk13v0Wvjb9h7R9Y0L4Ta3p+v6mdXvD4t1mea7EXkRyz3LRzXLpCGdYle5eV9inaCxwB0r7HyOmTQAv4UdcnbQMevSjjoSaAD3xR/wGjjuaMj+8aAFHTpR/wHik4xyaTII6mgBw+lN/4D/n8qUYPc0ZHdjQB//Q/fvn2pPm4zikOOmKXjPTmgA+b2owfamkDjg0cZ6GgB3zZo+b2zScZ6Gjj0PFAC/N7UvPtTcDPSjjPQ5FAC/NntX5ia1F9n+JvxGtjxs8USt/3+tLSb/2pmv06wD2NfmT8WJoPAXxq8Xx+LZBpMHi7VbXUdCubs+VbX0a6XY2ssUUzfuzcJPbSloMiUIVfbtYGgC18HX8nxV47senmXmm3+M/89rJLfP/AJK4/Cvfa+evhcSvxS8Xx9Fk0Dw5KPdvtOsKx/IJX0NzQA2vkLwC/n+Fre//AOghPeX+fX7bcy3Gfx8yvr15FiQyucKgLMfQDk18MeEPFfh3wf8ACfwdd+KtSt9N83Q9LRBPIBJPO1vGNkUYy8sjOcKkYZmJwATQB99/slJ/xay8uAOJ/E/iE89/L1CeH/2nX0783tXgf7M3h7WPDfwd0221+yn0+9vtQ1vVza3KmOeKDVdUu723WVDzHKIJo96H5kbKsMg171x3BoAd81HzdKYMen1o49DQA/5qPm7gU3Ax3pPl9DQA4Bval+b2pvGOMmjj0JoAd81Jlv8AOaaMY6GjA9DQB//R/frn1pP+BCl/CjuOKAEyf7wo59aPotHp8tAC5/2qTJ/vCl75xRz0xQAZ5+9SZ/2hS856UvPpQA3PvX5+/ti/E/w1rsMvwQi0+HV5bDUvC2p+I3u2RbWxs77U0S1QxurG4kneIhlAEaRnLuGZI3/QMj2r8k/2m/g74W+Inx/8V3OpTX+l6qmk6QIdS0q5NtcrbXMU0UkLgh4Z4ZPJw8U0ciMOMcmgDB0r4N/Dzw9ey3/hbT7nw5LOixyjQdSvtHjdELFVaOxuIEKqWYgFcAk46mujbwfZuctrHijj08Va4P5X1fOfgn4BfFDQ/iPpvhTTPjPr8GjX+najexxS2FpcmJ7GSzRIEWcPAiMlw7YjhTbs6HPy/WkXwR8cxx7H+Jd9Kf776Tp4b/xyNR+lAHIXXgbS761eyu9U8TSwSAq6N4p1whlPBDf6dyD3B4NcVo3gzwF8G/Hfw/8AEvgHwbpj6nZ67I+xGitrye2h0u/Myi8nDN+7iBZRI6xlgod41O9b/wAYPgx8UtH+H+v+ItH+MGr2lzplhcXUMSaRpYSWWNCUjLCBZVDthchwRnPNeT6N+yxHcTPcfEzx14g8YmeMQXUDyCwt7uDIYw3DRFrqWAsA3ktcmLIHynAwAft54B8deHPib4K0T4geELo3ejeILKG/spSuxmhnXcoZT0YdGHYgiuvH+8K8A/ZXs4LL9njwFDbRCKFtIimjRRgKsxaQAD0Abivf/otAAP8Aeo5/vdaT8KOuTtoAX/gVHPTdSe+KP+A0ALk+tAz/AHqB06Uf8B4oAAf9qj/gVA+lN/4D/n8qAP/S/fnI9TRkepp3PtSfNxnFACcetJwO5p3ze1GD7UAJlfU0mV9TTvmzR83tmgBPlz1NGRnqaX5val59qAG5Hqa/O/47vDpH7Q12t+wtl1/wzpH9nNKQgvJ7K51EXUcJP+seBJIGkUZKrIhIwc1+iPzZ7V5v8VfhJ4B+NPhKbwV8R9Jg1bTZJEuIhIo822uYuY54H5McqdmHUEqwZSQQD89LV/svxQ8DXPT7Tc6lp3182wnusf8Akp+lfUnPpXimofsSeMdBv7HUPAXjQzvpFwbnTXv5bq2uYHaGWAlstfaYcxTOmI9LhUKxwM8i/H8N/wBua2Z4kHwsvYFKrFJcX+sR3G3nLSmKwEbN04SOMHnp3AH/ABwfHw11C3I/4/bzSrD/AMDtQtrb/wBq15xrOt6N4d02bWNfvYNPsbcZluLhxHGo7cnuegA5J4GTXYX/AOzh+1H8RrKPTPih4g8J6ZaLcW9ybbw3cX32dpLWVJ4WfzbWG8LRyorDyryEEjkdh6r8M/2Lfh/4S8TWHjzxzMvjLxHpMvn6ZJeRzPZ6fMOBLAl7c3100o7NNdSqhAaJI25IB7V+z9pWoaH8Cfh9pGsW0tlf2vhnSY7q2nUpLDOLWPzI3U4KurZDA8ggivXcjpk0/wCbPrR83tQA0Y9elHHQk075qPm6UAN47mjI/vGnfNR83cCgBvGOTSZBHU04Bval+b2oAaMHuaMjuxp3zUmW/wA5oA//0/35OOmKXjPTmnUh6j60AMIHHBo4z0NO9Pqf60p6j60AN4z0NHHoeKfTf4v8+1ACYGelHGehyKfTf4v8+1ACYB7Gj5SelPpO5oAbx1waOD29qfTR1P8AnuaAEwPQ0ZBOcGn00dT/AJ7mgBOOuKTjuDTz0NMPf8f60AIMen1o49DSj+Kl9fr/AFoATAx3pPl9DSr938aB2/D+lABxjjJo49CaF+7+NA7fh/SgBBjHQ0YHoaVfu/jTl6f59KAP/9k=",
@@ -1819,6 +1843,7 @@ async function saveOrderToSupabase(fileLink, fileName, token) {
       materiale: prod.n || null,
       workflow: "Impronta/Campione fisico",
       note: [
+        state.befreeMarca ? "Impianto: " + state.befreeMarca + (state.befreeConnessione ? " · " + state.befreeConnessione : "") + (state.befreeDiametro ? " · Ø " + state.befreeDiametro + " mm" : "") : null,
         cliente.note || null,
         cliente.nomePaziente ? "Paziente: " + cliente.nomePaziente : null,
         state.befreeLibreria ? "Libreria: " + (state.befreeLibreria === "no" ? "No" : state.befreeLibreria) : null,
@@ -2509,7 +2534,10 @@ const state = {
   befreeAnalogo: false,  // opzione analogo personalizzato +55€ IVA 22%
   befreeLibreria: null,  // true | false
   befreeAngolo: "",      // grado inclinazione (mua_incl, titanio_jt)
-  befreeHG: ""           // altezza gengivale mm (mua_incl, titanio_jt)
+  befreeHG: "",          // altezza transmucosa mm (menù a tendina, valori standard)
+  befreeMarca: "",       // marca/sistema implantare
+  befreeConnessione: "", // Interna | Esterna | MUA | Altro
+  befreeDiametro: ""     // diametro impianto (mm)
 };
 
 // Dati clinici — step aggiuntivo
@@ -2545,6 +2573,7 @@ function buildPhases() {
   const p=["lav"];
   if(lavObj()&&lavObj().befree) {
     p.push("befree_prod");
+    p.push("befree_impianto");
     p.push("befree_info");
     p.push("cliente");
     return p;
@@ -3681,6 +3710,62 @@ function renderStep() {
     html += navRow(true,"Avanti &rarr;", state.befreeProdIdx===null||state.befreeProdIdx===undefined);
   }
 
+  else if(phase==="befree_impianto") {
+    const prod = BEFREE_PRODOTTI[state.befreeProdIdx] || {};
+    html += stepHead(stepNum,total,"Su quale impianto?","Identificazione sistema implantare");
+
+    html += `<div style="background:var(--light);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:8px;padding:12px 16px;margin-bottom:18px">
+      <div style="font-size:12px;font-weight:800;color:var(--dark);margin-bottom:3px">Serve per produrre il componente compatibile giusto</div>
+      <div style="font-size:11px;color:var(--gray);line-height:1.6">Indica marca, connessione e diametro dell'impianto su cui andrà il ${prod.n||"componente"}. Se non conosci il sistema, il servizio <strong>Implant Detector</strong> lo identifica dal campione fisico.</div>
+    </div>`;
+
+    const selStyle = "font-family:var(--font);font-size:13px;color:var(--dark);background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box;transition:border-color .15s,box-shadow .15s";
+    const focusOn  = "this.style.borderColor='var(--blue)';this.style.boxShadow='0 0 0 3px rgba(0,119,204,.1)'";
+    const focusOff = "this.style.borderColor='';this.style.boxShadow=''";
+
+    // ── Marca / sistema implantare ───────────────────────────────
+    html += `<div class="form-field required-field" style="margin-bottom:16px">
+      <label style="font-size:10px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.07em">
+        Marca / sistema implantare <span style="color:#DC2626;font-size:13px;font-weight:900">*</span>
+      </label>
+      <select onchange="state.befreeMarca=this.value; refreshBefreeImpiantoNav()"
+        style="${selStyle};appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23666%22%3E%3Cpath d=%22M7 10l5 5 5-5z%22/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 8px center;background-size:20px;padding-right:32px"
+        onfocus="${focusOn}" onblur="${focusOff}">
+        <option value="">Seleziona la marca…</option>
+        ${BEFREE_MARCHE.map(m=>`<option value="${escAttr(m)}" ${state.befreeMarca===m?"selected":""}>${escAttr(m)}</option>`).join("")}
+      </select>
+      <span style="font-size:10px;color:var(--gray)">Digita l'iniziale per cercare rapidamente nell'elenco</span>
+    </div>`;
+
+    // ── Connessione ──────────────────────────────────────────────
+    html += `<div style="margin-bottom:16px">
+      <label style="font-size:10px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:8px">
+        Connessione <span style="color:#DC2626;font-size:13px;font-weight:900">*</span>
+      </label>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        ${BEFREE_CONNESSIONI.map(c=>{
+          const sel = state.befreeConnessione===c ? "selected" : "";
+          return `<div class="opt-card ${sel}" onclick="state.befreeConnessione='${c}';render()" style="padding:12px;text-align:center">
+            <div class="opt-label" style="font-size:12px">${c}</div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`;
+
+    // ── Diametro ─────────────────────────────────────────────────
+    html += `<div class="form-field required-field" style="max-width:220px">
+      <label style="font-size:10px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.07em">
+        Diametro impianto <span style="color:#DC2626;font-size:13px;font-weight:900">*</span>
+      </label>
+      <input type="text" inputmode="decimal" placeholder="es. 4.1" value="${escAttr(state.befreeDiametro)}"
+        oninput="state.befreeDiametro=this.value; refreshBefreeImpiantoNav()"
+        style="${selStyle}" onfocus="${focusOn}" onblur="${focusOff}">
+      <span style="font-size:10px;color:var(--gray)">mm — diametro della piattaforma implantare</span>
+    </div>`;
+
+    html += navRow(true,"Avanti &rarr;", !befreeImpiantoValid());
+  }
+
   else if(phase==="befree_info") {
     const prod = BEFREE_PRODOTTI[state.befreeProdIdx] || {};
     const isImpronta = ["analogo","transfer","cappetta"].includes(prod.id);
@@ -3831,15 +3916,16 @@ function renderStep() {
         <div style="max-width:200px">
           <div class="form-field required-field">
             <label style="font-size:10px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.07em">
-              Altezza mucosa (HG) <span style="color:#DC2626;font-size:13px;font-weight:900">*</span>
+              Altezza transmucosa (HG) <span style="color:#DC2626;font-size:13px;font-weight:900">*</span>
             </label>
-            <input type="number" min="1" max="20" step="0.5" placeholder="es. 2"
-              value="${state.befreeHG}"
-              oninput="state.befreeHG=this.value; refreshBefreeNav()"
-              style="font-family:var(--font);font-size:13px;color:var(--dark);background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;outline:none;width:100%;transition:border-color .15s,box-shadow .15s"
+            <select onchange="state.befreeHG=this.value; refreshBefreeNav()"
+              style="font-family:var(--font);font-size:13px;color:var(--dark);background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box;transition:border-color .15s,box-shadow .15s;appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23666%22%3E%3Cpath d=%22M7 10l5 5 5-5z%22/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 8px center;background-size:20px;padding-right:32px"
               onfocus="this.style.borderColor='var(--blue)';this.style.boxShadow='0 0 0 3px rgba(0,119,204,.1)'"
               onblur="this.style.borderColor='';this.style.boxShadow=''">
-            <span style="font-size:10px;color:var(--gray)">mm — minimo 1 mm</span>
+              <option value="">Seleziona…</option>
+              ${BEFREE_HG_VALUES.map(v=>`<option value="${v}" ${state.befreeHG===v?"selected":""}>${v} mm</option>`).join("")}
+            </select>
+            <span style="font-size:10px;color:var(--gray)">mm — altezza transmucosa standard</span>
           </div>
         </div>
       </div>`;
@@ -3867,15 +3953,16 @@ function renderStep() {
           </div>
           <div class="form-field required-field">
             <label style="font-size:10px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.07em">
-              Altezza gengivale (HG) <span style="color:#DC2626;font-size:13px;font-weight:900">*</span>
+              Altezza transmucosa (HG) <span style="color:#DC2626;font-size:13px;font-weight:900">*</span>
             </label>
-            <input type="number" min="0" max="20" step="0.5" placeholder="es. 3"
-              value="${state.befreeHG}"
-              oninput="state.befreeHG=this.value; refreshBefreeNav()"
-              style="font-family:var(--font);font-size:13px;color:var(--dark);background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;outline:none;width:100%;transition:border-color .15s,box-shadow .15s"
+            <select onchange="state.befreeHG=this.value; refreshBefreeNav()"
+              style="font-family:var(--font);font-size:13px;color:var(--dark);background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box;transition:border-color .15s,box-shadow .15s;appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23666%22%3E%3Cpath d=%22M7 10l5 5 5-5z%22/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 8px center;background-size:20px;padding-right:32px"
               onfocus="this.style.borderColor='var(--blue)';this.style.boxShadow='0 0 0 3px rgba(0,119,204,.1)'"
               onblur="this.style.borderColor='';this.style.boxShadow=''">
-            <span style="font-size:10px;color:var(--gray)">mm</span>
+              <option value="">Seleziona…</option>
+              ${BEFREE_HG_VALUES.map(v=>`<option value="${v}" ${state.befreeHG===v?"selected":""}>${v} mm</option>`).join("")}
+            </select>
+            <span style="font-size:10px;color:var(--gray)">mm — altezza transmucosa standard</span>
           </div>
         </div>
       </div>`;
@@ -4103,6 +4190,9 @@ function renderStep() {
         <div class="summary-row"><span class="summary-key">Quantità</span><span class="summary-val">${qty} pz</span></div>
         <div class="summary-row"><span class="summary-key">Prezzo unitario</span><span class="summary-val">${prod.prezzo},00 € + IVA ${prod.iva}%</span></div>
         ${state.befreeAnalogo ? `<div class="summary-row"><span class="summary-key">+ Analogo (× ${qty})</span><span class="summary-val">${fmt(analogoPrice)} + IVA 22%</span></div>` : ""}
+        ${state.befreeMarca ? `<div class="summary-row"><span class="summary-key">Impianto</span><span class="summary-val">${escAttr(state.befreeMarca)}</span></div>` : ""}
+        ${state.befreeConnessione ? `<div class="summary-row"><span class="summary-key">Connessione</span><span class="summary-val">${escAttr(state.befreeConnessione)}</span></div>` : ""}
+        ${state.befreeDiametro ? `<div class="summary-row"><span class="summary-key">Diametro</span><span class="summary-val">Ø ${escAttr(state.befreeDiametro)} mm</span></div>` : ""}
         ${state.befreeLibreria && state.befreeLibreria!=="no" ? `<div class="summary-row"><span class="summary-key">Libreria</span><span class="summary-val">${state.befreeLibreria}</span></div>` : ""}
         ${state.befreeAngolo ? `<div class="summary-row"><span class="summary-key">Angolo</span><span class="summary-val">${state.befreeAngolo}°</span></div>` : ""}
         ${state.befreeHG ? `<div class="summary-row"><span class="summary-key">Altezza HG</span><span class="summary-val">${state.befreeHG} mm</span></div>` : ""}
@@ -4306,15 +4396,24 @@ function refreshNavBtn() {
 // #11 BeFree: HG e grado di inclinazione sono obbligatori (marcati *) ma non erano validati.
 function befreeInfoValid() {
   const prod = BEFREE_PRODOTTI[state.befreeProdIdx] || {};
-  const hg = parseFloat(state.befreeHG), ang = parseFloat(state.befreeAngolo);
-  if(prod.id === "tibase") return isFinite(hg) && hg >= 1 && hg <= 20;
+  const ang = parseFloat(state.befreeAngolo);
+  const hgSet = state.befreeHG !== "" && state.befreeHG != null;   // HG ora è un menù: basta una scelta
+  if(prod.id === "tibase") return hgSet;
   if(prod.id === "mua_incl" || prod.id === "titanio_jt")
-    return isFinite(ang) && ang >= 0 && ang <= 45 && isFinite(hg) && hg >= 0 && hg <= 20;
+    return isFinite(ang) && ang >= 0 && ang <= 45 && hgSet;
   return true;   // altri prodotti BeFree: nessuna specifica obbligatoria
 }
 function refreshBefreeNav() {
   const btn = document.querySelector('.nav-row .btn-primary');
   if(btn) btn.disabled = !befreeInfoValid();
+}
+// Identificazione impianto #BeFree: marca + connessione + diametro obbligatori
+function befreeImpiantoValid() {
+  return !!(state.befreeMarca && state.befreeConnessione && String(state.befreeDiametro).trim());
+}
+function refreshBefreeImpiantoNav() {
+  const btn = document.querySelector('.nav-row .btn-primary');
+  if(btn) btn.disabled = !befreeImpiantoValid();
 }
 
 function selectBefreeProd(i) { state.befreeProdIdx=i; render(); }
@@ -4324,6 +4423,8 @@ function selectLav(id) {
   state.lavId=id; state.nElIdx=null; state.matIdx=null;
   state.tiBase=null; state.workflow=null;
   state.befreeProdIdx=null; state.befreeQty=1; state.befreeAnalogo=false;
+  state.befreeLibreria=null; state.befreeAngolo=""; state.befreeHG="";
+  state.befreeMarca=""; state.befreeConnessione=""; state.befreeDiametro="";
   uploadedFiles.stl=null; uploadedFiles.infoConstr=null; uploadedFiles.scan=null;
   xmlParsed=null;
   render();
@@ -4946,6 +5047,7 @@ async function doSendEmail() {
         `Prezzo unitario: ${prod.prezzo?prod.prezzo+",00 €":"—"} + IVA ${prod.iva||4}%`,
         state.befreeAnalogo ? `Analogo  : Sì × ${qty} — ${fmt(analogoPrice)} + IVA 22%` : null,
         `TOTALE   : ${fmt(grandTotal)} (IVA esclusa)`,
+        state.befreeMarca ? `Impianto : ${state.befreeMarca}${state.befreeConnessione ? " · "+state.befreeConnessione : ""}${state.befreeDiametro ? " · Ø "+state.befreeDiametro+" mm" : ""}` : null,
         state.befreeLibreria ? `Libreria : ${state.befreeLibreria === "no" ? "No" : state.befreeLibreria}` : null,
         state.befreeAngolo ? `Angolo   : ${state.befreeAngolo}°` : null,
         state.befreeHG ? `HG       : ${state.befreeHG} mm` : null,
@@ -5067,6 +5169,7 @@ async function doSendWhatsapp() {
         `Prezzo unitario: ${prod.prezzo?prod.prezzo+",00 €":"—"} + IVA ${prod.iva||4}%`,
         state.befreeAnalogo ? `Analogo  : Sì × ${qty} — ${fmt(analogoPrice)} + IVA 22%` : null,
         `TOTALE   : ${fmt(grandTotal)} (IVA esclusa)`,
+        state.befreeMarca ? `Impianto : ${state.befreeMarca}${state.befreeConnessione ? " · "+state.befreeConnessione : ""}${state.befreeDiametro ? " · Ø "+state.befreeDiametro+" mm" : ""}` : null,
         state.befreeLibreria ? `Libreria : ${state.befreeLibreria === "no" ? "No" : state.befreeLibreria}` : null,
         state.befreeAngolo ? `Angolo   : ${state.befreeAngolo}°` : null,
         state.befreeHG ? `HG       : ${state.befreeHG} mm` : null,
@@ -5282,10 +5385,13 @@ function printModuloBeFree() {
     <div class="section-title">Dati ordine</div>
     <table>
       ${row("Nome paziente", cliente.nomePaziente||"—")}
+      ${row("Impianto / sistema", escAttr(state.befreeMarca)||"—")}
+      ${row("Connessione", escAttr(state.befreeConnessione)||"—")}
+      ${row("Diametro impianto", state.befreeDiametro ? escAttr(state.befreeDiametro)+" mm" : "—")}
       ${["tibase"].includes(prod.id) ? row("Libreria implantare", state.befreeLibreria && state.befreeLibreria!=="no" ? state.befreeLibreria : "Non richiesta") : ""}
-      ${needsHGOnly ? row("Altezza mucosa (HG)", state.befreeHG ? state.befreeHG+" mm" : "—") : ""}
+      ${needsHGOnly ? row("Altezza transmucosa (HG)", state.befreeHG ? state.befreeHG+" mm" : "—") : ""}
       ${needsAngHG ? row("Grado di inclinazione", state.befreeAngolo ? state.befreeAngolo+"°" : "—") : ""}
-      ${needsAngHG ? row("Altezza gengivale (HG)", state.befreeHG ? state.befreeHG+" mm" : "—") : ""}
+      ${needsAngHG ? row("Altezza transmucosa (HG)", state.befreeHG ? state.befreeHG+" mm" : "—") : ""}
       ${row("Note", cliente.note||"—")}
     </table>
   </div>
@@ -5343,6 +5449,7 @@ function resetApp() {
   lastOrderToken=null;   // nuovo preventivo: azzera il token del tracciamento precedente
   state.befreeProdIdx=null; state.befreeQty=1; state.befreeAnalogo=false;
   state.befreeLibreria=null; state.befreeAngolo=""; state.befreeHG="";
+  state.befreeMarca=""; state.befreeConnessione=""; state.befreeDiametro="";
   uploadedFiles.stl=null; uploadedFiles.infoConstr=null; uploadedFiles.scan=null;
   xmlParsed=null;
   Object.assign(clinico, { denti:[], shade:null, translucenza:null, urgenza:null, marcaImpianto:"", noteClinico:"" });

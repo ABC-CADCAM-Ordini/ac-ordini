@@ -26,12 +26,16 @@ on conflict (id) do update set
   file_size_limit = 26214400,
   allowed_mime_types = array['image/jpeg','image/png','model/stl','application/octet-stream'];
 
--- 1) Insert dalla chiave anon (Configuratore, traccia cliente, portale operatore):
---    SOLO create, e il path DEVE iniziare con <share_token>/ (uuid). Senza questo vincolo,
---    con la chiave anon chiunque potrebbe riempire il bucket di file arbitrari.
+-- 1) Insert dal browser (Configuratore, traccia cliente, portale operatore): SOLO create,
+--    e il path DEVE iniziare con <share_token>/ (uuid). Ruolo `public`: con le chiavi
+--    `sb_publishable_` lo storage non mappa a `anon`/`authenticated` in modo affidabile,
+--    quindi si usa `public` (il regex + bucket pubblico restano la barriera).
+--    IMPORTANTE lato client: l'upload NON deve mandare l'header `x-upsert: true` — con
+--    l'upsert lo storage richiede anche il permesso di UPDATE (che qui non c'è) e risponde
+--    403 "violates row-level security". Path unici (uuid nel nome) → l'upsert non serve.
 drop policy if exists "carica i media dell'ordine (anon)" on storage.objects;
 create policy "carica i media dell'ordine (anon)"
-  on storage.objects for insert to anon
+  on storage.objects for insert to public
   with check (
     bucket_id = 'ordini-media'
     and name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/'

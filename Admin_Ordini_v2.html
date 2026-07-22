@@ -1219,6 +1219,9 @@ function enterApp(nome, ruolo) {
   if (btn) { btn.textContent = "Accedi"; btn.disabled = false; }
   // Sezione admin visibile solo all'admin
   document.getElementById("admin-section").style.display = (ruolo === "admin") ? "block" : "none";
+  // Pulsante "Invia notifica di prova": solo admin
+  const _btnTest = document.getElementById("btn-test-notifica");
+  if (_btnTest) _btnTest.style.display = (ruolo === "admin") ? "" : "none";
   hydrateUiIcons();
   loadOrders();
 }
@@ -4106,6 +4109,35 @@ async function attivaAvvisiUrgenti() {
   }
 }
 
+// ── Invio manuale di una notifica di prova (solo admin) ──────────────────────
+// Chiama l'Edge Function `notifica-test` col token di sessione (nessun segreto qui):
+// la funzione verifica il ruolo admin e fa il broadcast a tutte le iscrizioni attive.
+async function inviaNotificaProva() {
+  const btn = document.getElementById("btn-test-notifica");
+  try {
+    const { data: { session } } = await sbAuth.auth.getSession();
+    if (!session) { showToast("Sessione scaduta, riaccedi", "red"); return; }
+    if (btn) btn.disabled = true;
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/notifica-test`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${session.access_token}`,
+        "apikey": SUPABASE_KEY,
+        "Content-Type": "application/json",
+      },
+      body: "{}",
+    });
+    const out = await r.json().catch(() => ({}));
+    if (!r.ok) { showToast("Test non riuscito: " + (out.error || ("HTTP " + r.status)), "red"); return; }
+    if (!out.subs) { showToast("Nessun dispositivo iscritto: premi «Attiva avvisi» su un telefono, poi riprova", "red"); return; }
+    showToast(`Notifica di prova inviata a ${out.sent}/${out.subs} dispositivi` + (out.failed ? ` (${out.failed} non riusciti)` : ""), out.sent ? "green" : "red");
+  } catch (e) {
+    showToast("Errore invio prova: " + ((e && e.message) || e), "red");
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 async function refreshPushButton() {
   const btn = document.getElementById("btn-avvisi");
   if (!btn) return;
@@ -4154,6 +4186,18 @@ async function initPushForOperator() {
     b.innerHTML = icon("bell") + " Attiva avvisi";
     b.onclick = attivaAvvisiUrgenti;
     actions.insertBefore(b, actions.firstChild);
+    // Pulsante "Invia notifica di prova": manda una push di test a tutti gli iscritti.
+    // Nascosto di default; reso visibile solo all'admin (vedi gating al login).
+    if (!document.getElementById("btn-test-notifica")) {
+      const t = document.createElement("button");
+      t.id = "btn-test-notifica";
+      t.className = "refresh-btn";
+      t.type = "button";
+      t.style.display = "none";
+      t.innerHTML = icon("bell") + " Invia notifica di prova";
+      t.onclick = inviaNotificaProva;
+      actions.insertBefore(t, b.nextSibling);
+    }
   }
   // Fa partire l'init push al primo render della lista dopo il login.
   if (typeof renderOrders === "function" && !renderOrders._urgentiWrapped) {

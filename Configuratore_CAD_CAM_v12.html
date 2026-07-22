@@ -1621,7 +1621,10 @@ const BEFREE_PRODOTTI = [
 ];
 
 // ── Identificazione impianto #BeFree — elenco marche (rif. New Ancorvis), connessioni, altezze transmucose ──
-const BEFREE_MARCHE = [
+// NB: BEFREE_MARCHE e BEFREE_IMPIANTI sono `let`: all'avvio caricaBefreeConfig() li rimpiazza
+// con la versione modificabile salvata su Supabase. Questi valori restano il default di sicurezza
+// (apertura istantanea + se Supabase non risponde il flusso non si rompe mai — dato medico).
+let BEFREE_MARCHE = [
   "3P IMPLAFAVOURITE","AB DENTAL","ACERBONI","ADIN","ADVAN","ADVANCE","ALLMED","ALPHA-BIO","ALPHA-DENT","ANTHOGYR",
   "AON","AVENIR","AXELMED","AZ","B&B","BANP IMPLANT","BEGO","BIAGGINI","BICON","BIO-HORIZONS","BIO-IMPLANT",
   "BIO-MICRON","BIOHELIX","BIOLOGITECH","BIOMAX","BIONER","BIONICA","BIONNOVATION","BIOSERVICE","BIOTEC BTK",
@@ -1652,7 +1655,7 @@ const BEFREE_DIAMETRI_COMUNI = ["3.0","3.25","3.3","3.4","3.5","3.75","3.8","4.0
 //   • d: {da:"3.3", a:"6.0"} → intervallo: il diametro reale si inserisce a mano (campo libero)
 // Le marche NON presenti qui (o modello "Altro…") usano BEFREE_DIAMETRI_COMUNI + inserimento a mano.
 // NB: dato di produzione = responsabilità medica. Non inventare valori intermedi negli intervalli.
-const BEFREE_IMPIANTI = {
+let BEFREE_IMPIANTI = {
   "3P IMPLAFAVOURITE": [{m:"CONO-IN - 500049",d:["3.8","4.5","5.2","6.2"]}],
   "AB DENTAL": [{m:"NARROW SPIRAL IMPLANT - D1-3",d:["3.0","3.3"]}, {m:"SCREW TYPE IMPLANT - D1-375",d:{da:"3.5",a:"6.0"}}],
   "ACERBONI": [{m:"INTERNAL",d:["3.6"]}],
@@ -5892,9 +5895,31 @@ function updatePriceBar() {
     </div>`;
 }
 
+// ── Config #BeFree modificabile: carica la matrice aggiornata da Supabase ──────
+// Fallback totale: qualsiasi errore o forma inattesa → restano i default "cotti" nel codice
+// (BEFREE_MARCHE / BEFREE_IMPIANTI). Il cliente non vede mai un elenco vuoto.
+async function caricaBefreeConfig() {
+  if (SUPABASE_URL.includes("YOUR_PROJECT")) return;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/befree_config_get`, {
+      method: "POST",
+      headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" },
+      body: "{}"
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || typeof data !== "object") return;
+    if (Array.isArray(data.marche) && data.marche.length) BEFREE_MARCHE = data.marche;
+    if (data.impianti && typeof data.impianti === "object" && Object.keys(data.impianti).length) BEFREE_IMPIANTI = data.impianti;
+    // Se l'utente è già fermo sullo step impianto, ridisegna con l'elenco aggiornato.
+    if (!state.done && buildPhases()[state.step] === "befree_impianto") render();
+  } catch (_) { /* offline o errore di rete: restano i default */ }
+}
+
 // INIT
 if (!SHOW_PREZZO) document.body.classList.add("no-prezzo");
 render();
+caricaBefreeConfig();
 
 // Avvisa prima di lasciare/ricaricare la pagina se c'è un ordine in corso non ancora inviato.
 window.addEventListener('beforeunload', e => {

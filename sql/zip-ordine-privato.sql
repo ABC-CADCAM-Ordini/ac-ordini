@@ -32,13 +32,19 @@ create policy "configuratore carica lo zip dell'ordine"
 
 -- 2) L'operatore loggato in Admin può leggere: serve a farsi firmare l'URL di download.
 --    Il bucket resta privato, quindi senza questo nemmeno l'Admin lo vedrebbe.
+--    APPLICATA IN PROD il 2026-07-22 (via SQL Editor): prima MANCAVA — l'upload (policy #1)
+--    era attivo ma il download NO, quindi «Scarica file ordine» dava 400 su tutti i nuovi ordini.
+--    Nome senza apostrofo (l'apostrofo si rompeva digitandolo nell'editor via automazione).
 drop policy if exists "operatore legge lo zip dell'ordine" on storage.objects;
-create policy "operatore legge lo zip dell'ordine"
+drop policy if exists "operatore scarica lo zip ordine" on storage.objects;
+create policy "operatore scarica lo zip ordine"
   on storage.objects for select to authenticated
   using (bucket_id = 'ordini-zip');
 
 -- 3) L'operatore loggato può cancellare: serve a togliere davvero i file quando si
 --    cancella un ordine (finora «Cancella ordine» lasciava i file del paziente online).
+--    NON ANCORA APPLICATA IN PROD al 2026-07-22 (verificato: c'erano solo INSERT/anon + SELECT).
+--    Da eseguire quando si vuole che «Cancella ordine» rimuova davvero lo ZIP col PDF/PII.
 drop policy if exists "operatore cancella lo zip dell'ordine" on storage.objects;
 create policy "operatore cancella lo zip dell'ordine"
   on storage.objects for delete to authenticated

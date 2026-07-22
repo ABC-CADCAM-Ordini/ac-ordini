@@ -2700,6 +2700,16 @@ function openDetail(id) {
 
     <!-- DOCUMENTI (New Ancorvis: conformità, garanzia, ecc.) -->
     ${(() => {
+      // Ordine ripulito dalla pulizia automatica (files_purged): i file non sono più nel cloud →
+      // niente link morti, solo una nota. Vale anche per STL/ZIP (le loro sezioni non compaiono,
+      // perché file_link è azzerato e l'anteprima STL fa un HEAD che non trova più il file).
+      const purged = o.scheda_dati && o.scheda_dati.files_purged;
+      if (purged) {
+        return `<div class="detail-section">
+          <div class="detail-section-title">${icon('doc')} File</div>
+          <div style="padding:9px 12px;background:var(--light);border:1px solid var(--border);border-radius:9px;font-size:11.5px;color:var(--gray);line-height:1.5">🗄️ File archiviati per liberare spazio il ${esc(String(purged).slice(0, 10))}. STL, ZIP e documenti di questo ordine concluso non sono più nel cloud.</div>
+        </div>`;
+      }
       const docs = (o.scheda_dati && Array.isArray(o.scheda_dati.documenti)) ? o.scheda_dati.documenti : [];
       if (!docs.length) return '';
       return `<div class="detail-section">

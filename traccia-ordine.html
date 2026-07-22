@@ -345,8 +345,14 @@ function render(row, token){
         : esc(row.tracking)}</div></div>`
     : `<div class="track-wait">🚚 Tracking spedizione — disponibile appena l'ordine parte</div>`;
 
-  if(token) { initStl(token); initChat(token); } else hide("sec-chat");
-  renderDocs(s);
+  if(token) { if(!s.files_purged) initStl(token); initChat(token); } else hide("sec-chat");
+  if(s.files_purged){
+    // Ordine concluso e archiviato dalla pulizia automatica: STL, ZIP e documenti sono stati
+    // liberati per fare spazio → niente anteprima 3D né link (che sarebbero morti), solo una nota.
+    document.getElementById("o-docs").innerHTML =
+      `<div style="background:var(--light);border:1px solid var(--border);border-radius:12px;padding:14px 16px;color:var(--gray);font-size:12.5px;line-height:1.55">🗄️ I file di questo ordine concluso (modello 3D e documenti) sono stati archiviati per liberare spazio.</div>`;
+    show("sec-docs");
+  } else renderDocs(s);
   hide("loading"); show("content");
 }
 

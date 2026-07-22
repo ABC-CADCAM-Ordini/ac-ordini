@@ -2392,6 +2392,15 @@ async function naScollega(orderId) {
   const naId = String(s.na_link_id || '');
   if (!naId) return;
   if (!confirm(`Scollegare l'ordine ${orderCode(o)} da NA #${naId}?\n\nLa scheda di produzione, i lotti e i documenti spariscono da questo ordine e dalla pagina del cliente. L'abbinamento non verrà più riproposto in automatico.`)) return;
+  // Prima i PDF di NA (conformità/garanzia/lavorazione): sono file nel nostro Storage e senza un
+  // ordine a cui riferirsi resterebbero orfani e scaricabili. Lo STL è dell'ordine (non di NA) e
+  // RESTA. Fail-closed: se un PDF non si cancella, NON azzero la scheda (così è ritentabile).
+  const docs = (Array.isArray(s.documenti) ? s.documenti : [])
+    .map(d => storageRefFromUrl(d && d.url)).filter(Boolean).map(ref => ({ ...ref, label: "documento" }));
+  const presenti = await storagePresenti(docs);
+  const falliti = [];
+  for (const t of presenti) if (!(await storageDelete(t))) falliti.push(t);
+  if (falliti.length) { showToast(`${falliti.length} PDF non cancellati: riprova`, "red"); return; }
   // Si azzera TUTTA la scheda: tenerne dei pezzi lascerebbe in giro i dati del lavoro sbagliato.
   // Resta solo la memoria del rifiuto, che è ciò che impedisce alla sync di rifarlo al prossimo giro.
   const rifiutati = [...new Set([...(s.na_rifiutati || []), naId])];
@@ -3776,18 +3785,121 @@ async function releaseCharge(id) {
   } catch(e) { showToast("Errore: " + e.message, "red"); }
 }
 
+// ── Cancellazione dei file di un ordine in Storage (4 bucket) ─────────────────────────
+// Un ordine ha file in ordini-stl (STL), ordini-zip (ZIP privato con PII), ordini-doc (PDF) e
+// ordini-media (foto/STL di chat e detector). Cancellare solo la riga lasciava questi file
+// orfani — pubblici e col path ricavabile dallo share_token → scaricabili per sempre da chi
+// avesse avuto il link. Regola: PRIMA i file, POI la riga (fail-closed): se un file non si
+// cancella, l'ordine resta e si può ritentare. La prova che un file è sparito NON è la risposta
+// della DELETE (dà "Object not found" identico a quando non c'era davvero): è che dopo non è più
+// raggiungibile. Le policy Storage necessarie stanno in sql/storage-cancellazione-file.sql.
+const STORAGE_PUBLIC = `${SUPABASE_URL}/storage/v1/object/public/`;
+
+// URL pubblico del nostro Storage → { bucket, path }. Salta gli URL esterni (es. documenti su NA).
+function storageRefFromUrl(u) {
+  const s = String(u || "").trim();
+  if (!s.startsWith(STORAGE_PUBLIC)) return null;
+  const rest = s.slice(STORAGE_PUBLIC.length).split(/[?#]/)[0];
+  const i = rest.indexOf("/");
+  if (i <= 0 || i === rest.length - 1) return null;
+  return { bucket: rest.slice(0, i), path: rest.slice(i + 1) };
+}
+
+// I file di un ordine ricavabili SENZA rete: STL, ZIP privato, PDF, media del detector.
+// (I media della chat stanno nelle righe ordine_messaggi → si aggiungono a parte, async.)
+function storageTargets(o) {
+  const out = [];
+  const push = t => { if (t.path && !out.some(x => x.bucket === t.bucket && x.path === t.path)) out.push(t); };
+  if (o && o.share_token)
+    push({ bucket: STL_BUCKET, path: `${encodeURIComponent(o.share_token)}.stl`, label: "modello 3D del paziente (STL)" });
+  // ZIP dell'ordine nel bucket PRIVATO: il path è dopo /ordini-zip/ nel file_link.
+  const zipPath = String((o && o.file_link) || "").split("/ordini-zip/")[1];
+  if (zipPath) push({ bucket: "ordini-zip", path: zipPath.split(/[?#]/)[0], private: true, label: "ZIP dell'ordine (dati cliente + STL)" });
+  // PDF elencati nella scheda (conformità/garanzia/lavorazione). Gli URL esterni (NA) si saltano.
+  for (const d of ((o && o.scheda_dati && Array.isArray(o.scheda_dati.documenti)) ? o.scheda_dati.documenti : [])) {
+    const ref = storageRefFromUrl(d && d.url);
+    if (ref) push({ ...ref, label: (d && (d.nome || d.tipo)) || "documento" });
+  }
+  // Media del detector (foto + STL degli impianti), in ordini-media.
+  const items = (o && o.scheda_dati && o.scheda_dati.detector && Array.isArray(o.scheda_dati.detector.items)) ? o.scheda_dati.detector.items : [];
+  for (const it of items) for (const m of (Array.isArray(it.media) ? it.media : [])) if (m && m.path) push({ bucket: "ordini-media", path: m.path, label: m.nome || "media detector" });
+  return out;
+}
+
+// I media della CHAT stanno nelle righe ordine_messaggi (che il cascade toglie insieme all'ordine
+// → vanno lette PRIMA di cancellare). Ogni media è { path } in ordini-media.
+async function storageChatTargets(orderId) {
+  const out = [];
+  try {
+    const msgs = await sb("GET", `ordine_messaggi?order_id=eq.${orderId}&select=media`);
+    for (const m of (Array.isArray(msgs) ? msgs : [])) for (const x of (Array.isArray(m.media) ? m.media : [])) if (x && x.path) out.push({ bucket: "ordini-media", path: x.path, label: "allegato chat" });
+  } catch { /* nessuna chat / tabella assente: niente da togliere */ }
+  return out;
+}
+
+const storageUrlOf = t => `${STORAGE_PUBLIC}${t.bucket}/${t.path}`;
+
+// Il file è ancora raggiungibile? Bucket PUBBLICI → HEAD pubblico. Bucket PRIVATO (ordini-zip) →
+// l'HEAD pubblico darebbe sempre "sparito" (falso positivo di cancellazione), quindi si interroga
+// l'endpoint AUTENTICATO col token dell'operatore. null = non lo sappiamo (nel dubbio si tiene).
+async function storageEsiste(t) {
+  try {
+    if (t.private) {
+      const { data: { session } } = await sbAuth.auth.getSession();
+      const token = (session && session.access_token) || SUPABASE_KEY;
+      const r = await fetch(`${SUPABASE_URL}/storage/v1/object/${t.bucket}/${t.path}?t=${Date.now()}`,
+        { method: "HEAD", cache: "no-store", headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` } });
+      return r.ok;
+    }
+    const r = await fetch(`${storageUrlOf(t)}?t=${Date.now()}`, { method: "HEAD", cache: "no-store" });
+    return r.ok;
+  } catch { return null; }
+}
+
+// Quali file ci sono davvero: l'elenco nella conferma dev'essere quello vero. Nel dubbio (rete/CORS)
+// si tiene il file — meglio provare a cancellarlo che darlo per assente.
+async function storagePresenti(targets) {
+  const esiti = await Promise.all(targets.map(t => storageEsiste(t)));
+  return targets.filter((_, i) => esiti[i] !== false);
+}
+
+// Cancella un file. true SOLO se dopo non è più raggiungibile (la risposta della DELETE non basta).
+async function storageDelete(t) {
+  try {
+    const { data: { session } } = await sbAuth.auth.getSession();
+    const token = (session && session.access_token) || SUPABASE_KEY;
+    await fetch(`${SUPABASE_URL}/storage/v1/object/${t.bucket}/${t.path}`,
+      { method: "DELETE", headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` } });
+  } catch { /* conta solo la verifica qui sotto */ }
+  return (await storageEsiste(t)) === false;
+}
+
 async function deleteOrder(id) {
   const o = allOrders.find(x => x.id === id);
   const name = ((o?.nome || "") + " " + (o?.cognome || "")).trim() || "questo ordine";
-  if (!confirm(`⚠️ Sei sicuro di voler cancellare l'ordine di "${name}"?\n\nL'operazione è irreversibile.`)) return;
-  if (!configured()) { demoDeleteOrder(id); return; }
+  if (!configured()) {
+    if (!confirm(`⚠️ Sei sicuro di voler cancellare l'ordine di "${name}"?\n\nL'operazione è irreversibile.`)) return;
+    demoDeleteOrder(id); return;
+  }
+  const files = await storagePresenti([...storageTargets(o), ...(await storageChatTargets(id))]);
+  const elenco = files.length
+    ? `\n\nInsieme all'ordine spariscono dal cloud ${files.length} file:\n${files.map(t => "  • " + t.label).join("\n")}`
+    : `\n\nNel cloud non c'è nessun file di questo ordine da cancellare.`;
+  if (!confirm(`⚠️ Sei sicuro di voler cancellare l'ordine di "${name}"?${elenco}\n\nL'operazione è irreversibile.`)) return;
   try {
+    const falliti = [];
+    for (const t of files) if (!(await storageDelete(t))) falliti.push(t);
+    if (falliti.length) {
+      // La riga resta apposta: l'ordine è ancora lì e si può ritentare.
+      showToast(`${falliti.length} file non cancellati (${falliti.map(t => t.label).join(", ")}): l'ordine NON è stato cancellato, riprova`, "red");
+      return;
+    }
     await sb("DELETE", `orders?id=eq.${id}`);
     allOrders = allOrders.filter(x => x.id !== id);
     closeDetail();
     renderOrders();
     updateStats();
-    showToast("Ordine cancellato", "red");
+    showToast(files.length ? `Ordine e ${files.length} file cancellati` : "Ordine cancellato", "red");
   } catch(e) { showToast("Errore: " + e.message, "red"); }
 }
 

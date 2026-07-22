@@ -3401,6 +3401,41 @@ async function renderStlThumb(url, box, tok) {
   box.onclick = () => openStlViewer({ buffer: buf, name: url.split("/").pop() || "modello.stl" });
 }
 
+// ── Link OSPITE verso Synthesis-ICP (Vedere) ────────────────────────────────
+// La pagina è pubblica → non può firmare. Chiede il link firmato alla Edge Function
+// vedere-guest-link (gated staff, segreto condiviso con Synthesis). Link valido 7 giorni.
+async function mintGuestLink(shareToken) {
+  const { data: { session } } = await sbAuth.auth.getSession();
+  if (!session) throw new Error("sessione scaduta, riaccedi");
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/vedere-guest-link`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${session.access_token}`, "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ share_token: shareToken }),
+  });
+  const out = await r.json().catch(() => ({}));
+  if (!r.ok || !out.guest_url) throw new Error(out.error || ("HTTP " + r.status));
+  return out.guest_url;
+}
+async function apriInSynthesis(shareToken, btn) {
+  try {
+    if (btn) btn.disabled = true;
+    const link = await mintGuestLink(shareToken);
+    window.open(link, "_blank", "noopener");
+  } catch (e) {
+    showToast("Apri in Synthesis non riuscito: " + ((e && e.message) || e), "red");
+  } finally { if (btn) btn.disabled = false; }
+}
+async function copiaLinkSynthesis(shareToken, btn) {
+  try {
+    if (btn) btn.disabled = true;
+    const link = await mintGuestLink(shareToken);
+    await navigator.clipboard.writeText(link);
+    showToast("Link ospite copiato (valido 7 giorni)", "green");
+  } catch (e) {
+    showToast("Copia link non riuscita: " + ((e && e.message) || e), "red");
+  } finally { if (btn) btn.disabled = false; }
+}
+
 // Popola il box anteprima nel dettaglio ordine
 async function initStlPreview(o) {
   const box = document.getElementById("stl-prev");
@@ -3415,12 +3450,13 @@ async function initStlPreview(o) {
         const slot = document.getElementById("stl-dl-slot");
         if (slot) {
           const fn = ((o.file_name || "").replace(/\.zip$/i, "") || "modello") + ".stl";
-          // Apri lo STL direttamente nel viewer Synthesis-ICP (/vedere legge ?url= — dominio canonico).
-          // Serve essere loggati in Synthesis-ICP; l'STL sta su Storage pubblico (CORS ok).
-          const synUrl = `https://app.synthesis-icp.com/vedere?url=${encodeURIComponent(url)}&file_name=${encodeURIComponent(fn)}`;
+          // Apri lo STL nel viewer Synthesis-ICP come OSPITE (senza login): il link è FIRMATO
+          // dalla Edge Function vedere-guest-link (la pagina pubblica non tiene segreti). Valido 7 giorni.
+          const _stok = o.share_token;
           slot.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">`
             + `<a class="file-link-btn" href="${url}?download=${encodeURIComponent(fn)}" style="background:var(--blue);color:#fff;border-color:var(--blue)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10"/><path d="M8 10.5l4 4 4-4"/><path d="M5 19h14"/></svg> Scarica STL 3D <span style="font-weight:400;font-size:10px;opacity:.85">dal sistema · affidabile</span></a>`
-            + `<a class="file-link-btn" href="${synUrl}" target="_blank" rel="noopener" title="Apri il modello 3D nel viewer Synthesis-ICP (richiede login)" style="background:#fff;color:var(--blue);border-color:var(--blue)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg> Apri in Synthesis-ICP</a>`
+            + `<button type="button" class="file-link-btn" onclick="apriInSynthesis('${_stok}', this)" title="Apri il modello 3D nel viewer Synthesis-ICP (ospite, senza login)" style="background:#fff;color:var(--blue);border-color:var(--blue)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg> Apri in Synthesis-ICP</button>`
+            + `<button type="button" class="file-link-btn" onclick="copiaLinkSynthesis('${_stok}', this)" title="Copia un link ospite (valido 7 giorni) da inviare al cliente/dentista" style="background:#fff;color:var(--mid);border-color:var(--border)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg> Copia link ospite</button>`
             + `</div>`;
         }
         await renderStlThumb(url, box, o.share_token); return;

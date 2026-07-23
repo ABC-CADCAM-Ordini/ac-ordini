@@ -1473,14 +1473,14 @@ const LAVORAZIONI = [
   // #BeFree Abutment Custom
   {id:"befree", e:`<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="19" y="33" width="10" height="13" rx="5"/><line x1="19" y1="37" x2="29" y2="37"/><line x1="19" y1="41" x2="29" y2="41"/><path d="M21 33 L20 27 Q20 22 24 20 Q28 22 28 27 L27 33Z"/><path d="M16 27 Q14 18 24 14 Q34 18 32 27" stroke-dasharray="2.5 2" stroke-width="1.4"/><path d="M37 8 L38.2 11.5 L42 11.5 L39 13.8 L40.2 17.3 L37 15 L33.8 17.3 L35 13.8 L32 11.5 L35.8 11.5Z" stroke-width="1.2"/></svg>`,
    l:"#BeFree\nAbutment Custom", s:"Su specifiche: connessione, diametro, altezze",
-   d:"Abutment personalizzati su specifiche tecniche: Ti Base, MUA 4.8mm, Monconi Titanio JT, Transfer, Cappette di Guarigione.",
+   d:"Ti Base, MUA, Monconi Titanio JT, Transfer o Cappette di Guarigione su misura.",
    multi:false, tiBase:false, befree:true},
 
   // Implant Detector e Replica Impianto
   {id:"implant_detector",
    e:`<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M24 5 v6"/><path d="M20 11 h8 v3.5 a4 4 0 0 1 -1.1 2.7 l-1.9 2.1 v4.7 h-2 v-4.7 l-1.9 -2.1 a4 4 0 0 1 -1.1 -2.7 z"/><circle cx="21" cy="32" r="8"/><line x1="26.8" y1="37.8" x2="34" y2="45"/></svg>`,
    l:"Implant Detector\ne Replica Impianto", s:"Identifica l'impianto sconosciuto",
-   d:"Invii monconi o l'impronta in silicone della connessione: identifichiamo il sistema implantare e realizziamo i componenti protesici richiesti. Identificazione €50 a connessione + €10 ritiro corriere (facoltativo).",
+   d:"Invii monconi o l'impronta della connessione: identifichiamo il sistema implantare e produciamo i componenti richiesti.",
    multi:false, tiBase:false, detector:true}
 ];
 
@@ -1945,43 +1945,10 @@ async function saveOrderToSupabase(fileLink, fileName, token) {
   uploadStlToStorage(shareToken).catch(e => console.warn("⚠️ STL storage:", e.message));
 }
 
-const EMAILJS_SERVICE_ID  = "service_dzymfnb";
-const EMAILJS_TEMPLATE_ID = "template_djoksoo";
-const EMAILJS_PUBLIC_KEY  = "3k4qc95f0PzeJiGBG";
-
 const CONTACT = {
   email: "ordini@abutmentcompatibili.com",
   whatsapp: "393517282702"
 };
-
-async function sendEmailJSNotification(fileLink) {
-  try {
-    const lav = LAVORAZIONI.find(x => x.id === state.lavId);
-    const mats = MATERIALI[state.lavId] || [];
-    const mat = mats[state.matIdx];
-
-    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-      cliente:    `${cliente.nome} ${cliente.cognome}`,
-      studio:     cliente.azienda || "—",
-      telefono:   cliente.telefono || "—",
-      paziente:   cliente.nomePaziente || "—",
-      lavorazione: lav ? lav.l.replace("\n", " ") : "—",
-      materiale:  mat ? mat.n : "—",
-      denti:clinico.denti.length ? clinico.denti.slice().sort((a,b)=>a-b).join(", ") : "—",
-      shade:      clinico.shade || "—",
-      urgenza:    clinico.urgenza || "standard",
-      impianto:   clinico.marcaImpianto || "—",
-      note:       [clinico.noteClinico, cliente.note].filter(Boolean).join(" | ") || "",
-      data:       new Date().toLocaleString("it-IT"),
-      // Lo ZIP sta in un bucket privato: l'URL non si apre da una mail, e va bene così —
-      // contiene i dati del cliente e l'STL del paziente. Si scarica dal gestionale, autenticati.
-      file:       fileLink ? "Nel gestionale: apri l'ordine → 📦 File ordine" : "Nessun file allegato"
-    }, EMAILJS_PUBLIC_KEY);
-  } catch(e) {
-    console.warn("EmailJS error:", e);
-    // Non blocchiamo il flusso se la mail fallisce
-  }
-}
 // File storage (File objects can't live in plain state)
 const uploadedFiles = { stl: null, infoConstr: null, scan: null };
 
@@ -2890,7 +2857,6 @@ async function sendDetectorOrder(){
   try{
     if(typeof showSpinner==='function') showSpinner('Registrazione richiesta…');
     await saveOrderToSupabase(null,null,shareToken).catch(e=>{ salvato=false; console.error('Supabase detector error:',e); alert('⚠️ Richiesta non salvata nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com'); });
-    if(salvato && typeof sendEmailJSNotification==='function'){ try{ await sendEmailJSNotification(null); }catch(e){ console.warn('email:',e.message); } }
     if(typeof hideSpinner==='function') hideSpinner();
   }catch(err){ if(typeof hideSpinner==='function') hideSpinner(); alert('Errore: '+err.message); salvato=false; }
   state.orderSent = salvato;
@@ -5135,7 +5101,6 @@ async function doSendEmail() {
       showSpinner("Registrazione ordine...");
       let salvato = true;
       await saveOrderToSupabase(null,null).catch(e=>{ salvato = false; console.error('Supabase BeFree error:',e); alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com'); });
-      await sendEmailJSNotification(null);
       hideSpinner();
       const prod = BEFREE_PRODOTTI[state.befreeProdIdx]||{};
       const qty = state.befreeQty || 1;
@@ -5199,7 +5164,6 @@ async function doSendEmail() {
     }
     let salvato = true;
     await saveOrderToSupabase(link, name, shareToken).catch(e=>{ salvato = false; console.error('Supabase error:',e); alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com'); });
-    await sendEmailJSNotification(link);
     hideSpinner();
 
     // Body ridotto: mailto viene troncato dal browser oltre ~2000 caratteri
@@ -5251,7 +5215,6 @@ async function doSendWhatsapp() {
       showSpinner("Registrazione ordine...");
       let salvato = true;
       await saveOrderToSupabase(null,null).catch(e=>{ salvato = false; console.error('Supabase BeFree error:',e); alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com'); });
-      await sendEmailJSNotification(null);
       hideSpinner();
       const prod = BEFREE_PRODOTTI[state.befreeProdIdx]||{};
       const qty = state.befreeQty || 1;
@@ -5311,7 +5274,6 @@ async function doSendWhatsapp() {
     }
     let salvato = true;
     await saveOrderToSupabase(link, name, shareToken).catch(e=>{ salvato = false; console.error('Supabase error:',e); alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com'); });
-    await sendEmailJSNotification(link);
     hideSpinner();
 
     // Testo breve per wa.me (evita troncamenti su mobile oltre ~4000 caratteri)
@@ -5379,7 +5341,6 @@ async function doDownloadZipOrder() {
 
     let salvato = true;
     await saveOrderToSupabase(link, name, shareToken).catch(e=>{ salvato = false; console.error('Supabase error:',e); alert('⚠️ Ordine non salvato nel sistema: '+e.message+'\n\nContattare ordini@abutmentcompatibili.com'); });
-    await sendEmailJSNotification(link);
     hideSpinner();
 
     // Download locally
@@ -5694,6 +5655,5 @@ window.addEventListener('appinstalled', () => {
 });
 
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js" integrity="sha384-SALc35EccAf6RzGw4iNsyj7kTPr33K7RoGzYu+7heZhT8s0GZouafRiCg1qy44AS" crossorigin="anonymous" referrerpolicy="no-referrer" onload="emailjs.init('3k4qc95f0PzeJiGBG')"></script>
 </body>
 </html>

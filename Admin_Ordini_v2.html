@@ -3019,6 +3019,22 @@ function openDetail(id) {
           </div>
         </div>`;
       }).join('');
+      // ── Costo: €50 per connessione DISTINTA identificata + €10 ritiro corriere ──
+      const CID = 50, CRIT = 10;
+      const connKey = it => { const id = it.identificazione || {}; return [(id.sistema||'').trim().toLowerCase(), (id.piattaforma||'').trim().toLowerCase()].filter(Boolean).join('|'); };
+      const idOk = items.filter(connKey);
+      const distinct = new Set(idOk.map(connKey));
+      const pending = items.length - idOk.length;
+      const costoId = distinct.size * CID;
+      const pendTxt = pending ? ` · <span style="color:#B45309">${pending} da identificare</span>` : '';
+      const provTxt = pending ? ' <span style="font-size:10px;color:var(--gray)">(provvisorio)</span>' : '';
+      const costoBox = `<div style="background:#fff;border:1px solid #BFDBFE;border-radius:9px;padding:9px 12px;margin:10px 0">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--blue);margin-bottom:5px">Costo</div>
+        ${rowRaw("Connessioni distinte", `${distinct.size}${pendTxt}`)}
+        ${rowRaw("Identificazione", `€${CID} × ${distinct.size} = <b>€${costoId}</b>`)}
+        ${row("Ritiro corriere", `€${CRIT}`)}
+        ${rowRaw("Totale", `<b>€${costoId + CRIT}</b>${provTxt}`)}
+      </div>`;
       return `<div class="detail-section" style="background:#F0F9FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px 14px">
         <div class="detail-section-title">🔍 Implant Detector — richiesta</div>
         ${row("Cosa invia", campLabel)}
@@ -3027,6 +3043,7 @@ function openDetail(id) {
         ${row("Software CAD", det.cad)}
         ${row("Lavorazione", det.lavorazione_protesica)}
         <div style="margin-top:10px">${itemsHtml}</div>
+        ${costoBox}
         <button onclick="saveDetectorIdent('${o.id}')" class="save-note-btn">Salva identificazioni</button>
       </div>`;
     })()}
@@ -4349,7 +4366,7 @@ async function saveDetectorIdent(id) {
     edits.push({ idx, ident: (sist || piatt || diam || conf || note) ? { sistema: sist||null, piattaforma: piatt||null, diametro: diam||null, confidenza: conf||null, note: note||null } : null, esito });
   }
   const applyLocal = () => edits.forEach(e => { if (items[e.idx]) { items[e.idx].identificazione = e.ident; items[e.idx].esito = e.esito; } });
-  if (!configured()) { applyLocal(); showToast("Identificazioni salvate (demo)", "green"); return; }
+  if (!configured()) { applyLocal(); showToast("Identificazioni salvate (demo)", "green"); if (selectedOrderId === id) openDetail(id); return; }
   try {
     // Rileggi la riga FRESCA e fai merge mirato: non sovrascrivere modifiche concorrenti dell'intero scheda_dati.
     let sd = o.scheda_dati;
@@ -4360,6 +4377,7 @@ async function saveDetectorIdent(id) {
     await sb("PATCH", `orders?id=eq.${id}`, { scheda_dati: sd, updated_at: new Date().toISOString() });
     o.scheda_dati = sd; o.updated_at = new Date().toISOString();
     showToast("Identificazioni salvate", "green");
+    if (selectedOrderId === id) openDetail(id);
   } catch(e) { showToast("Errore: " + e.message, "red"); }
 }
 

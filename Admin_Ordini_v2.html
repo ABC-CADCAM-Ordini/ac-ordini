@@ -347,14 +347,14 @@
   .detail-name { font-size: 18px; font-weight: 900; color: var(--dark); }
   .detail-studio { font-size: 12px; color: var(--gray); margin-top: 2px; }
 
-  .detail-body { padding: 20px; }
-  .detail-section { margin-bottom: 20px; }
+  .detail-body { padding: 14px 16px 20px; }
+  .detail-section { margin-bottom: 12px; }
   .detail-section-title {
     font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em;
-    color: var(--blue); margin-bottom: 10px; padding-bottom: 6px;
+    color: var(--blue); margin-bottom: 6px; padding-bottom: 4px;
     border-bottom: 1.5px solid var(--blue-light);
   }
-  .detail-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--light); }
+  .detail-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid var(--light); }
   .detail-row:last-child { border-bottom: none; }
   .detail-key { font-size: 11px; color: var(--gray); }
   .detail-val { font-size: 12px; font-weight: 600; color: var(--dark); text-align: right; max-width: 200px; word-break: break-word; }
@@ -486,6 +486,46 @@
     cursor: pointer; transition: all .15s;
   }
   .delete-order-btn:hover { background: var(--red-light); }
+
+  /* ── Barra comandi sticky (stato + operatore + condividi) nell'header ── */
+  .cmd-strip { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .cmd-status { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .status-mini {
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    min-height: 40px; padding: 6px 6px; border-radius: 8px; border: 1.5px solid var(--border);
+    background: #fff; cursor: pointer; font-family: var(--font); font-size: 11px; font-weight: 700;
+    color: var(--gray); line-height: 1.15; text-align: center; transition: all .12s;
+  }
+  .status-mini .ui-ic { width: 14px; height: 14px; flex-shrink: 0; }
+  .status-mini:hover { transform: translateY(-1px); }
+  .status-mini.ricevuto.current { border-color: var(--amber); background: var(--amber-light); color: var(--amber); }
+  .status-mini.in_lavorazione.current { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
+  .status-mini.concluso.current { border-color: var(--green); background: var(--green-light); color: var(--green); }
+  .cmd-actions { display: flex; gap: 8px; align-items: stretch; }
+  .op-chip {
+    flex: 1; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--border); background: #fff;
+    font-family: var(--font); font-size: 12px; font-weight: 700; color: var(--mid); cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all .12s;
+  }
+  .op-chip:hover { border-color: var(--blue); color: var(--blue); }
+  .op-chip.mine { border-color: var(--green); color: var(--green); background: var(--green-light); }
+  .op-chip.none { border-style: dashed; }
+  .cmd-actions .btn-condividi { margin-top: 0; flex-shrink: 0; }
+
+  /* ── Cassetti (dettagli collassabili di consultazione) ── */
+  .drawer { border: 1.5px solid var(--border); border-radius: 10px; background: var(--light); overflow: hidden; }
+  .drawer > summary {
+    cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; margin: 0; border: none; color: var(--mid); background: none;
+    font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
+  }
+  .drawer > summary::-webkit-details-marker { display: none; }
+  .drawer > summary::before { content: "▸"; color: var(--gray); font-size: 11px; transition: transform .12s; }
+  .drawer[open] > summary::before { transform: rotate(90deg); }
+  .drawer > summary:hover { color: var(--blue); }
+  .drawer-body { padding: 4px 12px 12px; }
+  .drawer-sub { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--gray); margin: 12px 0 4px; }
 
   .note-area {
     width: 100%; font-family: var(--font); font-size: 12px; padding: 8px 10px;
@@ -937,7 +977,7 @@ body{
         <div class="detail-id" id="d-id"></div>
         <div class="detail-name" id="d-name"></div>
         <div class="detail-studio" id="d-studio"></div>
-        <button class="btn-condividi" onclick="openRubrica(selectedOrderId)"><span data-ic="share"></span> Condividi ordine</button>
+        <div class="cmd-strip" id="d-cmd"></div>
       </div>
       <div class="detail-body" id="d-body"></div>
     </div>
@@ -2871,25 +2911,27 @@ function openDetail(id) {
   const addrFatt = [o.ind_fattura, o.citta_fattura, o.cap_fattura, o.prov_fattura].filter(Boolean).join(", ") || "—";
   const addrSped = o.same_spedizione ? "Uguale a fatturazione" : [o.ind_spedizione, o.citta_spedizione, o.cap_spedizione, o.prov_spedizione].filter(Boolean).join(", ") || "—";
 
+  // ── Barra comandi sticky nell'header: stato ordine + operatore + condividi ──
+  const cur = s => o.status === s ? 'current' : '';
+  const opChip = o.operator
+    ? (isMine
+        ? `<button class="op-chip mine" onclick="releaseCharge('${o.id}')" title="In carico a te — clicca per rilasciare">👤 ${esc(o.operator)} · rilascia</button>`
+        : `<button class="op-chip" onclick="takeCharge('${o.id}')" title="Assegnato a ${esc(o.operator)} — prendi in carico tu">👤 ${esc(o.operator)} · prendi tu</button>`)
+    : `<button class="op-chip none" onclick="takeCharge('${o.id}')">👤 Prendi in carico</button>`;
+  document.getElementById("d-cmd").innerHTML = `
+    <div class="cmd-status">
+      <button class="status-mini ricevuto ${cur('ricevuto')}" onclick="updateStatus('${o.id}','ricevuto')">${icon('inbox')} Ricevuto</button>
+      <button class="status-mini in_lavorazione ${cur('in_lavorazione')}" onclick="updateStatus('${o.id}','in_lavorazione')">${icon('gear')} In Lavoraz.</button>
+      <button class="status-mini concluso ${cur('concluso')}" onclick="updateStatus('${o.id}','concluso')">${icon('check')} Concluso</button>
+    </div>
+    <div class="cmd-actions">
+      ${opChip}
+      <button class="btn-condividi" onclick="openRubrica('${o.id}')">${icon('share')} Condividi</button>
+    </div>`;
+
   document.getElementById("d-body").innerHTML = `
     <!-- DASHBOARD CLIENTE (riempito async da renderDashboardBlock) -->
     <div id="d-dashboard" class="detail-section dash-block"></div>
-
-    <!-- STATUS -->
-    <div class="detail-section">
-      <div class="detail-section-title">Stato ordine</div>
-      <div class="status-actions">
-        <button class="status-action-btn ricevuto ${o.status==='ricevuto'?'current':''}"
-          onclick="updateStatus('${o.id}','ricevuto')">${icon('inbox','ic-lg')}<br>Ricevuto</button>
-        <button class="status-action-btn in_lavorazione ${o.status==='in_lavorazione'?'current':''}"
-          onclick="updateStatus('${o.id}','in_lavorazione')">${icon('gear','ic-lg')}<br>In Lavorazione</button>
-        <button class="status-action-btn concluso ${o.status==='concluso'?'current':''}"
-          onclick="updateStatus('${o.id}','concluso')">${icon('check','ic-lg')}<br>Concluso</button>
-      </div>
-      <button class="delete-order-btn" onclick="deleteOrder('${o.id}')">
-        ${icon('trash')} Cancella ordine
-      </button>
-    </div>
 
     <!-- SYNC NA NON TROVATA → LINK MANUALE. Non si mostra se c'è già un aggancio automatico:
          sarebbero due blocchi contraddittori, e due collegamenti sullo stesso ordine. -->
@@ -2897,29 +2939,10 @@ function openDetail(id) {
     <!-- AGGANCIATO DA SOLO → traccia di come, e come disfarlo. Gli ordini Implant Detector NON si sincronizzano con NA. -->
     ${(o.scheda_dati && o.scheda_dati.detector) ? '' : naAutoBlock(o)}
 
-    <!-- OPERATOR -->
+    <!-- CONTATTO (essenziale, sempre visibile: chiamare + spedire) -->
     <div class="detail-section">
-      <div class="detail-section-title">Operatore</div>
-      <div class="operator-section">
-        ${o.operator
-          ? `<div class="operator-current">👤 ${esc(o.operator)}</div>
-             ${!isMine ? `<button class="take-charge-btn" onclick="takeCharge('${o.id}')">Prendi in carico tu</button>` :
-               `<button class="take-charge-btn mine" onclick="releaseCharge('${o.id}')">✓ In carico a te — Rilascia</button>`}`
-          : `<div style="font-size:12px;color:var(--gray);margin-bottom:8px">Nessun operatore assegnato</div>
-             <button class="take-charge-btn" onclick="takeCharge('${o.id}')">Prendi in carico</button>`
-        }
-      </div>
-    </div>
-
-    <!-- CLIENTE -->
-    <div class="detail-section">
-      <div class="detail-section-title">Dati cliente</div>
-      ${row("Nome", (o.nome||"") + " " + (o.cognome||""))}
-      ${row("Studio/Lab", o.azienda)}
+      <div class="detail-section-title">Contatto</div>
       ${rowRaw("Telefono", o.telefono ? `<a href="tel:${encodeURIComponent(o.telefono)}" style="color:var(--blue)">${esc(o.telefono)}</a>` : "—")}
-      ${rowRaw("Email", o.email ? `<a href="mailto:${encodeURIComponent(o.email)}" style="color:var(--blue)">${esc(o.email)}</a>` : "—")}
-      ${o.piva ? row("P.IVA / CF", o.piva) : ""}
-      ${row("Fatturazione", addrFatt)}
       ${row("Spedizione", addrSped)}
     </div>
 
@@ -2960,16 +2983,6 @@ function openDetail(id) {
           : `<span class="comm-missing">${icon('mailoff')} Nessuna email — invio non disponibile</span>`
         }
       </div>
-    </div>
-
-    <!-- CONFIGURAZIONE -->
-    <div class="detail-section">
-      <div class="detail-section-title">Configurazione</div>
-      ${row("Lavorazione", (o.lavorazione||"—").replace(/\n/g," "))}
-      ${o.n_impianti ? row("N. Impianti", o.n_impianti) : ""}
-      ${row("Materiale", o.materiale)}
-      ${o.ti_base ? row("Ti Base", o.ti_base) : ""}
-      ${row("Workflow", o.workflow)}
     </div>
 
     <!-- IMPLANT DETECTOR — richiesta + identificazione (solo ordini detector) -->
@@ -3098,31 +3111,16 @@ function openDetail(id) {
       <div class="stl-preview-box" id="stl-prev"><div class="stl-preview-msg">Verifica anteprima 3D…</div></div>
     </div>` : ""}
 
-    <!-- NOTE CLIENTE -->
-    ${(() => {
-      const parsed = parseNote(o.note);
-      const noteLibere = parsed.noteLibere;
-      if(!noteLibere) return '';
-      return `<div class="detail-section">
-        <div class="detail-section-title">Note cliente</div>
-        <div style="font-size:12px;color:var(--mid);background:var(--light);border-radius:8px;padding:10px;line-height:1.6">${esc(noteLibere)}</div>
-      </div>`;
-    })()}
-
-    <!-- NOTE OPERATORE -->
+    <!-- NOTE (cliente + operative in un unico blocco) -->
     <div class="detail-section">
-      <div class="detail-section-title">Note operative interne</div>
+      <div class="detail-section-title">Note</div>
+      ${(() => {
+        const noteLibere = parseNote(o.note).noteLibere;
+        return noteLibere ? `<div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:4px">Dal cliente</div><div style="font-size:12px;color:var(--mid);background:var(--light);border-radius:8px;padding:10px;line-height:1.6;margin-bottom:10px">${esc(noteLibere)}</div>` : '';
+      })()}
+      <div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:4px">Interne (operatore)</div>
       <textarea class="note-area" id="op-note-${o.id}" placeholder="Aggiungi note interne sull'ordine…">${esc(o.operator_note)}</textarea>
       <button class="save-note-btn" onclick="saveNote('${o.id}')">Salva nota</button>
-    </div>
-
-    <!-- META -->
-    <div class="detail-section">
-      <div class="detail-section-title">Info ordine</div>
-      ${row("Ricevuto il", fmtDate(o.created_at))}
-      ${row("Ultimo aggiornamento", fmtDate(o.updated_at))}
-      ${rowRaw("ID completo", `<span style="font-family:monospace;font-size:10px">${esc(o.id)}</span>`)}
-      ${renderStorico(o)}
     </div>
 
     <!-- CHAT CLIENTE -->
@@ -3136,6 +3134,34 @@ function openDetail(id) {
         <button id="ac-send" type="button" style="flex-shrink:0;height:38px;padding:0 14px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-weight:800;font-size:13px;cursor:pointer">Invia</button>
       </div>
     </div>
+
+    <!-- CASSETTO A: anagrafica + configurazione (consultazione) -->
+    <details class="detail-section drawer">
+      <summary>Anagrafica &amp; configurazione</summary>
+      <div class="drawer-body">
+        ${rowRaw("Email", o.email ? `<a href="mailto:${encodeURIComponent(o.email)}" style="color:var(--blue)">${esc(o.email)}</a>` : "—")}
+        ${o.piva ? row("P.IVA / CF", o.piva) : ""}
+        ${row("Fatturazione", addrFatt)}
+        <div class="drawer-sub">Configurazione</div>
+        ${row("Lavorazione", (o.lavorazione||"—").replace(/\n/g," "))}
+        ${o.n_impianti ? row("N. Impianti", o.n_impianti) : ""}
+        ${row("Materiale", o.materiale)}
+        ${o.ti_base ? row("Ti Base", o.ti_base) : ""}
+        ${row("Workflow", o.workflow)}
+      </div>
+    </details>
+
+    <!-- CASSETTO B: info ordine + gestione (cancella) -->
+    <details class="detail-section drawer">
+      <summary>Info &amp; gestione ordine</summary>
+      <div class="drawer-body">
+        ${row("Ricevuto il", fmtDate(o.created_at))}
+        ${row("Ultimo aggiornamento", fmtDate(o.updated_at))}
+        ${rowRaw("ID completo", `<span style="font-family:monospace;font-size:10px">${esc(o.id)}</span>`)}
+        ${renderStorico(o)}
+        <button class="delete-order-btn" onclick="deleteOrder('${o.id}')">${icon('trash')} Cancella ordine</button>
+      </div>
+    </details>
   `;
 
   document.getElementById("detail-panel").classList.add("open");

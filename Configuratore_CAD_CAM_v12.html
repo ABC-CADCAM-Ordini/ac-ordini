@@ -1140,7 +1140,7 @@
   <div class="app-footer">
     <div class="brand-sub-footer">Configuratore Ordini CAD CAM &middot; Biaggini Medical Devices S.r.l. <span class="app-rev" title="Versione in uso" style="font-weight:600;color:var(--gray)">&middot; Rev. 2026-07-19.3</span></div>
     <div class="footer-legal" style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;letter-spacing:.04em;">
-      ISO 13485 &middot; CE 0425 &middot; MDR 745/2017 &middot; EUDAMED Registrato &nbsp;&mdash;&nbsp; www.abutmentcompatibili.com
+      www.abutmentcompatibili.com
     </div>
   </div>
 </div>
@@ -2983,7 +2983,7 @@ async function printModuloDetector(){
   ${row("Software CAD",cadLabel)}${row("Lavorazione",lavLabel)}${row("Identificazione",`€${DET_ID_FEE} a connessione`)}${row("Ritiro corriere",`€${DET_RITIRO}`)}</table></div>
   <div class="section"><div class="section-title">Impianti da identificare (${detector.items.length})</div>${itemsHtml||'<div style="font-size:11px;color:#64748B">—</div>'}</div>
   <div class="firma-box"><div class="firma-field">Data compilazione</div><div class="firma-field">Timbro</div><div class="firma-field">Firma</div></div>
-  <div class="footer"><span>Biaggini Medical Devices S.r.l. · ISO 13485 · CE 0425 · MDR 745/2017 · EUDAMED</span><span>www.abutmentcompatibili.com</span></div>
+  <div class="footer"><span>Biaggini Medical Devices S.r.l.</span><span>www.abutmentcompatibili.com</span></div>
   </body></html>`;
   try{ win.document.open(); win.document.write(html); win.document.close(); }catch(e){}
   win.onload = ()=>{ try{ win.focus(); win.print(); }catch(e){} };
@@ -4794,7 +4794,6 @@ function buildConfigText() {
     "",
     "═══════════════════════════════════════════",
     "NOTA: Il team confermerà i dettagli dell'ordine dopo la valutazione del file allegato.",
-    "ISO 13485 · CE 0425 · MDR 745/2017 · EUDAMED",
     `ordini: ${CONTACT.email}`
   ].filter(l=>l!==null).join("\n");
   return lines;
@@ -5465,7 +5464,7 @@ function printModuloBeFree() {
   </div>
 
   <div class="footer">
-    <span>Biaggini Medical Devices S.r.l. · ISO 13485 · CE 0425 · MDR 745/2017 · EUDAMED</span>
+    <span>Biaggini Medical Devices S.r.l.</span>
     <span>www.abutmentcompatibili.com</span>
   </div>
   </body></html>`;

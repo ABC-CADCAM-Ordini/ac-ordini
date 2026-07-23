@@ -253,13 +253,13 @@
   .orders-scroll { overflow-x: auto; }
   .orders-table { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.06); min-width: 820px; }
   .table-head {
-    display: grid; grid-template-columns: 148px 1.3fr 1.15fr 84px 104px 92px 92px;
+    display: grid; grid-template-columns: 148px 1.4fr 1.3fr 108px 96px 96px;
     padding: 10px 16px; background: var(--pearl);
     border-bottom: 1.5px solid var(--border);
     font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--gray);
   }
   .order-row {
-    display: grid; grid-template-columns: 148px 1.3fr 1.15fr 84px 104px 92px 92px;
+    display: grid; grid-template-columns: 148px 1.4fr 1.3fr 108px 96px 96px;
     padding: 14px 16px; border-bottom: 1px solid var(--border);
     align-items: center; cursor: pointer; transition: background .12s;
   }
@@ -270,13 +270,10 @@
   .order-id-row { max-width: 100%; }
   .order-id:hover { text-decoration: underline; }
   .order-idcol { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; overflow: hidden; }
-  body.no-prezzo .table-head, body.no-prezzo .order-row { grid-template-columns: 148px 1.4fr 1.3fr 108px 96px 96px; }
-  body.no-prezzo .th-prezzo, body.no-prezzo .order-price, body.no-prezzo .detail-prezzo { display: none !important; }
   .sync-na { display: inline-flex; align-items: center; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: #047857; background: #D1FAE5; border: 1px solid #A7F3D0; border-radius: 20px; padding: 1px 7px; white-space: nowrap; }
   .order-client { font-size: 13px; font-weight: 700; color: var(--dark); }
   .order-studio { font-size: 11px; color: var(--gray); margin-top: 1px; }
   .order-lav { font-size: 12px; color: var(--mid); }
-  .order-price { font-size: 13px; font-weight: 800; color: var(--dark); }
   .order-date { font-size: 11px; color: var(--gray); }
   .order-op { font-size: 11px; color: var(--mid); font-style: italic; }
   /* Celle griglia: possono restringersi + testo troncato con "…" invece di accavallarsi */
@@ -361,8 +358,6 @@
   .detail-row:last-child { border-bottom: none; }
   .detail-key { font-size: 11px; color: var(--gray); }
   .detail-val { font-size: 12px; font-weight: 600; color: var(--dark); text-align: right; max-width: 200px; word-break: break-word; }
-  .detail-price-big { font-size: 32px; font-weight: 900; color: var(--dark); }
-  .detail-price-iva { font-size: 12px; color: var(--gray); margin-top: 2px; }
   .file-link-btn {
     display: flex; align-items: center; gap: 8px; padding: 10px 12px;
     background: var(--light); border-radius: 8px; text-decoration: none;
@@ -612,9 +607,6 @@
     .print-row:last-child { border-bottom: none; }
     .print-key { font-size: 10px; color: #666; flex-shrink: 0; }
     .print-val { font-size: 10px; font-weight: 700; color: #111; text-align: right; word-break: break-word; }
-    .print-price-box { background: #F0F9FF; border: 1.5px solid #BFDBFE; border-radius: 6px; padding: 10px 14px; margin-top: 6px; }
-    .print-price-big { font-size: 22px; font-weight: 900; color: #0077CC; }
-    .print-price-iva { font-size: 10px; color: #666; }
     .print-note-box { background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 6px; padding: 8px 10px; font-size: 10px; color: #78350F; line-height: 1.6; }
     .print-op-note { background: #F8FAFF; border: 1px solid #BFDBFE; border-radius: 6px; padding: 8px 10px; font-size: 10px; color: #1E40AF; line-height: 1.6; }
     .print-footer { position: fixed; bottom: 20px; left: 32px; right: 32px; display: flex; justify-content: space-between; font-size: 9px; color: #9CA3AF; border-top: 1px solid #E5E7EB; padding-top: 6px; }
@@ -697,7 +689,7 @@ body{
   -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
 }
 /* cifre tabellari ovunque ci sono dati */
-.stat-num,.order-id,.order-price,.order-date,.detail-id,.detail-price-big,
+.stat-num,.order-id,.order-date,.detail-id,
 .filter-btn .count{ font-variant-numeric:tabular-nums lining-nums; }
 
 /* ── HEADER: masthead a doppio-filo (ink 2px + blu 1px), NIENTE vetro ── */
@@ -789,7 +781,6 @@ body{
 /* ── DETTAGLIO ── */
 .detail-id{ font-family:var(--mono); color:var(--blue-deep); }
 .detail-name{ font-family:var(--font); font-weight:700; letter-spacing:-.01em; }
-.detail-price-big{ font-family:var(--mono); font-weight:600; letter-spacing:-.02em; }
 .detail-section-title{ color:var(--blue-deep); border-bottom:1px solid var(--border); letter-spacing:.10em; }
 
 /* ── LOGIN ── */
@@ -924,7 +915,6 @@ body{
           <div>Anteprima</div>
           <div>Cliente</div>
           <div>Lavorazione</div>
-          <div class="th-prezzo">Prezzo</div>
           <div>Stato</div>
           <div>Operatore</div>
           <div>Data</div>
@@ -1139,9 +1129,6 @@ let selectedOrderId = null;
 let allUsers = [];
 let currentUserId = "";   // id auth dell'operatore loggato (lega le iscrizioni push al profilo)
 
-// ── Interruttore PREZZO ── metti true per rimostrare i prezzi ovunque.
-const SHOW_PREZZO = false;
-
 // ── Escaping output (anti-XSS) ──────────────────────────────────
 // I dati di ordini/utenti arrivano dal DB e includono testo inserito
 // da chiunque tramite il configuratore pubblico: vanno sempre escapati
@@ -1294,7 +1281,6 @@ async function doLogout() {
 
 // Ripristina la sessione se l'operatore è già autenticato (token in localStorage).
 window.addEventListener("load", async () => {
-  if (!SHOW_PREZZO) document.body.classList.add("no-prezzo");
   try {
     const { data: { session } } = await sbAuth.auth.getSession();
     if (session && session.user) await enterAppFromSession(session.user);
@@ -2529,7 +2515,6 @@ function renderOrders() {
         <span class="lav-ic">${lavIcon(o)}</span>
         <div class="order-lav">${esc((o.lavorazione || "—").replace(/\n/g," "))}</div>
       </div>
-      <div class="order-price">${fmt(o.prezzo_base)}</div>
       <div class="order-statuscol"><span class="status-badge status-${esc(o.status)}">${esc(statusLabel(o.status))}</span>${prioBadge(o)}</div>
       <div class="order-op">${esc(o.operator || "—")}</div>
       <div class="order-date">${fmtDate(o.created_at)}${o.status === 'concluso' && o.updated_at ? `<br><span style="color:var(--green);font-weight:700" title="Chiuso / spedito il">✓ ${fmtDate(o.updated_at)}</span>` : ''}</div>
@@ -2882,8 +2867,6 @@ function openDetail(id) {
   document.getElementById("d-studio").textContent = o.azienda || "";
 
   const isMine = o.operator === currentOperator;
-  const iva = o.iva || 4;
-  const prezzoIva = o.prezzo_base ? (parseFloat(o.prezzo_base) * (1 + iva/100)).toFixed(1).replace(".",",") + " €" : "—";
 
   const addrFatt = [o.ind_fattura, o.citta_fattura, o.cap_fattura, o.prov_fattura].filter(Boolean).join(", ") || "—";
   const addrSped = o.same_spedizione ? "Uguale a fatturazione" : [o.ind_spedizione, o.citta_spedizione, o.cap_spedizione, o.prov_spedizione].filter(Boolean).join(", ") || "—";
@@ -2926,13 +2909,6 @@ function openDetail(id) {
              <button class="take-charge-btn" onclick="takeCharge('${o.id}')">Prendi in carico</button>`
         }
       </div>
-    </div>
-
-    <!-- PREZZO -->
-    <div class="detail-section detail-prezzo">
-      <div class="detail-section-title">Prezzo indicativo</div>
-      <div class="detail-price-big">${fmt(o.prezzo_base)}</div>
-      <div class="detail-price-iva">IVA ${iva}% inclusa: ${prezzoIva}</div>
     </div>
 
     <!-- CLIENTE -->
@@ -3771,7 +3747,6 @@ function buildEmailBody(o) {
     paziente     ? `Paziente      : ${paziente}` : null,
     parsed.denti ? `Denti (FDI)   : ${parsed.denti}` : null,
     parsed.impianto ? `Impianto      : ${parsed.impianto}` : null,
-    (SHOW_PREZZO && o.prezzo_base)? `Prezzo ind.   : ${o.prezzo_base.toFixed ? o.prezzo_base.toFixed(1) : o.prezzo_base} € + IVA ${o.iva||4}%` : null,
     `───────────────────────────────`,
     ``,
     `Il suo ordine è stato preso in carico e sarà lavorato nei prossimi giorni.`,
@@ -4057,10 +4032,6 @@ function printOrder() {
 
   const parsed = parseNote(o.note);
   const paziente = o.paziente || parsed.paziente || '';
-  const iva = o.iva || 4;
-  const prezzoIva = o.prezzo_base
-    ? (parseFloat(o.prezzo_base) * (1 + iva/100)).toFixed(1).replace('.', ',') + ' €'
-    : '—';
   const addrFatt = [o.ind_fattura, o.cap_fattura, o.citta_fattura, o.prov_fattura].filter(Boolean).join(', ') || '—';
   const addrSped = o.same_spedizione ? 'Uguale a fatturazione'
     : [o.ind_spedizione, o.cap_spedizione, o.citta_spedizione, o.prov_spedizione].filter(Boolean).join(', ') || '—';
@@ -4111,7 +4082,7 @@ function printOrder() {
           ${prow('Lavorazione', (o.lavorazione||'').split('\n').join(' '))}
           ${o.n_impianti ? prow('N. Impianti', o.n_impianti) : ''}
           ${prow('Materiale', o.materiale)}
-          ${o.ti_base ? prow('Ti Base', o.ti_base === 'con' ? 'Incluso nel prezzo' : 'Fornito esternamente') : ''}
+          ${o.ti_base ? prow('Ti Base', o.ti_base === 'con' ? 'Incluso' : 'Fornito esternamente') : ''}
           ${prow('Workflow', o.workflow)}
         </div>
       </div>
@@ -4127,13 +4098,6 @@ function printOrder() {
           ${prow('Note tecniche', parsed.noteTecn)}
         </div>
 
-        <div class="print-section">
-          <div class="print-section-title">Prezzo indicativo</div>
-          <div class="print-price-box">
-            <div class="print-price-big">${o.prezzo_base ? parseFloat(o.prezzo_base).toFixed(1).replace('.',',') + ' €' : '—'}</div>
-            <div class="print-price-iva">IVA ${iva}% inclusa: ${prezzoIva}</div>
-          </div>
-        </div>
 
         ${o.file_link ? `<div class="print-section">
           <div class="print-section-title">File ordine</div>
@@ -4380,7 +4344,7 @@ function renderDemoOrders() {
     { id:"demo-0001-uuid-aaaa", created_at: new Date(Date.now()-3600000).toISOString(), updated_at: new Date().toISOString(),
       nome:"Marco", cognome:"Bianchi", azienda:"Lab Bianchi S.r.l.", telefono:"+39 333 1234567", email:"marco@lab.it",
       piva:"IT01234567890", lavorazione:"Elemento Singolo\nCementato", n_impianti:null, materiale:"Zirconia Elite (IVA 4%)",
-      ti_base:"Incluso nel prezzo", workflow:"File STL finito", prezzo_base:53.5, iva:4,
+      ti_base:"Incluso", workflow:"File STL finito",
       file_link:"https://gofile.io/demo", file_name:"ordine_demo.zip",
       ind_fattura:"Via Roma 1", citta_fattura:"Milano", cap_fattura:"20100", prov_fattura:"MI",
       same_spedizione:true, paziente:"Bianchi Mario (pz.)", note:"Paziente: Bianchi Mario (pz.) | Denti: 12, 15 | Impianto: Nobel Active RP ø4.3 | Urgenza: urgente",
@@ -4388,7 +4352,7 @@ function renderDemoOrders() {
     { id:"demo-0002-uuid-bbbb", created_at: new Date(Date.now()-86400000).toISOString(), updated_at: new Date().toISOString(),
       nome:"Giulia", cognome:"Rossi", azienda:"Studio Dr. Rossi", telefono:"+39 347 9876543", email:"giulia@studio.it",
       piva:null, lavorazione:"Ponte / Arcata\nAvvitata", n_impianti:"3-4 Impianti", materiale:"Ti/CrCo SMART (IVA 4%)",
-      ti_base:null, workflow:"File STL finito", prezzo_base:139.2, iva:4,
+      ti_base:null, workflow:"File STL finito",
       file_link:null, file_name:null,
       ind_fattura:"Corso Italia 45", citta_fattura:"Roma", cap_fattura:"00100", prov_fattura:"RM",
       same_spedizione:true, paziente:"Verdi Sofia", note:"Paziente: Verdi Sofia | Denti: 22, 23, 24, 25, 26, 27 | Impianto: NewAncorvis Direct Nobel® Branemark — MUA ø4.8 | Shade: A2 HT | Note tecniche: Canale vite angolato 25°",
@@ -4396,7 +4360,7 @@ function renderDemoOrders() {
     { id:"demo-0003-uuid-cccc", created_at: new Date(Date.now()-172800000).toISOString(), updated_at: new Date(Date.now()-3600000).toISOString(),
       nome:"Antonio", cognome:"Verdi", azienda:"Dental Lab Verdi", telefono:"+39 320 5555555", email:null,
       piva:"IT09876543210", lavorazione:"Barra Implantare", n_impianti:"2 Impianti", materiale:"Barra Elite — Ti/CrCo Fresato (IVA 4%)",
-      ti_base:null, workflow:"Scansione Intraorale", prezzo_base:107.1, iva:4,
+      ti_base:null, workflow:"Scansione Intraorale",
       file_link:"https://gofile.io/demo2", file_name:"ordine_verdi.zip",
       ind_fattura:"Via Napoli 12", citta_fattura:"Napoli", cap_fattura:"80100", prov_fattura:"NA",
       same_spedizione:false, ind_spedizione:"Via Garibaldi 3", citta_spedizione:"Napoli", cap_spedizione:"80121", prov_spedizione:"NA",

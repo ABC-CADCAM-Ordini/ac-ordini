@@ -56,7 +56,7 @@
 
   .app-wrapper {
     width: 100%;
-    max-width: 700px;
+    max-width: 1040px;
   }
 
   /* HEADER */
@@ -1459,25 +1459,25 @@ const IC = {
 };
 
 const LAVORAZIONI = [
-  {id:"sing_cem", e:IC.sing_cem,  l:"Elemento Singolo\nCementato",      s:"Tecnica cementata su Ti Base",      d:"Corona su impianto fissata per cementazione su Ti Base prefabbricato. Estetica ottimale, massima libertà di angolazione.",multi:false,tiBase:true},
-  {id:"sing_avv", e:IC.sing_avv,  l:"Elemento Singolo\nAvvitato",       s:"Tecnica avvitata diretta",           d:"Corona avvitata direttamente sull'impianto, senza Ti Base. Facilità di rimozione e accesso diretto alla vite protesica.",multi:false,tiBase:false},
-  {id:"ponte_cem",e:IC.ponte_cem, l:"Ponte / Arcata\nCementata",        s:"Struttura plurale cementata",        d:"Ponte o arcata su più impianti con fissazione per cementazione su Ti Base. Adatto a riabilitazioni estese con alta estetica.",multi:true, tiBase:true},
-  {id:"ponte_avv",e:IC.ponte_avv, l:"Ponte / Arcata\nAvvitata",         s:"Struttura plurale avvitata",         d:"Ponte o arcata avvitata direttamente sugli impianti. Struttura rimovibile dal clinico; ideale per Toronto e carichi immediati.",multi:true, tiBase:false},
-  {id:"barre",    e:IC.barre,     l:"Barra Implantare",                 s:"Elite · Fast · Implant Check",       d:"Barra di connessione tra impianti per overdenture o protesi fissa. Disponibile in versione Elite (precision milled), Fast e Implant Check (verifica pre-protesica).",multi:true, tiBase:false},
+  {id:"sing_cem", e:IC.sing_cem,  l:"Elemento Singolo\nCementato",      s:"Tecnica cementata su Ti Base",      d:"Corona su impianto fissata per cementazione su Ti Base prefabbricato.",multi:false,tiBase:true},
+  {id:"sing_avv", e:IC.sing_avv,  l:"Elemento Singolo\nAvvitato",       s:"Tecnica avvitata diretta",           d:"Corona avvitata direttamente sull'impianto, senza Ti Base.",multi:false,tiBase:false},
+  {id:"ponte_cem",e:IC.ponte_cem, l:"Ponte / Arcata\nCementata",        s:"Struttura plurale cementata",        d:"Ponte o arcata su più impianti con fissazione per cementazione su Ti Base.",multi:true, tiBase:true},
+  {id:"ponte_avv",e:IC.ponte_avv, l:"Ponte / Arcata\nAvvitata",         s:"Struttura plurale avvitata",         d:"Ponte o arcata avvitata direttamente sugli impianti, rimovibile dal clinico.",multi:true, tiBase:false},
+  {id:"barre",    e:IC.barre,     l:"Barra Implantare",                 s:"Elite · Fast · Implant Check",       d:"Barra di connessione tra impianti per overdenture o protesi fissa, in versione Elite, Fast o Implant Check.",multi:true, tiBase:false},
 
-  {id:"naturali", e:IC.naturali,  l:"Corona/Ponte\nsu Denti Naturali",  s:"Senza componenti implantari",        d:"Corone e ponti su preparazione dentale naturale. Nessun componente implantare incluso. Ideale per restauri in ceramica o zirconia su monconi naturali.",multi:false,tiBase:false},
+  {id:"naturali", e:IC.naturali,  l:"Corona/Ponte\nsu Denti Naturali",  s:"Senza componenti implantari",        d:"Corone e ponti su preparazione dentale naturale, senza componenti implantari.",multi:false,tiBase:false},
 
   // #BeFree Abutment Custom
   {id:"befree", e:`<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="19" y="33" width="10" height="13" rx="5"/><line x1="19" y1="37" x2="29" y2="37"/><line x1="19" y1="41" x2="29" y2="41"/><path d="M21 33 L20 27 Q20 22 24 20 Q28 22 28 27 L27 33Z"/><path d="M16 27 Q14 18 24 14 Q34 18 32 27" stroke-dasharray="2.5 2" stroke-width="1.4"/><path d="M37 8 L38.2 11.5 L42 11.5 L39 13.8 L40.2 17.3 L37 15 L33.8 17.3 L35 13.8 L32 11.5 L35.8 11.5Z" stroke-width="1.2"/></svg>`,
    l:"#BeFree\nAbutment Custom", s:"Su specifiche: connessione, diametro, altezze",
-   d:"Abutment personalizzati su specifiche tecniche — nessuna impronta da spedire. Indichi marca, connessione, diametro e altezze: Ti Base, MUA 4.8mm, Monconi Titanio JT, Transfer e Cappette di Guarigione su misura.",
+   d:"Abutment personalizzati su specifiche tecniche: Ti Base, MUA 4.8mm, Monconi Titanio JT, Transfer, Cappette di Guarigione.",
    multi:false, tiBase:false, befree:true},
 
   // Implant Detector e Replica Impianto
   {id:"implant_detector",
    e:`<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M24 5 v6"/><path d="M20 11 h8 v3.5 a4 4 0 0 1 -1.1 2.7 l-1.9 2.1 v4.7 h-2 v-4.7 l-1.9 -2.1 a4 4 0 0 1 -1.1 -2.7 z"/><circle cx="21" cy="32" r="8"/><line x1="26.8" y1="37.8" x2="34" y2="45"/></svg>`,
    l:"Implant Detector\ne Replica Impianto", s:"Identifica l'impianto sconosciuto",
-   d:"Invii monconi o l'impronta in silicone della connessione: identifichiamo il sistema implantare e realizziamo i componenti protesici. Più impianti per richiesta. Identificazione €50 a connessione + €10 ritiro.",
+   d:"Invii monconi o l'impronta in silicone della connessione: identifichiamo il sistema implantare e realizziamo i componenti protesici richiesti. Identificazione €50 a connessione + €10 ritiro.",
    multi:false, tiBase:false, detector:true}
 ];
 
@@ -3028,7 +3028,7 @@ function renderStep() {
   if(phase==="lav") {
     html += stepHead(stepNum,total,"Cosa realizziamo?","Tipo di lavorazione");
 
-    html += `<div class="grid grid-auto" style="grid-template-columns:repeat(auto-fill,minmax(148px,1fr));margin-bottom:4px">`;
+    html += `<div class="grid grid-auto" style="grid-template-columns:repeat(4,1fr);margin-bottom:4px">`;
     LAVORAZIONI.forEach(lav=>{
       const sel=state.lavId===lav.id?"selected":"";
       html+=`<div class="opt-card ${sel}" onclick="selectLav('${lav.id}')">
@@ -3042,13 +3042,13 @@ function renderStep() {
       <div class="ic"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="6" width="28" height="36" rx="3"/><line x1="16" y1="16" x2="32" y2="16"/><line x1="16" y1="22" x2="32" y2="22"/><line x1="16" y1="28" x2="24" y2="28"/><circle cx="32" cy="36" r="7" fill="none"/><line x1="29" y1="36" x2="35" y2="36"/><line x1="32" y1="33" x2="32" y2="39"/></svg></div>
       <div class="opt-label">Lettore\nConstructionInfo</div>
       <div class="opt-sub">Anteprima file XML exocad</div>
-      <div class="opt-desc">Leggi e visualizza il contenuto di un file ConstructionInfo XML prima di creare l'ordine.</div>
+      <div class="opt-desc">Visualizza il contenuto di un file ConstructionInfo XML.</div>
     </div>`;
     html += `<div class="opt-card no-print" onclick="window.open('https://app.synthesis-icp.com','_blank','noopener')">
       <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></div>
       <div class="opt-label">Synthesis-ICP</div>
       <div class="opt-sub">Viewer 3D per scansioni intraorali</div>
-      <div class="opt-desc">Apri l'app Synthesis-ICP per visualizzare e gestire le tue scansioni 3D.</div>
+      <div class="opt-desc">Apri l'app Synthesis-ICP.</div>
     </div>`;
     html += `</div>`;
     html += navRow(false,"Avanti &rarr;",!state.lavId);

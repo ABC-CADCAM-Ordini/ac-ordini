@@ -3396,9 +3396,11 @@ async function renderStlThumb(url, box, tok) {
   const dataUrl = renderer.domElement.toDataURL("image/png");
   renderer.dispose(); renderer.forceContextLoss();
   geom.dispose(); mesh.material.dispose();
-  box.innerHTML = `<img class="stl-preview-canvas" src="${dataUrl}" alt="Anteprima STL"><div class="stl-preview-hint">🧊 Clicca per aprire in 3D</div>`;
+  box.innerHTML = `<img class="stl-preview-canvas" src="${dataUrl}" alt="Anteprima STL"><div class="stl-preview-hint">Clicca per aprire in Synthesis-ICP</div>`;
   box.classList.add("clickable");
-  box.onclick = () => openStlViewer({ buffer: buf, name: url.split("/").pop() || "modello.stl" });
+  // Il click sull'anteprima apre il modello direttamente in Synthesis-ICP (ospite, senza
+  // login) invece del vecchio pop-up 3D. tok = share_token. Vedi apriInSynthesis().
+  box.onclick = () => apriInSynthesis(tok);
 }
 
 // ── Link OSPITE verso Synthesis-ICP (Vedere) ────────────────────────────────

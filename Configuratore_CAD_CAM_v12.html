@@ -3028,7 +3028,7 @@ function renderStep() {
   if(phase==="lav") {
     html += stepHead(stepNum,total,"Cosa realizziamo?","Tipo di lavorazione");
 
-    html += `<div class="grid grid-auto" style="margin-bottom:4px">`;
+    html += `<div class="grid grid-auto" style="grid-template-columns:repeat(auto-fill,minmax(148px,1fr));margin-bottom:4px">`;
     LAVORAZIONI.forEach(lav=>{
       const sel=state.lavId===lav.id?"selected":"";
       html+=`<div class="opt-card ${sel}" onclick="selectLav('${lav.id}')">
@@ -3043,6 +3043,12 @@ function renderStep() {
       <div class="opt-label">Lettore\nConstructionInfo</div>
       <div class="opt-sub">Anteprima file XML exocad</div>
       <div class="opt-desc">Leggi e visualizza il contenuto di un file ConstructionInfo XML prima di creare l'ordine.</div>
+    </div>`;
+    html += `<div class="opt-card no-print" onclick="window.open('https://app.synthesis-icp.com','_blank','noopener')">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></div>
+      <div class="opt-label">Synthesis-ICP</div>
+      <div class="opt-sub">Viewer 3D per scansioni intraorali</div>
+      <div class="opt-desc">Apri l'app Synthesis-ICP per visualizzare e gestire le tue scansioni 3D.</div>
     </div>`;
     html += `</div>`;
     html += navRow(false,"Avanti &rarr;",!state.lavId);

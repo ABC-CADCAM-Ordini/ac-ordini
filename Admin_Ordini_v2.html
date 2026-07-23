@@ -2760,7 +2760,7 @@ function naManualBlock(o) {
   const sug = suggerimentoPer(o.id);
   return `<div class="detail-section na-manual">
     <div class="detail-section-title">${icon('activity')} Sincronizzazione NA non trovata</div>
-    <div class="na-manual-msg">Questo ordine non è ancora agganciato a una scheda di New Ancorvis. Se lo trovi su NA Loading, inserisci il suo <b>ID</b> (il numero nella prima colonna di ordini.php) per collegarli.</div>
+    <div class="na-manual-msg">Nessuna scheda New Ancorvis agganciata. Inserisci l'<b>ID</b> (prima colonna di ordini.php) per collegare e sincronizzare.</div>
     ${sug ? `<div class="na-manual-pending">${icon('search')} ${esc(motivoSuggerimento(sug))} <button class="dash-btn ghost" onclick="document.getElementById('na-manual-input').value='${esc(String(sug.na_id))}'">Usa NA #${esc(String(sug.na_id))}</button></div>` : ''}
     <div class="na-manual-row">
       <input id="na-manual-input" type="text" inputmode="numeric" placeholder="ID NA Loading (es. 40183)" value="${esc(cur)}" onkeydown="if(event.key==='Enter')naManualLink('${o.id}')">
@@ -3095,11 +3095,14 @@ function openDetail(id) {
       </details>`;
     })() : ""}
 
-    <!-- FILE + ANTEPRIMA STL 3D -->
-    ${o.file_link ? `<div class="detail-section">
-      <div class="detail-section-title">File ordine</div>
+    <!-- FILE + ANTEPRIMA STL 3D + apri/condividi in Synthesis-ICP.
+         Compare per ogni ordine che ha un modello visualizzabile (share_token), non solo
+         quando c'è un link di download: gli ordini NA-sincronizzati hanno lo STL nel bucket
+         ma spesso nessun file_link. initStlPreview nasconde la sezione se non c'è STL né file. -->
+    ${(o.file_link || o.share_token) ? `<div class="detail-section" id="file-sec">
+      <div class="detail-section-title">File e anteprima 3D</div>
       <div id="stl-dl-slot"></div>
-      ${zipPrivato(o.file_link)
+      ${o.file_link ? (zipPrivato(o.file_link)
         ? `<a class="file-link-btn" href="#" onclick="scaricaZip('${o.id}');return false">
              ${icon('download')} Scarica file ordine
              ${o.file_name ? `<span style="font-weight:400;font-size:10px;color:var(--gray)">${esc(o.file_name)}</span>` : ""}
@@ -3107,18 +3110,13 @@ function openDetail(id) {
         : `<a class="file-link-btn" href="${esc(safeUrl(o.file_link))}" target="_blank" rel="noopener noreferrer">
              ${icon('download')} Scarica file ordine${/gofile\.io/i.test(String(o.file_link || "")) ? " (host esterno)" : ""}
              ${o.file_name ? `<span style="font-weight:400;font-size:10px;color:var(--gray)">${esc(o.file_name)}</span>` : ""}
-           </a>${/gofile\.io/i.test(String(o.file_link || "")) ? `<div style="margin-top:7px;padding:8px 11px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;font-size:10.5px;line-height:1.55;color:#9A3412">⚠ File sull'host esterno <b>gofile.io</b>: ora richiede un account a pagamento ed è spesso bloccato dagli antivirus, quindi il download può non partire (soprattutto da Windows). Se qui sopra compare <b>«Scarica STL 3D»</b> usa quello. Altrimenti il file va rigenerato dallo ZIP originale e ricaricato.</div>` : ""}`}
+           </a>${/gofile\.io/i.test(String(o.file_link || "")) ? `<div style="margin-top:7px;padding:8px 11px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;font-size:10.5px;line-height:1.55;color:#9A3412">⚠ File sull'host esterno <b>gofile.io</b>: ora richiede un account a pagamento ed è spesso bloccato dagli antivirus, quindi il download può non partire (soprattutto da Windows). Se qui sopra compare <b>«Scarica STL 3D»</b> usa quello. Altrimenti il file va rigenerato dallo ZIP originale e ricaricato.</div>` : ""}`) : ""}
       <div class="stl-preview-box" id="stl-prev"><div class="stl-preview-msg">Verifica anteprima 3D…</div></div>
     </div>` : ""}
 
-    <!-- NOTE (cliente + operative in un unico blocco) -->
+    <!-- NOTE OPERATIVE INTERNE (le note del cliente sono coperte dalla chat) -->
     <div class="detail-section">
-      <div class="detail-section-title">Note</div>
-      ${(() => {
-        const noteLibere = parseNote(o.note).noteLibere;
-        return noteLibere ? `<div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:4px">Dal cliente</div><div style="font-size:12px;color:var(--mid);background:var(--light);border-radius:8px;padding:10px;line-height:1.6;margin-bottom:10px">${esc(noteLibere)}</div>` : '';
-      })()}
-      <div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:4px">Interne (operatore)</div>
+      <div class="detail-section-title">Note operative interne</div>
       <textarea class="note-area" id="op-note-${o.id}" placeholder="Aggiungi note interne sull'ordine…">${esc(o.operator_note)}</textarea>
       <button class="save-note-btn" onclick="saveNote('${o.id}')">Salva nota</button>
     </div>
@@ -3166,7 +3164,7 @@ function openDetail(id) {
 
   document.getElementById("detail-panel").classList.add("open");
   renderDashboardBlock(o);
-  if (o.file_link) initStlPreview(o);
+  if (o.file_link || o.share_token) initStlPreview(o);
   initAdminChat(o);
   initDetectorMedia(o);
 }
@@ -3467,6 +3465,9 @@ async function initStlPreview(o) {
       }
     } catch (e) { /* rete/CORS/offline → fallback manuale */ }
   }
+  // Nessuno STL nel bucket. Se non c'è nemmeno un file da scaricare, la sezione non ha
+  // nulla da mostrare (es. ordini senza modello): la nascondiamo per non fare rumore.
+  if (!o.file_link) { const sec = document.getElementById("file-sec"); if (sec) sec.style.display = "none"; return; }
   box.classList.remove("clickable"); box.onclick = null;
   box.innerHTML = `<div class="stl-preview-msg">Anteprima automatica non disponibile per questo ordine: è stato inviato <b>prima dell'attivazione</b>, quindi il suo file non è nel tuo Storage.<br>Sui <b>nuovi ordini</b> l'anteprima compare da sola, qui e nella riga.<br><button class="stl-load-btn" style="background:var(--gray);font-weight:600">Aprire comunque caricando il file…</button></div>`;
   box.querySelector(".stl-load-btn").onclick = () => openStlViewer({ name: o.file_name || "" });

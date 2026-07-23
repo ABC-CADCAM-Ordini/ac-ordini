@@ -1305,9 +1305,11 @@ function enterApp(nome, ruolo) {
   if (_btnTest) _btnTest.style.display = (ruolo === "admin") ? "" : "none";
   hydrateUiIcons();
   loadOrders();
+  startAutoRefresh();
 }
 
 async function doLogout() {
+  stopAutoRefresh();
   await sbAuth.auth.signOut();
   document.getElementById("login-screen").style.display = "flex";
   document.getElementById("app").style.display = "none";
@@ -1855,6 +1857,7 @@ async function loadOrders() {
     showSpinner(true);
     const data = await sb("GET", "orders?select=*&order=created_at.desc");
     allOrders = data || [];
+    _ordersSig = ordersSignature(allOrders);   // allinea l'auto-refresh: questo è lo stato "già visto"
     await loadShareMeta().catch(() => {});   // meta per i badge "commerciale" in lista
     renderOrders();
     updateStats();
@@ -4468,6 +4471,99 @@ function showToast(msg, type = "") {
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.remove("show"), 2800);
 }
+
+// ══════════════════════════════════════════════════════════════
+// AUTO-REFRESH DELLA LISTA ORDINI
+//   Problema risolto: gli ordini che si sincronizzano da New Ancorvis (o i
+//   cambi di stato fatti da un altro operatore) non comparivano finché non si
+//   ricaricava la pagina a mano. Qui la lista si aggiorna DA SOLA, in silenzio.
+//
+//   Due inneschi, entrambi non invasivi:
+//     1) La scheda torna in primo piano (visibilitychange / focus finestra) → è
+//        il caso «torno sul pannello e vedo ancora la roba di prima»: ricarica
+//        subito al rientro.
+//     2) Tick periodico mentre la scheda è visibile ma nessuno tocca nulla da
+//        AUTO_IDLE_MS (nessun clic/tasto/scroll): ricarica silenziosa.
+//
+//   Guardie: mai se non loggati / scheda in background, mai mentre si digita in
+//   un campo, mai con un modale aperto, e si RIDISEGNA solo se qualcosa è
+//   davvero cambiato (niente sfarfallii inutili). Stesso spirito del poll chat.
+// ══════════════════════════════════════════════════════════════
+const AUTO_IDLE_MS = 90000;   // inattività prima di una ricarica automatica (90s)
+const AUTO_TICK_MS = 15000;   // ogni quanto controlliamo se è ora di ricaricare (15s)
+let _lastActivity = Date.now();
+let _autoRefreshTimer = null;
+let _ordersSig = "";
+
+// Firma leggera della lista: cambia se arriva/sparisce un ordine o se cambia
+// stato / assegnatario / data di aggiornamento. Basta a capire «c'è del nuovo».
+function ordersSignature(list) {
+  return (list || []).map(o => o.id + ":" + o.status + ":" + (o.operator || "") + ":" + (o.updated_at || "")).join("|");
+}
+
+// Ogni interazione reale rimanda la ricarica automatica: così non scatta mai
+// mentre l'operatore sta effettivamente lavorando sul pannello.
+["mousemove", "mousedown", "keydown", "scroll", "touchstart", "wheel"].forEach(ev =>
+  window.addEventListener(ev, () => { _lastActivity = Date.now(); }, { passive: true, capture: true }));
+
+// Vero se l'operatore sta scrivendo o ha un modale aperto: in quel caso NON
+// tocchiamo la UI, rimandiamo al tick successivo.
+function autoRefreshBusy() {
+  const a = document.activeElement;
+  if (a) {
+    const tag = a.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || a.isContentEditable) return true;
+  }
+  // Modali "fissi" nel DOM (display:flex quando aperti)
+  for (const id of ["edit-modal", "befree-modal", "create-modal", "users-modal"]) {
+    const m = document.getElementById(id);
+    if (m && m.style.display && m.style.display !== "none") return true;
+  }
+  // Modali creati al volo (presenti nel DOM solo mentre sono aperti)
+  for (const id of ["diag-modal", "rub-modal", "crea-na-modal", "stl-modal"]) {
+    if (document.getElementById(id)) return true;
+  }
+  return false;
+}
+
+// Ricarica silenziosa: fetch → confronto firma → ridisegna solo se cambia e se
+// l'operatore non è impegnato. Nessuno spinner, nessun furto di focus.
+async function silentRefresh() {
+  if (!configured() || !currentOperator || document.hidden) return;
+  let data;
+  try {
+    data = await sb("GET", "orders?select=*&order=created_at.desc");
+  } catch (e) { return; }              // errore transitorio: si riprova al tick dopo
+  const sig = ordersSignature(data);
+  if (sig === _ordersSig) return;      // niente di nuovo
+  if (autoRefreshBusy()) return;       // c'è del nuovo, ma aspettiamo che l'operatore sia libero
+  _ordersSig = sig;
+  allOrders = data || [];
+  await loadShareMeta().catch(() => {});
+  renderOrders();
+  updateStats();
+  if (selectedOrderId && allOrders.some(o => o.id === selectedOrderId)) openDetail(selectedOrderId);
+  showToast("Lista aggiornata");
+}
+
+function autoRefreshTick() {
+  if (!configured() || !currentOperator || document.hidden) return;
+  if (Date.now() - _lastActivity < AUTO_IDLE_MS) return;   // utente ancora attivo
+  if (autoRefreshBusy()) return;
+  silentRefresh();
+}
+
+function startAutoRefresh() {
+  clearInterval(_autoRefreshTimer);
+  _autoRefreshTimer = setInterval(autoRefreshTick, AUTO_TICK_MS);
+}
+function stopAutoRefresh() { clearInterval(_autoRefreshTimer); _autoRefreshTimer = null; }
+
+// Rientro sulla scheda / focus finestra = ricarica subito (il caso classico:
+// esci dal pannello, l'ordine si sincronizza, torni e vedi ancora la lista di
+// prima). silentRefresh() è comunque no-op se non c'è nulla di nuovo.
+document.addEventListener("visibilitychange", () => { if (!document.hidden) silentRefresh(); });
+window.addEventListener("focus", () => silentRefresh());
 </script>
 
 <!-- ══ AVVISI URGENTI (Web Push) ═══════════════════════════════

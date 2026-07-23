@@ -26,6 +26,47 @@ const PORTALE_URL = "https://abc-cadcam-ordini.github.io/ac-ordini/portale.html"
 
 const db = createClient(SUPABASE_URL, SERVICE_KEY);
 
+// ── WhatsApp operatori via respond.io (stesso canale/formato dei clienti) ──────
+// ADDITIVO e DORMIENTE: spedisce SOLO se OPERATORI_WHATSAPP è impostato (numeri in
+// formato E.164, separati da virgola, es. "+393517032387"). Richiede il template
+// WhatsApp APPROVATO `ac_avviso_operatore` — {{1}}=tipo avviso, {{2}}=cliente.
+// Se non configurato o se respond.io dà errore, le push NON ne risentono.
+const RESPOND_TOKEN = Deno.env.get("RESPOND_IO_TOKEN") ?? "";
+const RESPOND_CHANNEL = Number(Deno.env.get("RESPOND_IO_CHANNEL_ID") ?? "446581");
+const WA_TEMPLATE = "ac_avviso_operatore";
+const OPERATORI_WA = (Deno.env.get("OPERATORI_WHATSAPP") ?? "")
+  .split(",").map((s) => s.trim()).filter(Boolean);
+
+async function waOperatore(tipo: string, cliente: string) {
+  if (!OPERATORI_WA.length || !RESPOND_TOKEN) return;   // dormiente finché non configurato
+  await Promise.all(OPERATORI_WA.map(async (phone) => {
+    try {
+      const res = await fetch(
+        `https://api.respond.io/v2/contact/phone:${encodeURIComponent(phone)}/message`,
+        {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${RESPOND_TOKEN}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            channelId: RESPOND_CHANNEL,
+            message: {
+              type: "whatsapp_template",
+              template: {
+                name: WA_TEMPLATE,
+                languageCode: "it",
+                components: [{
+                  type: "body",
+                  parameters: [{ type: "text", text: tipo }, { type: "text", text: cliente }],
+                }],
+              },
+            },
+          }),
+        },
+      );
+      if (!res.ok) console.error("wa operatore:", res.status, await res.text());
+    } catch (e) { console.error("wa operatore:", (e as any)?.message ?? e); }
+  }));
+}
+
 // ── Finestra operativa: lun-ven, 8:00–17:00 (fuso Roma), esclusi i festivi nazionali ──
 const TZ = "Europe/Rome";
 const WORK_START = Number(Deno.env.get("WORK_START_HOUR") ?? "8");  // ora inclusa
@@ -142,7 +183,7 @@ Deno.serve(async (req) => {
   // 1) NUOVI ORDINI: una push a testa, poi segna inviato (niente ripetizioni).
   const { data: nuoviOrd } = await db
     .from("orders")
-    .select("id, nome, azienda")
+    .select("id, nome, azienda, scheda_dati")
     .eq("push_nuovo_inviato", false)
     .neq("status", "concluso");
   for (const o of (nuoviOrd ?? []) as any[]) {
@@ -153,6 +194,18 @@ Deno.serve(async (req) => {
       url: PORTALE_URL,
       orderId: o.id,
     });
+    await waOperatore("Nuovo ordine", labelOrdine(o));   // WhatsApp operatori (dormiente se non configurato)
+    // Implant Detector: il cliente ha spuntato "ritira il prodotto fisicamente" (+€10) → va organizzato un corriere.
+    if (o.scheda_dati?.detector?.ritiro_fisico) {
+      await inviaTutti({
+        title: "🚚 Ritiro da organizzare",
+        body: labelOrdine(o) + ": il cliente ha richiesto il ritiro corriere (+€10).",
+        tag: "ritiro-" + o.id,
+        url: PORTALE_URL,
+        orderId: o.id,
+      });
+      await waOperatore("Ritiro da organizzare", labelOrdine(o));
+    }
     nuovi++;
   }
   if (nuoviOrd?.length) {
@@ -183,6 +236,7 @@ Deno.serve(async (req) => {
       url: PORTALE_URL,
       orderId: o.id,
     });
+    await waOperatore("Ordine " + urgLabel, labelOrdine(o));   // WhatsApp operatori (URGENTE/EXPRESS)
     urgenti++;
     await db.from("urgenti_notifiche").upsert({
       order_id: o.id,

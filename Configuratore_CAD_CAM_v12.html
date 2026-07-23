@@ -1480,7 +1480,7 @@ const LAVORAZIONI = [
   {id:"implant_detector",
    e:`<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M24 5 v6"/><path d="M20 11 h8 v3.5 a4 4 0 0 1 -1.1 2.7 l-1.9 2.1 v4.7 h-2 v-4.7 l-1.9 -2.1 a4 4 0 0 1 -1.1 -2.7 z"/><circle cx="21" cy="32" r="8"/><line x1="26.8" y1="37.8" x2="34" y2="45"/></svg>`,
    l:"Implant Detector\ne Replica Impianto", s:"Identifica l'impianto sconosciuto",
-   d:"Invii monconi o l'impronta in silicone della connessione: identifichiamo il sistema implantare e realizziamo i componenti protesici richiesti. Identificazione €50 a connessione + €10 ritiro.",
+   d:"Invii monconi o l'impronta in silicone della connessione: identifichiamo il sistema implantare e realizziamo i componenti protesici richiesti. Identificazione €50 a connessione + €10 ritiro corriere (facoltativo).",
    multi:false, tiBase:false, detector:true}
 ];
 
@@ -1795,6 +1795,7 @@ async function saveOrderToSupabase(fileLink, fileName, token) {
         cad: detector.cad==="altro" ? (detector.cadAltro||"altro") : detector.cad,
         lavorazione_protesica: detector.lavProtesica==="altro" ? (detector.lavAltro||"altro") : detector.lavProtesica,
         paziente: cliente.nomePaziente||null,
+        ritiro_fisico: !!detector.ritiroFisico,
         items
       }
     };
@@ -1814,7 +1815,8 @@ async function saveOrderToSupabase(fileLink, fileName, token) {
       note: [ cliente.note || null,
               cliente.nomePaziente ? ("Paziente: " + cliente.nomePaziente) : null,
               "Implant Detector — " + detector.items.length + " impianto/i",
-              "Identificazione €50/conn distinta + €10 ritiro (stima, da confermare)" ].filter(Boolean).join(" | ") || null,
+              "Identificazione €50/conn distinta (stima, da confermare)" + (detector.ritiroFisico ? " + €10 ritiro" : ""),
+              detector.ritiroFisico ? "🚚 RITIRO FISICO RICHIESTO — organizzare corriere" : null ].filter(Boolean).join(" | ") || null,
       file_link: null, file_name: null,
       scheda_dati: schedaDati,
       share_token: shareToken,
@@ -2629,6 +2631,7 @@ const detector = {
   lavProtesica: null,   // "avvitata" | "incollaggio" | "altro"
   lavAltro: "",
   items: [],            // [{descrizione, modalita, comp:{}, media:[]}]
+  ritiroFisico: false,  // true = il corriere ritira il pacco dal cliente (+€10 a nostro carico organizzarlo)
   printed: false
 };
 function detNewItem(){ return { descrizione:"", modalita:"produci", comp:{}, media:[] }; }
@@ -2646,7 +2649,9 @@ function detCostoBox(){
   return `<div style="background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:12px;padding:12px 14px;margin-bottom:16px">
     <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#0369A1;margin-bottom:8px">Costo indicativo</div>
     <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--dark);margin-bottom:3px"><span>Identificazione · €${DET_ID_FEE} a connessione</span><span style="font-weight:800">fino a €${detStimaMax()}</span></div>
-    <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--dark)"><span>Ritiro corriere</span><span style="font-weight:800">€${DET_RITIRO}</span></div>
+    ${detector.ritiroFisico
+      ? `<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--dark)"><span>Ritiro corriere (richiesto)</span><span style="font-weight:800">€${DET_RITIRO}</span></div>`
+      : `<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--gray)"><span>Ritiro corriere (facoltativo)</span><span style="font-weight:700">+€${DET_RITIRO} se richiesto</span></div>`}
     <div style="font-size:11px;color:var(--gray);line-height:1.5;margin-top:8px">Stima su ${n} impianto/i. Se più impianti risultano la <b>stessa connessione</b>, l'identificazione si paga una volta sola: il costo scende e te lo confermiamo dopo l'analisi.</div>
   </div>`;
 }
@@ -2654,7 +2659,7 @@ function detCostoBox(){
 // ── Fase 1: dati della richiesta ──────────────────────────────
 function detectorSetupPhase(stepNum,total){
   let h = stepHead(stepNum,total,"La tua richiesta","Implant Detector e Replica Impianto");
-  h += `<div class="upload-notice">Inviaci i <strong>componenti fisici</strong> (moncone, analogo, vite protesica) oppure l'<strong>impronta in silicone</strong> della connessione interna dell'impianto. Identifichiamo il sistema implantare e realizziamo i componenti protesici che ti servono. <em>Identificazione €50 a connessione (meno se ripetute) + €10 ritiro corriere.</em></div>`;
+  h += `<div class="upload-notice">Inviaci i <strong>componenti fisici</strong> (moncone, analogo, vite protesica) oppure l'<strong>impronta in silicone</strong> della connessione interna dell'impianto. Identifichiamo il sistema implantare e realizziamo i componenti protesici che ti servono. <em>Identificazione €50 a connessione (meno se ripetute) + €10 ritiro corriere facoltativo.</em></div>`;
 
   h += detLbl("Cosa ci invii?");
   h += `<div class="grid grid-auto" style="margin-bottom:14px">`;
@@ -2810,7 +2815,7 @@ function detToJpeg(file){
 // ── Fase 3: preparazione e spedizione ─────────────────────────
 function detectorShipPhase(stepNum,total){
   let h = stepHead(stepNum,total,"Preparazione e spedizione","Come inviarci i materiali");
-  h += `<div class="upload-notice">Prepara i materiali seguendo il protocollo, poi spediscili con il <strong>modulo che stamperai a fine ordine</strong> (già con il codice). <em>Identificazione €50/conn + €10 ritiro · 6 giorni lavorativi dalla ricezione.</em></div>`;
+  h += `<div class="upload-notice">Prepara i materiali seguendo il protocollo, poi spediscili con il <strong>modulo che stamperai a fine ordine</strong> (già con il codice). <em>Identificazione €50/conn · 6 giorni lavorativi dalla ricezione.</em></div>`;
   h += `<div style="font-size:10px;font-weight:800;color:#374151;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Cosa inserire nel pacco</div>
   <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:11px 15px;margin-bottom:14px;font-size:12px;color:#334155;line-height:1.8">
     • <strong>Componenti fisici e/o impronta in silicone</strong> (VPS): integri, decontaminati, imbustati singolarmente e sterilizzati in autoclave.<br>
@@ -2820,9 +2825,19 @@ function detectorShipPhase(stepNum,total){
   h += `<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px">
     <a href="https://drive.google.com/file/d/1o4JgNINcky82Q8APnzlKMYB09DjMP_iQ/view" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:11px 14px;text-decoration:none">
       <span style="font-size:12px;font-weight:700;color:#1E293B">📄 Protocollo Implant Detector (PDF)</span><span style="font-size:11px;color:#0F5282;font-weight:800">Apri</span></a>
-    <a href="https://abutmentcompatibili.com/ritiro-reso-spedizione.html" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:11px 14px;text-decoration:none">
-      <span style="font-size:12px;font-weight:700;color:#1E293B">🚚 Prenota il ritiro (Ritiro Reso/Spedizione · €10)</span><span style="font-size:11px;color:#0F5282;font-weight:800">Apri</span></a>
   </div>`;
+  h += detLbl("Come vuoi spedirci i materiali?");
+  h += `<div class="opt-card ${detector.ritiroFisico?'selected':''}" onclick="detector.ritiroFisico=!detector.ritiroFisico;render()" style="display:flex;align-items:flex-start;gap:10px;text-align:left;padding:12px 14px;margin-bottom:8px;cursor:pointer">
+    <input type="checkbox" ${detector.ritiroFisico?'checked':''} onclick="event.stopPropagation()" onchange="detector.ritiroFisico=this.checked;render()" style="width:18px;height:18px;flex-shrink:0;margin-top:1px">
+    <div>
+      <div class="opt-label">🚚 Ritira il prodotto fisicamente (+€${DET_RITIRO})</div>
+      <div class="opt-desc">Organizziamo noi il ritiro a casa/studio tuo con un nostro corriere: ti contattiamo per fissare data e orario, non devi prenotare nulla.</div>
+    </div>
+  </div>`;
+  h += detector.ritiroFisico
+    ? `<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:12px;color:#92400E;font-weight:700">✅ Richiesto: ti contatteremo per organizzare il ritiro del corriere (+€${DET_RITIRO}).</div>`
+    : `<a href="https://abutmentcompatibili.com/ritiro-reso-spedizione.html" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:11px 14px;text-decoration:none;margin-bottom:8px">
+      <span style="font-size:12px;font-weight:700;color:#1E293B">📦 In alternativa: spedisci tu stesso (Ritiro Reso/Spedizione)</span><span style="font-size:11px;color:#0F5282;font-weight:800">Apri</span></a>`;
   h += navRow(true, "Avanti &rarr;", false);
   return h;
 }
@@ -2983,7 +2998,7 @@ async function printModuloDetector(){
   ${row("Indirizzo fatturazione",fatAddr)}${row("Indirizzo spedizione",spedAddr)}</table></div>
   <div class="section"><div class="section-title">Dati richiesta</div><table>
   ${row("Nome paziente",cliente.nomePaziente||"—")}${row("Cosa invia",campLabel)}${row("Libreria implantare",detector.libreria==="si"?"Sì":"No")}
-  ${row("Software CAD",cadLabel)}${row("Lavorazione",lavLabel)}${row("Identificazione",`€${DET_ID_FEE} a connessione`)}${row("Ritiro corriere",`€${DET_RITIRO}`)}</table></div>
+  ${row("Software CAD",cadLabel)}${row("Lavorazione",lavLabel)}${row("Identificazione",`€${DET_ID_FEE} a connessione`)}${row("Ritiro corriere",detector.ritiroFisico?`Sì — organizzato da Biaggini (+€${DET_RITIRO})`:"A cura del cliente")}</table></div>
   <div class="section"><div class="section-title">Impianti da identificare (${detector.items.length})</div>${itemsHtml||'<div style="font-size:11px;color:#64748B">—</div>'}</div>
   <div class="firma-box"><div class="firma-field">Data compilazione</div><div class="firma-field">Timbro</div><div class="firma-field">Firma</div></div>
   <div class="footer"><span>Biaggini Medical Devices S.r.l.</span><span>www.abutmentcompatibili.com</span></div>
@@ -5032,7 +5047,7 @@ function renderConfirmScreen() {
   } else if(isDetector) {
     detailRows += `<div class="confirm-detail-row"><span>Servizio</span><span>Implant Detector — ${detector.items.length} impianto/i</span></div>`;
     detailRows += `<div class="confirm-detail-row"><span>Identificazione</span><span>€${DET_ID_FEE} a connessione · stima fino a €${detStimaMax()}</span></div>`;
-    detailRows += `<div class="confirm-detail-row"><span>Ritiro corriere</span><span>€${DET_RITIRO}</span></div>`;
+    detailRows += `<div class="confirm-detail-row"><span>Ritiro corriere</span><span>${detector.ritiroFisico?`€${DET_RITIRO} — richiesto`:"a cura del cliente"}</span></div>`;
   } else {
     const mats = MATERIALI[state.lavId] || [];
     const mat = mats[state.matIdx];
@@ -5065,14 +5080,22 @@ function renderConfirmScreen() {
               <div style="font-size:10px;font-weight:400;opacity:.85;margin-top:1px">Con codice e QR — inseriscilo nel pacco (obbligatorio)</div>
             </div>
           </button>
-          <a href="https://abutmentcompatibili.com/ritiro-reso-spedizione.html" target="_blank" rel="noopener"
-            style="display:flex;align-items:center;gap:8px;background:#0F5282;color:#fff;font-size:12px;font-weight:700;padding:9px 16px;border-radius:8px;text-decoration:none">
-            ${icTruck}
-            <div>
-              <div>🚚 Prenota il ritiro corriere</div>
-              <div style="font-size:10px;font-weight:400;opacity:.85;margin-top:1px">Ritiro Reso/Spedizione · €10</div>
-            </div>
-          </a>
+          ${detector.ritiroFisico
+            ? `<div style="display:flex;align-items:center;gap:8px;background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;font-size:12px;font-weight:700;padding:9px 16px;border-radius:8px">
+              ${icTruck}
+              <div>
+                <div>✅ Ritiro richiesto (+€${DET_RITIRO})</div>
+                <div style="font-size:10px;font-weight:400;opacity:.9;margin-top:1px">Ti contatteremo per fissare data e orario del corriere</div>
+              </div>
+            </div>`
+            : `<a href="https://abutmentcompatibili.com/ritiro-reso-spedizione.html" target="_blank" rel="noopener"
+              style="display:flex;align-items:center;gap:8px;background:#0F5282;color:#fff;font-size:12px;font-weight:700;padding:9px 16px;border-radius:8px;text-decoration:none">
+              ${icTruck}
+              <div>
+                <div>📦 Spedisci tu stesso</div>
+                <div style="font-size:10px;font-weight:400;opacity:.85;margin-top:1px">Ritiro Reso/Spedizione · €10</div>
+              </div>
+            </a>`}
         </div>
       </div>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
@@ -5097,7 +5120,7 @@ function renderConfirmScreen() {
     <div class="confirm-title">Ordine inviato!</div>
     <div class="confirm-sub">
       Il tuo ordine è stato registrato e inviato correttamente.<br>
-      ${isBefree ? "Il tuo ordine è stato registrato. Ti contatteremo per la conferma." : isDetector ? "Stampa il modulo con il codice, inseriscilo nel pacco e prenota il ritiro. Confermeremo il costo dopo l'identificazione delle connessioni." : "Il nostro team ti contatterà per confermare i dettagli."}
+      ${isBefree ? "Il tuo ordine è stato registrato. Ti contatteremo per la conferma." : isDetector ? ("Stampa il modulo con il codice e inseriscilo nel pacco. " + (detector.ritiroFisico ? "Ti contatteremo per organizzare il ritiro del corriere." : "Spedisci tu stesso il pacco.") + " Confermeremo il costo dopo l'identificazione delle connessioni.") : "Il nostro team ti contatterà per confermare i dettagli."}
     </div>
     <div class="confirm-detail">${detailRows}</div>
     ${trackBox}
@@ -5517,7 +5540,7 @@ function resetApp() {
   uploadedFiles.stl=null; uploadedFiles.infoConstr=null; uploadedFiles.scan=null;
   xmlParsed=null;
   Object.assign(clinico, { denti:[], shade:null, translucenza:null, urgenza:null, marcaImpianto:"", noteClinico:"" });
-  Object.assign(detector, { campioniTipo:null, libreria:null, cad:null, cadAltro:"", lavProtesica:null, lavAltro:"", items:[], printed:false });
+  Object.assign(detector, { campioniTipo:null, libreria:null, cad:null, cadAltro:"", lavProtesica:null, lavAltro:"", items:[], ritiroFisico:false, printed:false });
   Object.assign(cliente, {
     nome:"", cognome:"", azienda:"", telefono:"", email:"", piva:"",
     nomePaziente:"",

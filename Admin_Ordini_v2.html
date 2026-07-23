@@ -2517,6 +2517,13 @@ function prioBadge(o) {
   return n ? `<span class="prio lvl${n}" title="Urgenza: ${URG_LABEL[n]}">${prioTris(n)}</span>` : '';
 }
 
+// Badge 🚚 in lista: il cliente ha richiesto che ritiriamo noi il pacco (scheda_dati.detector.ritiro_fisico).
+function ritiroBadge(o) {
+  const det = o.scheda_dati && o.scheda_dati.detector;
+  if (!det || !det.ritiro_fisico) return '';
+  return `<span title="Ritiro da organizzare — il cliente ha richiesto che passiamo noi a ritirare il pacco (+€10)" style="display:inline-flex;align-items:center;margin-left:5px;font-size:13px">🚚</span>`;
+}
+
 function renderOrders() {
   const orders = filteredOrders();
   const body = document.getElementById("orders-body");
@@ -2558,7 +2565,7 @@ function renderOrders() {
         <span class="lav-ic">${lavIcon(o)}</span>
         <div class="order-lav">${esc((o.lavorazione || "—").replace(/\n/g," "))}</div>
       </div>
-      <div class="order-statuscol"><span class="status-badge status-${esc(o.status)}">${esc(statusLabel(o.status))}</span>${prioBadge(o)}</div>
+      <div class="order-statuscol"><span class="status-badge status-${esc(o.status)}">${esc(statusLabel(o.status))}</span>${prioBadge(o)}${ritiroBadge(o)}</div>
       <div class="order-op">${esc(o.operator || "—")}</div>
       <div class="order-date">${fmtDate(o.created_at)}${o.status === 'concluso' && o.updated_at ? `<br><span style="color:var(--green);font-weight:700" title="Chiuso / spedito il">✓ ${fmtDate(o.updated_at)}</span>` : ''}</div>
     </div>`).join("");
@@ -3022,24 +3029,27 @@ function openDetail(id) {
           </div>
         </div>`;
       }).join('');
-      // ── Costo: €50 per connessione DISTINTA identificata + €10 ritiro corriere ──
+      // ── Costo: €50 per connessione DISTINTA identificata + €10 ritiro corriere (facoltativo, su richiesta cliente) ──
       const CID = 50, CRIT = 10;
       const connKey = it => { const id = it.identificazione || {}; return [(id.sistema||'').trim().toLowerCase(), (id.piattaforma||'').trim().toLowerCase()].filter(Boolean).join('|'); };
       const idOk = items.filter(connKey);
       const distinct = new Set(idOk.map(connKey));
       const pending = items.length - idOk.length;
       const costoId = distinct.size * CID;
+      const ritiroFisico = !!det.ritiro_fisico;
       const pendTxt = pending ? ` · <span style="color:#B45309">${pending} da identificare</span>` : '';
       const provTxt = pending ? ' <span style="font-size:10px;color:var(--gray)">(provvisorio)</span>' : '';
       const costoBox = `<div style="background:#fff;border:1px solid #BFDBFE;border-radius:9px;padding:9px 12px;margin:10px 0">
         <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--blue);margin-bottom:5px">Costo</div>
         ${rowRaw("Connessioni distinte", `${distinct.size}${pendTxt}`)}
         ${rowRaw("Identificazione", `€${CID} × ${distinct.size} = <b>€${costoId}</b>`)}
-        ${row("Ritiro corriere", `€${CRIT}`)}
-        ${rowRaw("Totale", `<b>€${costoId + CRIT}</b>${provTxt}`)}
+        ${row("Ritiro corriere", ritiroFisico ? `€${CRIT} — richiesto` : "non richiesto")}
+        ${rowRaw("Totale", `<b>€${costoId + (ritiroFisico?CRIT:0)}</b>${provTxt}`)}
       </div>`;
+      const ritiroBanner = ritiroFisico ? `<div style="background:#FEF3C7;border:2px solid #F59E0B;border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:12.5px;font-weight:800;color:#92400E;display:flex;align-items:center;gap:8px">🚚 RITIRO DA ORGANIZZARE — il cliente ha richiesto che passiamo noi a ritirare il pacco (+€${CRIT}). Prenotare il corriere.</div>` : '';
       return `<div class="detail-section" style="background:#F0F9FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px 14px">
         <div class="detail-section-title">🔍 Implant Detector — richiesta</div>
+        ${ritiroBanner}
         ${row("Cosa invia", campLabel)}
         ${row("Nome paziente", det.paziente)}
         ${row("Libreria", det.libreria ? "Sì" : "No")}
@@ -3130,7 +3140,7 @@ function openDetail(id) {
         : `<a class="file-link-btn" href="${esc(safeUrl(o.file_link))}" target="_blank" rel="noopener noreferrer">
              ${icon('download')} Scarica file ordine${/gofile\.io/i.test(String(o.file_link || "")) ? " (host esterno)" : ""}
              ${o.file_name ? `<span style="font-weight:400;font-size:10px;color:var(--gray)">${esc(o.file_name)}</span>` : ""}
-           </a>${/gofile\.io/i.test(String(o.file_link || "")) ? `<div style="margin-top:7px;padding:8px 11px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;font-size:10.5px;line-height:1.55;color:#9A3412">⚠ File sull'host esterno <b>gofile.io</b>: ora richiede un account a pagamento ed è spesso bloccato dagli antivirus, quindi il download può non partire (soprattutto da Windows). Se qui sopra compare <b>«Scarica STL 3D»</b> usa quello. Altrimenti il file va rigenerato dallo ZIP originale e ricaricato.</div>` : ""}`) : ""}
+           </a>`) : ""}
       <div class="stl-preview-box" id="stl-prev"><div class="stl-preview-msg">Verifica anteprima 3D…</div></div>
     </div>` : ""}
 

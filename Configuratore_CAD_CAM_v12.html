@@ -123,6 +123,10 @@
   .grid-3 { grid-template-columns: repeat(3,1fr); }
   .grid-auto { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
   .grid-mat  { grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); }
+  .lav-grid { grid-template-columns: repeat(4,1fr); }
+  @media (max-width: 860px) { .lav-grid { grid-template-columns: repeat(3,1fr); } }
+  @media (max-width: 640px) { .lav-grid { grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 340px) { .lav-grid { grid-template-columns: 1fr; } }
 
   /* OPTION CARD */
   .opt-card {
@@ -3012,7 +3016,7 @@ function renderStep() {
   if(phase==="lav") {
     html += stepHead(stepNum,total,"Cosa realizziamo?","Tipo di lavorazione");
 
-    html += `<div class="grid grid-auto" style="grid-template-columns:repeat(4,1fr);margin-bottom:4px">`;
+    html += `<div class="grid lav-grid" style="margin-bottom:4px">`;
     LAVORAZIONI.forEach(lav=>{
       const sel=state.lavId===lav.id?"selected":"";
       html+=`<div class="opt-card ${sel}" onclick="selectLav('${lav.id}')">
